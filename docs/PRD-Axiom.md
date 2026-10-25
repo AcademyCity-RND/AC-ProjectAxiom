@@ -7,7 +7,7 @@
 > **Repositori Target:** `axiom` (Monorepo)  
 > **Konteks Kompetisi:** Kartika Cyber Hackathon 2026 (PUSSIBERAD & CODEPOLITAN)  
 > **Kategori:** 04 Cognitive Domain — Sub-kategori: *Buzzer/Bot Detection, Social Network Analysis, PsyOps Early Warning*  
-> **Arsitektur Utama:** Next.js Dashboard (Frontend) + FastAPI Async Core + ChromaDB (Vector Store) + PostgreSQL + XGBoost & Groq Llama 3  
+> **Arsitektur Utama:** Vite + React 19 Dashboard (Frontend) + FastAPI Async Core + ChromaDB (Vector Store) + PostgreSQL + XGBoost & Groq Llama 3  
 > **Biaya Operasional (Cost Target):** 100% Free-Tier / Open-Source Tooling (Zero External API Cost for MVP)  
 > **Status Dokumen:** Acuan Tunggal Spesifikasi Sistem (Source of Truth MVP)
 
@@ -53,10 +53,10 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 
 | Layer / Kategori | Komponen Teknologi | Versi / Spesifikasi | Peran & Justifikasi Teknis |
 | :--- | :--- | :--- | :--- |
-| **Frontend Framework** | **Next.js (App Router)** | v15.x / TypeScript 5.x | Web dashboard reaktif, visualisasi intelijen, dan Server-Side Rendering cepat |
+| **Frontend Framework** | **React 19 + Vite** | v19.x / Vite v5/v6 | Web dashboard SOC reaktif, zero hydration overhead, optimal untuk visualisasi canvas & graf |
 | **Styling & UI Kit** | **Tailwind CSS & Lucide Icons**| Tailwind v4 | UI bernuansa *Cyber Defense Dark/Military Glassmorphism* yang profesional |
-| **Visualisasi Graf** | **Cytoscape.js / React Flow** | v3.x | Visualisasi interaktif simpul jaringan aktor (*Social Network Graph*) & kluster |
-| **Visualisasi Metrik**| **Recharts** | v2.x | Heatmap aktivitas 24/7, grafik entropi waktu, dan radar chart perilaku |
+| **Visualisasi Graf** | **React Flow (@xyflow/react) / Cytoscape** | React Flow v12 | Visualisasi interaktif simpul jaringan aktor (*Social Network Graph*) & kluster CIB |
+| **Visualisasi Metrik**| **Apache ECharts** | ECharts v5/v6 | Heatmap aktivitas 24/7, grafik entropi waktu, dan radar chart perilaku presisi tinggi |
 | **Backend Engine** | **FastAPI (Python)** | Python 3.11 / 3.12 | Asynchronous high-throughput processing, Pydantic v2 validation |
 | **Database Relasional**| **PostgreSQL** | v16+ | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
 | **Vector Database** | **ChromaDB** | v0.5+ (Local Embedded) | Indexing dan pencarian semantic similarity copypasta antar-cuitan |

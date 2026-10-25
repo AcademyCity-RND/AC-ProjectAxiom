@@ -3,7 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
 [![FastAPI: 0.115](https://img.shields.io/badge/FastAPI-0.115.0-009688.svg)](https://fastapi.tiangolo.com/)
-[![Next.js: 15](https://img.shields.io/badge/Next.js-15.1-black.svg)](https://nextjs.org/)
+[![Vite: 5](https://img.shields.io/badge/Vite-5.2-646CFF.svg)](https://vitejs.dev/)
+[![React: 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
 [![Target: PUSSIBERAD](https://img.shields.io/badge/Competition-Kartika%20Cyber%20Hackathon%202026-red.svg)](https://kartikacyberhackathon.id/)
 
 > **Kategori:** 04 Cognitive Domain (Siber Sosial)  
@@ -51,7 +52,7 @@ Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│             FRONTEND DASHBOARD (Next.js 15)            │
+│          FRONTEND DASHBOARD (Vite + React 19)          │
 │  - Target Search (@user / URL)    - Interactive Graph  │
 │  - 24/7 Circadian Heatmap         - Evidence Dossier   │
 └───────────────────────────┬────────────────────────────┘
@@ -82,7 +83,7 @@ Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-
 
 ## 📂 Struktur Repositori (Repository Structure)
 
-```
+```text
 axiom/
 ├── docs/                      # Dokumentasi Teknis & Panduan
 │   ├── PRD-Axiom.md       # Product Requirements Document Acuan
@@ -102,20 +103,25 @@ axiom/
 │   ├── tests/                 # Unit & Integration Tests
 │   ├── Dockerfile             # Container Definition Backend
 │   └── requirements.txt       # Locked Python Dependencies
-├── frontend/                  # Next.js 15 Web Dashboard
+├── frontend/                  # Vite + React 19 Web Dashboard
 │   ├── src/
-│   │   ├── app/               # Next.js App Router Pages
+│   │   ├── app/               # Vite React App Router (pages-based or file-based)
 │   │   ├── components/        # UI & Analytical Visual Components
+│   │   │   ├── ui/          # shadcn/ui components
+│   │   │   └── visual/      # Charts, Graphs (ECharts, React Flow)
 │   │   ├── stores/            # Zustand State Management
 │   │   ├── types/             # TypeScript Shared Types
 │   │   └── lib/               # API Client & Utilities
-│   ├── package.json           # Locked Frontend Dependencies
-│   └── tailwind.config.ts     # Cyber Defense Dark Theme
+│   ├── package.json           # Locked Frontend Dependencies (pnpm)
+│   ├── tailwind.config.ts     # Cyber Defense Dark Theme (v4)
+│   ├── vite.config.ts       # Vite Configuration
+│   └── tsconfig.json        # TypeScript Config
 ├── data/                      # Local Embedded Storage
 │   ├── chromadb/              # Persistent Vector Collections
 │   └── samples/               # Offline Demo & Benchmark Datasets
 ├── docker-compose.yml         # Local Infrastructure Orchestration
 ├── .env.example               # Environment Configuration Template
+├── .gitignore                # Git ignore file
 └── README.md                  # Project Overview (This File)
 ```
 

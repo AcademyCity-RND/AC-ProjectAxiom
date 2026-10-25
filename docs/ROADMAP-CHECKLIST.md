@@ -15,7 +15,7 @@
 ### ✅ Checklist Detail Minggu 1
 
 #### 1.1 Inisialisasi Proyek & Lingkungan (Hari 1: Sabtu 25 Okt)
-- [ ] **Buat struktur monorepo** `axiom/`
+- [x] **Buat struktur monorepo** `axiom/`
   ```
   axiom/
   ├── backend/          # FastAPI Core
@@ -29,16 +29,17 @@
   │   ├── tests/
   │   ├── requirements.txt
   │   └── Dockerfile
-  ├── frontend/         # Next.js 15 Dashboard
-  │   ├── src/app/
-  │   ├── src/components/
-  │   ├── src/lib/
-  │   └── package.json
+  ├── frontend/         # Vite + React 19 Dashboard
+  │   ├── src/          # Components, Hooks, Stores, UI (shadcn)
+  │   ├── package.json  # pnpm locked dependencies
+  │   └── Dockerfile    # Nginx Alpine Production Ready
   ├── docker-compose.yml
   ├── .env.example
   └── README.md
   ```
-- [ ] **Setup Python 3.11+ Virtual Env** & `pip install -r requirements.txt`
+- [x] **Setup Python 3.11+ Virtual Env** & `pip install -r requirements.txt`
+- [x] **Inisialisasi Git & Commit Perdana** (`master` branch)
+- [x] **Migrasi FE ke Vite + React 19** (Optimalisasi Dashboard SOC)
 - [ ] **Setup Node.js 20+** & `pnpm install` di `frontend/`
 - [ ] **Docker Compose Up** untuk: PostgreSQL 16, ChromaDB (local), Redis (opsional untuk queue)
 - [ ] **Konfigurasi `.env`** (lihat PRD Section 2.2)
