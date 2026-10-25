@@ -1,6 +1,7 @@
 # 🛡️ Axiom — Cognitive Domain Threat Intelligence & Inauthentic Behavior Detection Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI Pipeline](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
 [![FastAPI: 0.115.11](https://img.shields.io/badge/FastAPI-0.115.11-009688.svg)](https://fastapi.tiangolo.com/)
 [![Vite: 8](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
