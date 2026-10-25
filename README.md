@@ -2,10 +2,11 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI Pipeline](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml)
-[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
-[![FastAPI: 0.115.11](https://img.shields.io/badge/FastAPI-0.115.11-009688.svg)](https://fastapi.tiangolo.com/)
-[![Vite: 8](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
-[![React: 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
+[![Tests: 7/7 Passed](https://img.shields.io/badge/Tests-7%2F7%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
+[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI: 0.115.11](https://img.shields.io/badge/FastAPI-0.115.11-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Vite: 8](https://img.shields.io/badge/Vite-8.3-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![React: 19](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
 [![Target: PUSSIBERAD](https://img.shields.io/badge/Competition-Kartika%20Cyber%20Hackathon%202026-red.svg)](https://kartikacyberhackathon.id/)
 
 > **Kategori:** 04 Cognitive Domain (Siber Sosial)  
