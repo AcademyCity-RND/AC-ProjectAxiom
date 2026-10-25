@@ -62,7 +62,7 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 | **Backend Engine** | **FastAPI (Python)** | v0.115.11 / Starlette 0.46.2 / Py 3.11/3.12 | Asynchronous high-throughput processing, Pydantic v2 validation, hardened against multipart CVE-2024-47874 & ReDoS |
 | **Database Relasional**| **PostgreSQL** | v16+ (Docker) | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
 | **Vector Database** | **ChromaDB** | v0.5.20 / Server v0.5.5 | Indexing dan pencarian semantic similarity copypasta antar-cuitan |
-| **Scraping Adapter** | **Twikit + Scraper Pool** | v2.2.0 Async Engine | Penarikan data X (Twitter) berbasis session cookie gratis & anti-block |
+| **Scraping Adapter** | **twscrape (vladkens/twscrape)** | v0.20.1 Async Engine | Penarikan data X (Twitter) berbasis session cookie gratis & anti-block (wait_timeout=60) |
 | **ML Classifier** | **XGBoost & Scikit-Learn** | v2.1.3 / v1.5.2 | Klasifikasi tabular 3-kelas (*Bot, Buzzer, Manusia*) dalam <50ms |
 | **NLP Embeddings** | **Sentence-Transformers** | `all-MiniLM-L6-v2` / v3.3.1 | Embedding semantik 384-dimensi lokal (cepat, hemat RAM, akurat) |
 | **Narrative LLM** | **Llama 3.3 70B via Groq** | Free Tier API (<1s inference) | Sintesis narasi intelejen, deteksi framing isu, dan perangkum laporan |

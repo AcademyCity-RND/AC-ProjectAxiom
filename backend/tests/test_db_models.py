@@ -17,7 +17,8 @@ def test_database_connection_and_crud():
     db = SessionLocal()
     try:
         # 1. Test User Creation
-        test_username = f"analyst_test_{int(datetime.now().timestamp())}"
+        ts = int(datetime.now().timestamp())
+        test_username = f"analyst_test_{ts}"
         user = User(
             username=test_username,
             hashed_password=hash_password("Secret123!"),
@@ -48,7 +49,7 @@ def test_database_connection_and_crud():
 
         # 3. Test InvestigationCase and Relationships
         case = InvestigationCase(
-            target="target_buzz_01",
+            target=f"target_buzz_{ts}",
             platform="x",
             status="queued",
             max_interactions=150,
@@ -63,7 +64,7 @@ def test_database_connection_and_crud():
         # 4. Test ActorProfile linked to Case
         actor = ActorProfile(
             case_id=case.id,
-            username="target_buzz_01",
+            username=f"target_buzz_{ts}",
             platform="x",
             display_name="Target Buzzer",
             followers_count=120,
@@ -79,7 +80,7 @@ def test_database_connection_and_crud():
         # 5. Test ActivityLog linked to Actor
         activity = ActivityLog(
             actor_id=actor.id,
-            platform_post_id="tweet_99901",
+            platform_post_id=f"tweet_{ts}_01",
             activity_type="tweet",
             content="Narasi terkoordinasi disinformasi siber.",
             posted_at=datetime.now(timezone.utc),
@@ -110,7 +111,7 @@ def test_database_connection_and_crud():
         link = ClusterLink(
             case_id=case.id,
             source_actor=actor.username,
-            target_actor="coordinated_bot_02",
+            target_actor=f"coordinated_bot_{ts}",
             similarity_score=0.88,
             link_type="semantic_copypasta",
             evidence_snippet="Pola kata identik 88%"
@@ -122,7 +123,7 @@ def test_database_connection_and_crud():
 
         # 8. Test Watchlist
         watch = Watchlist(
-            username=actor.username,
+            username=f"watch_{actor.username}",
             platform="x",
             tag="psyops_investigation",
             notes="Akun buzzer terkoordinasi.",

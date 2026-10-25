@@ -52,6 +52,15 @@ class Settings(BaseSettings):
     # Groq API
     GROQ_API_KEY: str = ""
 
+    # Scraper & twscrape Configuration
+    TWSCRAPE_DB_PATH: str = "./data/sessions/x_accounts.db"
+    TWSCRAPE_WAIT_TIMEOUT: float = 60.0
+    TWSCRAPE_WAIT_INTERVAL: float = 5.0
+    X_ACCOUNTS_POOL: str = ""  # Format JSON: [{"username": "...", "email": "...", "password": "...", "cookies": "..."}]
+    X_COOKIES: str = ""  # Format auth_token=...; ct0=... untuk 1 akun burner aman
+    SESSIONS_DIR: str = "./data/sessions"
+    SCRAPER_OFFLINE_MODE: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
