@@ -137,8 +137,8 @@ axiom/
 
 ### 2. Kloning & Konfigurasi Lingkungan
 ```bash
-git clone https://github.com/Avin1731/axiom.git
-cd axiom
+git clone https://github.com/AcademyCity-RND/AC-ProjectAxiom.git
+cd AC-ProjectAxiom
 cp .env.example .env
 # Edit .env dan masukkan GROQ_API_KEY serta akun pool Twitter
 ```
