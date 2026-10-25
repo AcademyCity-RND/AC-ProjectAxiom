@@ -1,6 +1,6 @@
 # 🗺️ Axiom / Project Axiom — Master Execution Checklist & Roadmap (Kartika Cyber Hackathon 2026)
 ### Target: Submission 15 November 2026 | Finalis 20 November 2026 | Grand Final 24 November 2026
-### Status: **Minggu 1 (25 Okt – 31 Okt) — DIMULAI**
+### Status: **Minggu 1 (25 Okt – 31 Okt) — SELESAI (Fondasi)**
 
 > **Kode Proyek / Identitas:** Project Axiom  
 > **Tagline:** *"Unveiling the Truth in the Cognitive Battlefield."*  

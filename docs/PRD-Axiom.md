@@ -53,17 +53,17 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 
 | Layer / Kategori | Komponen Teknologi | Versi / Spesifikasi | Peran & Justifikasi Teknis |
 | :--- | :--- | :--- | :--- |
-| **Frontend Framework** | **React 19 + Vite** | v19.x / Vite v5/v6 | Web dashboard SOC reaktif, zero hydration overhead, optimal untuk visualisasi canvas & graf |
+| **Frontend Framework** | **React 19 + Vite** | v19.x / Vite v5 | Web dashboard SOC reaktif, zero hydration overhead, optimal untuk visualisasi canvas & graf |
 | **Styling & UI Kit** | **Tailwind CSS & Lucide Icons**| Tailwind v4 | UI bernuansa *Cyber Defense Dark/Military Glassmorphism* yang profesional |
 | **Visualisasi Graf** | **React Flow (@xyflow/react) / Cytoscape** | React Flow v12 | Visualisasi interaktif simpul jaringan aktor (*Social Network Graph*) & kluster CIB |
-| **Visualisasi Metrik**| **Apache ECharts** | ECharts v5/v6 | Heatmap aktivitas 24/7, grafik entropi waktu, dan radar chart perilaku presisi tinggi |
-| **Backend Engine** | **FastAPI (Python)** | Python 3.11 / 3.12 | Asynchronous high-throughput processing, Pydantic v2 validation |
-| **Database Relasional**| **PostgreSQL** | v16+ | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
-| **Vector Database** | **ChromaDB** | v0.5+ (Local Embedded) | Indexing dan pencarian semantic similarity copypasta antar-cuitan |
-| **Scraping Adapter** | **Twikit + Scraper Pool** | Async Python Engine | Penarikan data X (Twitter) berbasis session cookie gratis |
-| **ML Classifier** | **XGBoost & Scikit-Learn** | v2.0+ | Klasifikasi tabular 3-kelas (*Bot, Buzzer, Manusia*) dalam <50ms |
-| **NLP Embeddings** | **Sentence-Transformers** | `all-MiniLM-L6-v2` | Embedding semantik 384-dimensi lokal (cepat, hemat RAM, akurat) |
-| **Narrative LLM** | **Llama 3.3 70B via Groq** | Free Tier API (<1s inference) | Sintesis narasi intelejen, deteksi framing isu, dan perangkum laporan |
+| **Visualisasi Metrik**| **Apache ECharts** | ECharts v5 | Heatmap aktivitas 24/7, grafik entropi waktu, dan radar chart perilaku presisi tinggi |
+| **Backend Engine** | **FastAPI (Python)** | Python 3.11 / 3.12 (FastAPI 0.115.5) | Asynchronous high-throughput processing, Pydantic v2 (2.10.2) validation |
+| **Database Relasional**| **PostgreSQL** | v16-alpine | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
+| **Vector Database** | **ChromaDB** | v0.5.20 (Local Embedded / Docker) | Indexing dan pencarian semantic similarity copypasta antar-cuitan |
+| **Scraping Adapter** | **Twikit + Scraper Pool** | Twikit v2.2.0 | Penarikan data X (Twitter) berbasis session cookie gratis |
+| **ML Classifier** | **XGBoost & Scikit-Learn** | XGBoost v2.1.3, Sklearn v1.5.2 | Klasifikasi tabular 3-kelas (*Bot, Buzzer, Manusia*) dalam <50ms |
+| **NLP Embeddings** | **Sentence-Transformers & PyTorch** | `all-MiniLM-L6-v2`, Torch 2.5.1 (CPU) | Embedding semantik 384-dimensi lokal (cepat, hemat RAM & bandwidth, inferensi CPU) |
+| **Narrative LLM** | **Llama 3.3 70B via Groq** | Groq SDK v0.13.0 | Sintesis narasi intelejen, deteksi framing isu, dan perangkum laporan |
 
 ### 2.2 Konfigurasi Environment (`.env.example`)
 

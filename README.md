@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
-[![FastAPI: 0.115](https://img.shields.io/badge/FastAPI-0.115.0-009688.svg)](https://fastapi.tiangolo.com/)
+[![FastAPI: 0.115](https://img.shields.io/badge/FastAPI-0.115.5-009688.svg)](https://fastapi.tiangolo.com/)
 [![Vite: 5](https://img.shields.io/badge/Vite-5.2-646CFF.svg)](https://vitejs.dev/)
 [![React: 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
 [![Target: PUSSIBERAD](https://img.shields.io/badge/Competition-Kartika%20Cyber%20Hackathon%202026-red.svg)](https://kartikacyberhackathon.id/)
@@ -177,9 +177,9 @@ pnpm dev
 
 - [x] **Dokumentasi & Spesifikasi PRD** (Selesai di `docs/PRD-Axiom.md`)
 - [x] **Master Checklist & Roadmap** (Selesai di `docs/ROADMAP-CHECKLIST.md`)
-- [ ] **Minggu 1:** Ingesti X (Twitter), Skema DB, ChromaDB, & XGBoost Baseline
+- [x] **Minggu 1:** Ingesti X (Twitter), Skema DB, ChromaDB, & XGBoost Baseline (Infrastruktur & Dependencies Siap)
 - [ ] **Minggu 2:** Integrasi Groq LLM Explainable AI, YouTube Auditing, PDF Export
-- [ ] **Minggu 3:** Dashboard Next.js, Cytoscape Network Graph, Circadian Heatmap
+- [ ] **Minggu 3:** Dashboard Vite + React 19, React Flow Network Graph, Circadian Heatmap
 - [ ] **Minggu 4:** Pengujian Menyeluruh, Video Demo, Slide Deck, & Submission (15 Nov 2026)
 
 ---
