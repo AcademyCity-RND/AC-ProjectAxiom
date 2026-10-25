@@ -1,6 +1,6 @@
 # 🗺️ Axiom / Project Axiom — Master Execution Checklist & Roadmap (Kartika Cyber Hackathon 2026)
 ### Target: Submission 15 November 2026 | Finalis 20 November 2026 | Grand Final 24 November 2026
-### Status: **Minggu 1 (25 Okt – 31 Okt) — SELESAI (Fondasi)**
+### Status: **Minggu 1 (25 Okt – 31 Okt) — Inisialisasi Selesai (Fondasi Berjalan)**
 
 > **Kode Proyek / Identitas:** Project Axiom  
 > **Tagline:** *"Unveiling the Truth in the Cognitive Battlefield."*  
@@ -37,13 +37,13 @@
   ├── .env.example
   └── README.md
   ```
-- [x] **Setup Python 3.11+ Virtual Env** & `pip install -r requirements.txt`
+- [x] **Setup Python 3.11+ Virtual Env** & `pip install -r requirements.txt` (termasuk optimasi PyTorch CPU)
 - [x] **Inisialisasi Git & Commit Perdana** (`master` branch)
 - [x] **Migrasi FE ke Vite + React 19** (Optimalisasi Dashboard SOC)
-- [ ] **Setup Node.js 20+** & `pnpm install` di `frontend/`
-- [ ] **Docker Compose Up** untuk: PostgreSQL 16, ChromaDB (local), Redis (opsional untuk queue)
-- [ ] **Konfigurasi `.env`** (lihat PRD Section 2.2)
-- [ ] **Git Init** + Commit awal `chore: initial project scaffold`
+- [x] **Setup Node.js 20+** & `pnpm install` di `frontend/`
+- [x] **Docker Compose Up** untuk: PostgreSQL 16, ChromaDB (v0.5.5), Backend FastAPI (healthy), Frontend Nginx
+- [x] **Konfigurasi `.env`** (Database, Groq Key, Port Settings)
+- [x] **Setup Testing & Verification** (`pytest.ini` & `tests/test_health.py` lulus 100%)
 
 #### 1.2 Database Schema & ORM (Hari 1-2: Sabtu-Minggu)
 - [ ] **Desain & Implementasi Model SQLAlchemy (Alembic Migration):**

@@ -7,7 +7,7 @@
 > **Repositori Target:** `axiom` (Monorepo)  
 > **Konteks Kompetisi:** Kartika Cyber Hackathon 2026 (PUSSIBERAD & CODEPOLITAN)  
 > **Kategori:** 04 Cognitive Domain — Sub-kategori: *Buzzer/Bot Detection, Social Network Analysis, PsyOps Early Warning*  
-> **Arsitektur Utama:** Vite + React 19 Dashboard (Frontend) + FastAPI Async Core + ChromaDB (Vector Store) + PostgreSQL + XGBoost & Groq Llama 3  
+> **Arsitektur Utama:** Vite + React 19 SPA (Frontend) + FastAPI Async Core + ChromaDB (Vector Store) + PostgreSQL + XGBoost & Groq Llama 3  
 > **Biaya Operasional (Cost Target):** 100% Free-Tier / Open-Source Tooling (Zero External API Cost for MVP)  
 > **Status Dokumen:** Acuan Tunggal Spesifikasi Sistem (Source of Truth MVP)
 
@@ -53,17 +53,19 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 
 | Layer / Kategori | Komponen Teknologi | Versi / Spesifikasi | Peran & Justifikasi Teknis |
 | :--- | :--- | :--- | :--- |
-| **Frontend Framework** | **React 19 + Vite** | v19.x / Vite v5 | Web dashboard SOC reaktif, zero hydration overhead, optimal untuk visualisasi canvas & graf |
+| **Frontend Framework** | **Vite + React (SPA)** | React v19 / TS 5.x / Vite 8 | Web dashboard ultra-cepat, zero SSR overhead, optimal untuk visualisasi graf dan data SOC |
 | **Styling & UI Kit** | **Tailwind CSS & Lucide Icons**| Tailwind v4 | UI bernuansa *Cyber Defense Dark/Military Glassmorphism* yang profesional |
-| **Visualisasi Graf** | **React Flow (@xyflow/react) / Cytoscape** | React Flow v12 | Visualisasi interaktif simpul jaringan aktor (*Social Network Graph*) & kluster CIB |
-| **Visualisasi Metrik**| **Apache ECharts** | ECharts v5 | Heatmap aktivitas 24/7, grafik entropi waktu, dan radar chart perilaku presisi tinggi |
-| **Backend Engine** | **FastAPI (Python)** | Python 3.11 / 3.12 (FastAPI 0.115.5) | Asynchronous high-throughput processing, Pydantic v2 (2.10.2) validation |
-| **Database Relasional**| **PostgreSQL** | v16-alpine | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
-| **Vector Database** | **ChromaDB** | v0.5.20 (Local Embedded / Docker) | Indexing dan pencarian semantic similarity copypasta antar-cuitan |
-| **Scraping Adapter** | **Twikit + Scraper Pool** | Twikit v2.2.0 | Penarikan data X (Twitter) berbasis session cookie gratis |
-| **ML Classifier** | **XGBoost & Scikit-Learn** | XGBoost v2.1.3, Sklearn v1.5.2 | Klasifikasi tabular 3-kelas (*Bot, Buzzer, Manusia*) dalam <50ms |
-| **NLP Embeddings** | **Sentence-Transformers & PyTorch** | `all-MiniLM-L6-v2`, Torch 2.5.1 (CPU) | Embedding semantik 384-dimensi lokal (cepat, hemat RAM & bandwidth, inferensi CPU) |
-| **Narrative LLM** | **Llama 3.3 70B via Groq** | Groq SDK v0.13.0 | Sintesis narasi intelejen, deteksi framing isu, dan perangkum laporan |
+| **Visualisasi Graf** | **React Flow (@xyflow/react) / Cytoscape.js** | v12.x / v3.x | Visualisasi interaktif simpul jaringan aktor (*Social Network Graph*) & kluster CIB |
+| **Visualisasi Metrik**| **Apache ECharts & Recharts** | ECharts v6 / React v3 | Heatmap aktivitas 24/7, grafik entropi waktu, dan radar chart perilaku |
+| **Data Fetching / Polling**| **TanStack Query** | v5.x | Polling asynchronous investigation task & cache state management |
+| **Dossier Export** | **@react-pdf/renderer** | v4.x (Client-side) | Pembuatan berkas PDF resmi instan langsung dari browser tanpa beban server |
+| **Backend Engine** | **FastAPI (Python)** | v0.115.5 / Py 3.11/3.12 | Asynchronous high-throughput processing, Pydantic v2 validation |
+| **Database Relasional**| **PostgreSQL** | v16+ (Docker) | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
+| **Vector Database** | **ChromaDB** | v0.5.20 / Server v0.5.5 | Indexing dan pencarian semantic similarity copypasta antar-cuitan |
+| **Scraping Adapter** | **Twikit + Scraper Pool** | v2.2.0 Async Engine | Penarikan data X (Twitter) berbasis session cookie gratis & anti-block |
+| **ML Classifier** | **XGBoost & Scikit-Learn** | v2.1.3 / v1.5.2 | Klasifikasi tabular 3-kelas (*Bot, Buzzer, Manusia*) dalam <50ms |
+| **NLP Embeddings** | **Sentence-Transformers** | `all-MiniLM-L6-v2` / v3.3.1 | Embedding semantik 384-dimensi lokal (cepat, hemat RAM, akurat) |
+| **Narrative LLM** | **Llama 3.3 70B via Groq** | Free Tier API (<1s inference) | Sintesis narasi intelejen, deteksi framing isu, dan perangkum laporan |
 
 ### 2.2 Konfigurasi Environment (`.env.example`)
 
@@ -96,7 +98,7 @@ Sistem menerapkan arsitektur *Pipeling Tiga Tingkat (Tri-Tier Analytical Pipelin
 
 ```mermaid
 flowchart TD
-    subgraph UI["Frontend Interface (Next.js 15)"]
+    subgraph UI["Frontend Interface (Vite + React SPA)"]
         Search["Target Search\n(@username / URL)"]
         GraphView["Interactive Network Graph\n(Cytoscape.js)"]
         HeatmapView["Circadian 24/7 Heatmap\n& Entropy Radar"]
@@ -307,7 +309,7 @@ Sebuah milestone purwarupa dinyatakan selesai dan layak diajukan ke dewan juri j
 | 3 | **LLM Synthesis via Groq** | Llama 3.3 70B | Menghasilkan narasi pembuktian bukti ancaman (*evidence points*) dalam waktu $< 2.0$ detik. |
 | 4 | **Tri-Class Accuracy** | Labeled Benchmark Dataset | Mencapai akurasi deteksi $> 88\%$ pada set data uji bot, buzzer, dan akun organik. |
 | 5 | **Network Visualization** | Cytoscape.js Renderer | Menampilkan minimal 20 simpul akun yang berinteraksi dengan layout visual lancar (60 FPS). |
-| 6 | **Document Export** | PDF Generator (Weasyprint/jsPDF)| Menghasilkan berkas PDF rapi berisi ringkasan kasus, grafik, dan bukti forensik. |
+| 6 | **Document Export** | Client PDF Generator (@react-pdf/renderer)| Menghasilkan berkas PDF rapi berisi ringkasan kasus, grafik, dan bukti forensik. |
 | 7 | **Zero API Cost Run** | Seluruh komponen sistem | Beroperasi penuh pada lingkungan pengujian tanpa ada tagihan API berbayar. |
 
 ---
@@ -317,7 +319,7 @@ Sebuah milestone purwarupa dinyatakan selesai dan layak diajukan ke dewan juri j
 Mengacu pada jadwal resmi **Kartika Cyber Hackathon 2026**:
 
 * **Minggu 1 (25 Okt – 31 Okt 2026) — Core Foundation & Ingestion:**
-  * Inisialisasi monorepo: FastAPI backend + Next.js 15 UI template.
+  * Inisialisasi monorepo: FastAPI backend + Vite React SPA UI + Docker Compose (PostgreSQL, ChromaDB, FastAPI, Nginx).
   * Implementasi wrapper `twikit` scraper pool untuk penarikan data X bebas blokir.
   * Setup ChromaDB lokal dan pipeline embedding `all-MiniLM-L6-v2`.
 * **Minggu 2 (01 Nov – 07 Nov 2026) — Detection Engine & Analytics:**

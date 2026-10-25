@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
 [![FastAPI: 0.115](https://img.shields.io/badge/FastAPI-0.115.5-009688.svg)](https://fastapi.tiangolo.com/)
-[![Vite: 5](https://img.shields.io/badge/Vite-5.2-646CFF.svg)](https://vitejs.dev/)
+[![Vite: 8](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
 [![React: 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
 [![Target: PUSSIBERAD](https://img.shields.io/badge/Competition-Kartika%20Cyber%20Hackathon%202026-red.svg)](https://kartikacyberhackathon.id/)
 
@@ -159,8 +159,9 @@ Layanan akan tersedia di:
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # atau venv\Scripts\activate di Windows
-pip install -r requirements.txt
+source venv/bin/activate  # atau .\venv\Scripts\activate di Windows PowerShell
+pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt --prefer-binary
 uvicorn app.main:app --reload --port 8000
 ```
 
