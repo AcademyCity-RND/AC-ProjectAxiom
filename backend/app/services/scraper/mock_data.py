@@ -28,7 +28,12 @@ BUZZER_SAMPLE = {
             "posted_at": datetime(2026, 10, 24, 9, 15, tzinfo=timezone.utc),
             "in_reply_to_user": "Kemhan_RI",
             "conversation_id": "conv_9901",
-            "metrics": {"likes": 12, "retweets": 45, "replies": 3}
+            "lang": "in",
+            "hashtags": ["AuditSiber"],
+            "mentions": ["Kemhan_RI"],
+            "urls": [],
+            "has_media": False,
+            "metrics": {"likes": 12, "retweets": 45, "replies": 3, "views": 2100}
         },
         {
             "platform_post_id": "tw_buzzer_102",
@@ -37,7 +42,12 @@ BUZZER_SAMPLE = {
             "posted_at": datetime(2026, 10, 24, 11, 40, tzinfo=timezone.utc),
             "in_reply_to_user": "TNI_AD",
             "conversation_id": "conv_9902",
-            "metrics": {"likes": 8, "retweets": 38, "replies": 2}
+            "lang": "in",
+            "hashtags": [],
+            "mentions": ["TNI_AD"],
+            "urls": [],
+            "has_media": False,
+            "metrics": {"likes": 8, "retweets": 38, "replies": 2, "views": 1540}
         },
         {
             "platform_post_id": "tw_buzzer_103",
@@ -46,7 +56,12 @@ BUZZER_SAMPLE = {
             "posted_at": datetime(2026, 10, 24, 14, 25, tzinfo=timezone.utc),
             "in_reply_to_user": "Kemhan_RI",
             "conversation_id": "conv_9903",
-            "metrics": {"likes": 15, "retweets": 51, "replies": 5}
+            "lang": "in",
+            "hashtags": ["KedaulatanSiber"],
+            "mentions": ["Kemhan_RI"],
+            "urls": [],
+            "has_media": False,
+            "metrics": {"likes": 15, "retweets": 51, "replies": 5, "views": 3200}
         },
         {
             "platform_post_id": "tw_buzzer_104",
@@ -55,7 +70,12 @@ BUZZER_SAMPLE = {
             "posted_at": datetime(2026, 10, 23, 10, 5, tzinfo=timezone.utc),
             "in_reply_to_user": None,
             "conversation_id": None,
-            "metrics": {"likes": 20, "retweets": 80, "replies": 8}
+            "lang": "in",
+            "hashtags": ["AuditSiber"],
+            "mentions": [],
+            "urls": [],
+            "has_media": False,
+            "metrics": {"likes": 20, "retweets": 80, "replies": 8, "views": 4500}
         },
         {
             "platform_post_id": "tw_buzzer_105",
@@ -64,7 +84,12 @@ BUZZER_SAMPLE = {
             "posted_at": datetime(2026, 10, 23, 16, 50, tzinfo=timezone.utc),
             "in_reply_to_user": "TNI_AD",
             "conversation_id": "conv_9904",
-            "metrics": {"likes": 11, "retweets": 34, "replies": 1}
+            "lang": "in",
+            "hashtags": [],
+            "mentions": ["TNI_AD"],
+            "urls": [],
+            "has_media": False,
+            "metrics": {"likes": 11, "retweets": 34, "replies": 1, "views": 1800}
         }
     ]
 }
@@ -95,7 +120,12 @@ BOT_SAMPLE = {
             "posted_at": datetime(2026, 10, 25, (i * 3) % 24, 0, tzinfo=timezone.utc),
             "in_reply_to_user": None,
             "conversation_id": None,
-            "metrics": {"likes": 0, "retweets": 1, "replies": 0}
+            "lang": "in",
+            "hashtags": ["BeritaTerkini"],
+            "mentions": [],
+            "urls": ["https://bit.ly/update-info-siber"],
+            "has_media": False,
+            "metrics": {"likes": 0, "retweets": 1, "replies": 0, "views": 42}
         }
         for i in range(1, 15)
     ]
@@ -127,7 +157,12 @@ ORGANIC_SAMPLE = {
             "posted_at": datetime(2026, 10, 25, 7, 30, tzinfo=timezone.utc),
             "in_reply_to_user": None,
             "conversation_id": None,
-            "metrics": {"likes": 14, "retweets": 0, "replies": 2}
+            "lang": "in",
+            "hashtags": [],
+            "mentions": [],
+            "urls": [],
+            "has_media": False,
+            "metrics": {"likes": 14, "retweets": 0, "replies": 2, "views": 850}
         },
         {
             "platform_post_id": "tw_human_02",
@@ -136,7 +171,12 @@ ORGANIC_SAMPLE = {
             "posted_at": datetime(2026, 10, 24, 12, 10, tzinfo=timezone.utc),
             "in_reply_to_user": "teman_coding",
             "conversation_id": "conv_human_01",
-            "metrics": {"likes": 3, "retweets": 0, "replies": 1}
+            "lang": "in",
+            "hashtags": [],
+            "mentions": ["teman_coding"],
+            "urls": [],
+            "has_media": False,
+            "metrics": {"likes": 3, "retweets": 0, "replies": 1, "views": 210}
         },
         {
             "platform_post_id": "tw_human_03",
@@ -145,7 +185,12 @@ ORGANIC_SAMPLE = {
             "posted_at": datetime(2026, 10, 23, 19, 45, tzinfo=timezone.utc),
             "in_reply_to_user": None,
             "conversation_id": None,
-            "metrics": {"likes": 8, "retweets": 1, "replies": 6}
+            "lang": "in",
+            "hashtags": [],
+            "mentions": [],
+            "urls": [],
+            "has_media": False,
+            "metrics": {"likes": 8, "retweets": 1, "replies": 6, "views": 620}
         }
     ]
 }
@@ -186,7 +231,12 @@ def get_mock_data(username: str) -> Dict[str, Any]:
                     "posted_at": datetime.now(timezone.utc) - timedelta(hours=i * 5),
                     "in_reply_to_user": "institusi_publik" if i % 2 != 0 else None,
                     "conversation_id": f"conv_{i}" if i % 2 != 0 else None,
-                    "metrics": {"likes": i * 2, "retweets": i, "replies": 1}
+                    "lang": "in",
+                    "hashtags": [],
+                    "mentions": ["institusi_publik"] if i % 2 != 0 else [],
+                    "urls": [],
+                    "has_media": False,
+                    "metrics": {"likes": i * 2, "retweets": i, "replies": 1, "views": i * 50}
                 }
                 for i in range(1, 10)
             ]

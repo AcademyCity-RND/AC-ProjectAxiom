@@ -144,6 +144,16 @@ class TwscrapeService:
                 is_reply = getattr(tw, "inReplyToUser", None) is not None
                 in_reply_user = tw.inReplyToUser.username if tw.inReplyToUser else None
 
+                # Ekstraksi entitas mikro terstruktur (Hashtags, Mentions, URLs, Media)
+                hashtags = [tag.strip("#") for tag in getattr(tw, "hashtags", []) if tag]
+                mentions = [
+                    getattr(u, "username", str(u)).lstrip("@")
+                    for u in getattr(tw, "mentionedUsers", [])
+                    if getattr(u, "username", str(u))
+                ]
+                urls = [getattr(l, "url", str(l)) for l in getattr(tw, "links", []) if l]
+                has_media = bool(len(getattr(tw, "photos", [])) + len(getattr(tw, "videos", [])))
+
                 results.append({
                     "platform_post_id": str(tw.id),
                     "activity_type": "reply" if is_reply else "tweet",
@@ -151,10 +161,16 @@ class TwscrapeService:
                     "posted_at": parse_datetime(tw.date),
                     "in_reply_to_user": in_reply_user,
                     "conversation_id": str(getattr(tw, "conversationId", "")) or None,
+                    "lang": getattr(tw, "lang", "") or "und",
+                    "hashtags": hashtags,
+                    "mentions": mentions,
+                    "urls": urls,
+                    "has_media": has_media,
                     "metrics": {
                         "likes": getattr(tw, "likeCount", 0) or 0,
                         "retweets": getattr(tw, "retweetCount", 0) or 0,
                         "replies": getattr(tw, "replyCount", 0) or 0,
+                        "views": getattr(tw, "viewCount", 0) or 0,
                     }
                 })
             return results
@@ -188,6 +204,16 @@ class TwscrapeService:
                 if getattr(tw, "inReplyToUser", None) is not None:
                     content = getattr(tw, "rawContent", None) or getattr(tw, "content", "")
                     in_reply_user = tw.inReplyToUser.username if tw.inReplyToUser else None
+
+                    hashtags = [tag.strip("#") for tag in getattr(tw, "hashtags", []) if tag]
+                    mentions = [
+                        getattr(u, "username", str(u)).lstrip("@")
+                        for u in getattr(tw, "mentionedUsers", [])
+                        if getattr(u, "username", str(u))
+                    ]
+                    urls = [getattr(l, "url", str(l)) for l in getattr(tw, "links", []) if l]
+                    has_media = bool(len(getattr(tw, "photos", [])) + len(getattr(tw, "videos", [])))
+
                     results.append({
                         "platform_post_id": str(tw.id),
                         "activity_type": "reply",
@@ -195,10 +221,16 @@ class TwscrapeService:
                         "posted_at": parse_datetime(tw.date),
                         "in_reply_to_user": in_reply_user,
                         "conversation_id": str(getattr(tw, "conversationId", "")) or None,
+                        "lang": getattr(tw, "lang", "") or "und",
+                        "hashtags": hashtags,
+                        "mentions": mentions,
+                        "urls": urls,
+                        "has_media": has_media,
                         "metrics": {
                             "likes": getattr(tw, "likeCount", 0) or 0,
                             "retweets": getattr(tw, "retweetCount", 0) or 0,
                             "replies": getattr(tw, "replyCount", 0) or 0,
+                            "views": getattr(tw, "viewCount", 0) or 0,
                         }
                     })
             return results

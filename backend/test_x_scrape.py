@@ -37,7 +37,7 @@ async def test_scrape(target_username: str):
         return
 
     # 2. Ekstraksi Cuitan Terbaru
-    print("\n[2/3] Menarik Riwayat Cuitan Terbaru...")
+    print("\n[2/3] Menarik Riwayat Cuitan Terbaru (Termasuk 100% Ekstraksi Entitas)...")
     try:
         tweets = await scraper.get_user_tweets(target_username, count=5)
         print(f"   Berhasil menarik {len(tweets)} cuitan:")
@@ -46,7 +46,13 @@ async def test_scrape(target_username: str):
             content = tw.get("content", "").replace("\n", " ")
             likes = tw.get("metrics", {}).get("likes", 0)
             rts = tw.get("metrics", {}).get("retweets", 0)
-            print(f"   {idx}. [{posted}] {content[:80]}... (❤️ {likes} | 🔁 {rts})")
+            views = tw.get("metrics", {}).get("views", 0)
+            tags = tw.get("hashtags", [])
+            mentions = tw.get("mentions", [])
+            tag_str = f" | 🏷️ #{', #'.join(tags)}" if tags else ""
+            men_str = f" | 🎯 @{', @'.join(mentions)}" if mentions else ""
+            print(f"   {idx}. [{posted}] {content[:75]}...")
+            print(f"      📊 Stats: ❤️ {likes} | 🔁 {rts} | 👁️ {views:,} views{tag_str}{men_str}")
     except Exception as e:
         print(f"   ❌ Gagal mengambil cuitan: {e}")
 
