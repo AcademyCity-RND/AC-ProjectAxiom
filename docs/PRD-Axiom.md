@@ -226,9 +226,10 @@ Seluruh komunikasi backend menggunakan format JSON terstruktur:
 
 | Method | Endpoint | Peran & Deskripsi | Payload / Parameter |
 | :---: | :--- | :--- | :--- |
-| `POST` | `/api/v1/investigate/actor` | Memulai analisis mendalam terhadap username X | `{"username": "target_acc", "depth": 200}` |
-| `POST` | `/api/v1/investigate/event` | Memulai audit komentar pada URL postingan/video | `{"url": "https://...", "platform": "youtube\|x\|ig"}` |
-| `GET` | `/api/v1/investigate/{task_id}` | Mengambil status pemrosesan & hasil investigasi | Path param: `task_id` |
+| `POST` | `/api/v1/auth/login` | Otentikasi operator & penerbitan Bearer JWT Token (RBAC) | `{"username": "nrp/id", "password": "..."}` |
+| `GET` | `/api/v1/auth/me` | Verifikasi profil & hak akses peran operator aktif | Header: `Authorization: Bearer <token>` |
+| `POST` | `/api/v1/investigate/target` | Memulai analisis target (Username / URL tervalidasi & Anti-SSRF) | `{"platform": "x", "target": "akun", "max_interactions": 200}` |
+| `GET` | `/api/v1/investigate/{case_id}` | Mengambil status pemrosesan & hasil investigasi | Path param: `case_id` |
 | `GET` | `/api/v1/network/graph/{case_id}`| Mengambil data simpul (*nodes & edges*) untuk Cytoscape | Query param: `min_confidence=0.7` |
 | `GET` | `/api/v1/export/report/{case_id}` | Mengunduh berkas laporan resmi PDF/CSV | Query param: `format=pdf\|csv` |
 | `GET` | `/api/v1/watchlist` | Mendapatkan daftar aktor dalam pantauan khusus | Query param: `tag=psyops` |

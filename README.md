@@ -45,6 +45,10 @@ Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-
    - Menggunakan Llama 3.3 (via Groq LPU) untuk menghasilkan poin-poin pembuktian logis (*evidence points*) mengapa akun dicap berbahaya.
 6. **Official Forensic Dossier Export:**
    - Ekspor ringkasan investigasi lengkap ke berkas PDF terverifikasi (disertai SHA-256 hash) untuk kebutuhan tindak lanjut satuan siber.
+7. **Military-Grade AAA Access Control & Hardening:**
+   - Otentikasi berbasis JWT dengan Role-Based Access Control (Admin, Investigator, Analyst).
+   - Validasi ketat Pydantic & pertahanan Anti-SSRF (mencegah eksploitasi server internal).
+   - Isolasi jaringan Docker (loopback bind `127.0.0.1` pada port PostgreSQL & ChromaDB) dan pencatatan audit trail investigasi.
 
 ---
 

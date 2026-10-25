@@ -50,9 +50,18 @@
   - Jinja2 3.1.6 (Mitigasi CVE-2024-56326 & CVE-2025-27516)
   - React 19 + Vite 8 locked dependencies (CSR zero SSR attack vector)
   - Verified Docker container rebuild & build-time dependency verification test pass
+- [x] **P1 Cyber Security & AAA Implementation (Hardening Awal):**
+  - Port Hardening: Isolasi bind PostgreSQL `127.0.0.1:5432` dan ChromaDB `127.0.0.1:8001` (tertutup dari scanning LAN/Wi-Fi luar)
+  - Validasi Input Ketat: Pydantic sanitization (anti-SQLi / illegal chars) & regex username per platform
+  - Anti-SSRF Protection: Blokir IP privat, localhost, loopback, dan validasi domain whitelist (`x.com`, `youtube.com`)
+  - Fondasi AAA (Bcrypt hashing, JWT Bearer Token, RBAC guard: Admin, Investigator, Analyst)
+  - CORS Hardening: Hanya izinkan origin frontend resmi (`localhost:3000`, `localhost:5173`)
+  - Test Suite Bersih: 6/6 tests passed tanpa warning (0 warning, 0 error)
 
 #### 1.2 Database Schema & ORM (Hari 1-2: Sabtu-Minggu)
 - [ ] **Desain & Implementasi Model SQLAlchemy (Alembic Migration):**
+  - [ ] `User` (id, username, hashed_password, role: admin/investigator/analyst, is_active, created_at)
+  - [ ] `AuditLog` (id, operator_id, action, target, ip_address, details_json, timestamp, status)
   - [ ] `InvestigationCase` (id, target, platform, status, created_at, completed_at, result_json)
   - [ ] `ActorProfile` (id, case_id, username, platform, display_name, bio, followers, following, verified, metadata_json)
   - [ ] `ActivityLog` (id, actor_id, content, timestamp, type: tweet/reply/retweet, target_username, engagement_metrics_json)
@@ -98,8 +107,10 @@
   - [ ] `predict(features: dict) -> (label, confidence, probabilities)`
   - [ ] Validasi akurasi > 85% pada hold-out set.
 
-#### 1.6 API Endpoint Inti (Hari 5-7: Kamis-Sabtu)
-- [ ] **`POST /api/v1/investigate/actor`** → Terima username, buat `InvestigationCase`, trigger background task.
+#### 1.6 API Endpoint Inti & Anti-Abuse (Hari 5-7: Kamis-Sabtu)
+- [ ] **Rate Limiting / Throttling Middleware (`slowapi`):**
+  - [ ] Batasi pemanggilan endpoint investigasi (maks 10 request/menit per operator) untuk melindungi scraper pool dari ban.
+- [ ] **`POST /api/v1/investigate/actor`** → Terima username, validasi regex & anti-SSRF, buat `InvestigationCase`, trigger background task.
 - [ ] **Background Task (`services/investigation_orchestrator.py`):**
   - [ ] 1. Scrape Profile & Activities
   - [ ] 2. Simpan ke PostgreSQL & ChromaDB
@@ -117,9 +128,10 @@
 
 ### ✅ Checklist Detail Minggu 2
 
-#### 2.1 Groq LLM Integration & Explainable AI (Hari 1-3)
-- [ ] **Prompt Engineering (`prompts/forensic_analysis.txt`):**
+#### 2.1 Groq LLM Integration, Explainable AI & Prompt Defense (Hari 1-3)
+- [ ] **Prompt Engineering & Injection Defense (`prompts/forensic_analysis.txt`):**
   - [ ] Input: Klasifikasi, Fitur Ekstrak, Top 5 Sampel Tweet Ekstrem, Hasil Cluster CIB.
+  - [ ] **Adversarial Prompt Guard:** Bungkus teks postingan dalam delimiter XML `<scraped_content>...</scraped_content>` dan beri instruksi sistem ketat agar LLM mengabaikan perintah dalam cuitan.
   - [ ] Output Terstruktur (JSON): `threat_level`, `primary_agenda`, `evidence_points[]`, `recommended_action`.
 - [ ] **Service `services/llm_analyst.py`:**
   - [ ] Client Groq (API Key dari env)
@@ -196,11 +208,12 @@
 
 ### ✅ Checklist Detail Minggu 4
 
-#### 4.1 End-to-End Testing & Bug Bash (Hari 1-2: Jumat-Sabtu)
+#### 4.1 End-to-End Testing & Hardening (Hari 1-2: Jumat-Sabtu)
 - [ ] **Scenario 1 (Happy Path):** Input `@buzzer_known` → Complete → View Graph → Export PDF.
 - [ ] **Scenario 2 (YouTube Audit):** Input URL Video Viral → Complete → View Comment Cluster.
 - [ ] **Scenario 3 (Error Handling):** Input `@private_account`, `@suspended`, `@notexist` → Graceful error UI.
 - [ ] **Scenario 4 (Offline Demo Mode):** Matikan internet → Load `cached_case_id` → Tampilkan hasil lengkap dari DB.
+- [ ] **Container Non-Root User:** Menambahkan `USER appuser` pada Dockerfile produksi backend.
 - [ ] **Performance:** Cold start < 5s, Inference < 10s, UI 60fps.
 
 #### 4.2 Video Demo Production (Hari 2-3: Sabtu-Minggu)
@@ -229,7 +242,7 @@
 
 #### 4.4 Final Submission Prep (Hari 3-4: Minggu-Senin)
 - [ ] **Repo Public/GitHub:** `axiom-hackathon` (README lengkap, cara jalanin, license MIT).
-- [ ] **Deploy Demo (Opsional tapi Bonus):** Vercel (Frontend) + Railway/Render (Backend) — **HARUS ADA FALLBACK LOKAL**.
+- [ ] **Fokus Pengujian Mandiri (Air-Gapped & Docker Compose):** Penilaian berfokus pada kesiapan container lokal yang mandiri dan aman tanpa ketergantungan cloud publik.
 - [ ] **Checklist Submission Codepolitan:**
   - [ ] Link Repo GitHub
   - [ ] Link Video Demo (Google Drive/YouTube Unlisted)

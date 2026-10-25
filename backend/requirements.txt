@@ -40,7 +40,8 @@ groq==0.13.0
 # Document & Template
 jinja2==3.1.6
 
-# Utilities
+# Utilities & Security
+pyjwt==2.10.1
 python-dotenv==1.0.1
 pyyaml==6.0.2
 tqdm==4.67.1
