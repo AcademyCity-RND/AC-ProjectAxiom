@@ -5,12 +5,11 @@ from pydantic import BaseModel, Field
 
 class UserRole(str, Enum):
     ADMIN = "admin"
-    INVESTIGATOR = "investigator"
-    ANALYST = "analyst"
+    USER = "user"
 
 
 class UserLogin(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50, description="NRP atau Username Operator")
+    username: str = Field(..., min_length=3, max_length=50, description="Username atau email")
     password: str = Field(..., min_length=6, max_length=128, description="Kata sandi")
 
 

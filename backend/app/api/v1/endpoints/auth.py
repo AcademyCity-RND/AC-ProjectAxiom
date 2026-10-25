@@ -5,7 +5,7 @@ from app.api.v1.deps import get_current_user
 
 router = APIRouter()
 
-# Akun demonstrasi awal (akan terhubung penuh ke tabel PostgreSQL di Milestone 1.2)
+# Akun demonstrasi awal (akan disinkronkan ke PostgreSQL users di Milestone 1.2)
 DEMO_USERS_DB = {
     "admin": {
         "username": "admin",
@@ -13,25 +13,19 @@ DEMO_USERS_DB = {
         "role": UserRole.ADMIN,
         "is_active": True,
     },
-    "investigator01": {
-        "username": "investigator01",
-        "hashed_password": hash_password("AxiomInvestigator2026!"),
-        "role": UserRole.INVESTIGATOR,
-        "is_active": True,
-    },
-    "analyst01": {
-        "username": "analyst01",
-        "hashed_password": hash_password("AxiomAnalyst2026!"),
-        "role": UserRole.ANALYST,
+    "user01": {
+        "username": "user01",
+        "hashed_password": hash_password("AxiomUser2026!"),
+        "role": UserRole.USER,
         "is_active": True,
     },
 }
 
 
-@router.post("/login", response_model=Token, summary="Login Operator & Penerbitan JWT")
+@router.post("/login", response_model=Token, summary="Login Pengguna & Penerbitan JWT")
 def login(form_data: UserLogin):
     """
-    Otentikasi operator siber dan mengembalikan JWT Access Token berdasar peran (RBAC).
+    Otentikasi login pengguna (admin atau user biasa) dan mengembalikan JWT Access Token.
     """
     user = DEMO_USERS_DB.get(form_data.username)
     if not user or not verify_password(form_data.password, user["hashed_password"]):
@@ -44,7 +38,7 @@ def login(form_data: UserLogin):
     if not user.get("is_active", True):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Akun operator ini dinonaktifkan.",
+            detail="Akun pengguna ini dinonaktifkan.",
         )
 
     access_token = create_access_token(
@@ -60,13 +54,13 @@ def login(form_data: UserLogin):
     )
 
 
-@router.get("/me", response_model=UserOut, summary="Profil Operator Aktif")
+@router.get("/me", response_model=UserOut, summary="Profil Pengguna Aktif")
 def get_current_user_profile(current_user: TokenPayload = Depends(get_current_user)):
     """
-    Mendapatkan data identitas dan role operator yang sedang login.
+    Mendapatkan data identitas dan role pengguna yang sedang login.
     """
     return UserOut(
         username=current_user.sub or "",
-        role=UserRole(current_user.role) if current_user.role else UserRole.ANALYST,
+        role=UserRole(current_user.role) if current_user.role else UserRole.USER,
         is_active=True,
     )

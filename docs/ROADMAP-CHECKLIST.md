@@ -59,16 +59,17 @@
   - Test Suite Bersih: 6/6 tests passed tanpa warning (0 warning, 0 error)
 
 #### 1.2 Database Schema & ORM (Hari 1-2: Sabtu-Minggu)
-- [ ] **Desain & Implementasi Model SQLAlchemy (Alembic Migration):**
-  - [ ] `User` (id, username, hashed_password, role: admin/investigator/analyst, is_active, created_at)
-  - [ ] `AuditLog` (id, operator_id, action, target, ip_address, details_json, timestamp, status)
-  - [ ] `InvestigationCase` (id, target, platform, status, created_at, completed_at, result_json)
-  - [ ] `ActorProfile` (id, case_id, username, platform, display_name, bio, followers, following, verified, metadata_json)
-  - [ ] `ActivityLog` (id, actor_id, content, timestamp, type: tweet/reply/retweet, target_username, engagement_metrics_json)
-  - [ ] `DetectionResult` (id, case_id, actor_id, class_label: bot/buzzer/human, confidence, probabilities_json, features_json)
-  - [ ] `ClusterLink` (id, case_id, source_actor_id, target_actor_id, similarity_score, link_type: semantic/temporal/structural)
-  - [ ] `Watchlist` (id, username, platform, tag, added_at, last_checked_at)
-- [ ] **Generate & Run Migration:** `alembic revision --autogenerate -m "init schema"` → `alembic upgrade head`
+- [x] **Desain & Implementasi Model SQLAlchemy (Alembic Migration):**
+  - [x] `User` (id, username, hashed_password, role: admin/user, is_active, created_at, updated_at)
+  - [x] `AuditLog` (id, operator_username, action, target, ip_address, details_json, timestamp, status)
+  - [x] `InvestigationCase` (id, target, platform, status, created_at, completed_at, result_summary)
+  - [x] `ActorProfile` (id, case_id, username, platform, display_name, bio, followers, following, verified, profile_metadata)
+  - [x] `ActivityLog` (id, actor_id, content, timestamp, type: tweet/reply/retweet, target_username, metrics, embedding_id)
+  - [x] `DetectionResult` (id, case_id, actor_username, class_label: bot/buzzer/human, confidence, class_probabilities, extracted_features, threat_attribution)
+  - [x] `ClusterLink` (id, case_id, source_actor, target_actor, similarity_score, link_type: semantic/temporal/structural, evidence_snippet)
+  - [x] `Watchlist` (id, username, platform, tag, notes, added_by, added_at, last_checked_at)
+- [x] **Generate & Run Migration:** `alembic revision --autogenerate -m "init schema..."` → `alembic upgrade head` (9 tabel terverifikasi di PostgreSQL)
+- [x] **Database Unit & Relationship Testing:** `tests/test_db_models.py` lulus 100% (7/7 tests passed)
 
 #### 1.3 Scraper Engine: X (Twitter) — **CRITICAL PATH** (Hari 2-4: Minggu-Rabu)
 - [ ] **Wrapper `twikit` Session Pool Manager:**
