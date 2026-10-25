@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
-[![FastAPI: 0.115](https://img.shields.io/badge/FastAPI-0.115.5-009688.svg)](https://fastapi.tiangolo.com/)
+[![FastAPI: 0.115.11](https://img.shields.io/badge/FastAPI-0.115.11-009688.svg)](https://fastapi.tiangolo.com/)
 [![Vite: 8](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
 [![React: 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
 [![Target: PUSSIBERAD](https://img.shields.io/badge/Competition-Kartika%20Cyber%20Hackathon%202026-red.svg)](https://kartikacyberhackathon.id/)
@@ -182,6 +182,17 @@ pnpm dev
 - [ ] **Minggu 2:** Integrasi Groq LLM Explainable AI, YouTube Auditing, PDF Export
 - [ ] **Minggu 3:** Dashboard Vite + React 19, React Flow Network Graph, Circadian Heatmap
 - [ ] **Minggu 4:** Pengujian Menyeluruh, Video Demo, Slide Deck, & Submission (15 Nov 2026)
+
+---
+
+## 🔒 Keamanan Dependensi & Hardening (CVE Mitigasi 2024–2026)
+
+Untuk menjamin keandalan level militer dan operasional siber pertahanan yang tangguh, seluruh pustaka perangkat lunak telah diaudit dan diperbarui terhadap celah keamanan (CVE) terkini:
+- **FastAPI 0.115.11 & Starlette 0.46.2:** Menutup celah CVE-2024-47874 (*Denial of Service* akibat alokasi memori multipart form data tak terbatas).
+- **python-multipart 0.0.20:** Mitigasi ReDoS (*Regular Expression Denial of Service*) dan CVE-2024-42561.
+- **Jinja2 3.1.6:** Menutup celah sandbox escape dan arbitrary code execution (CVE-2024-56326 & CVE-2025-27516).
+- **Vite SPA + React 19:** Arsitektur murni *Client-Side Rendering (CSR)* yang mengeliminasi vektor serangan *Server-Side Request Forgery (SSRF)* dan kelemahan *Server Actions* pada dashboard operasional internal.
+- **Docker Isolation:** Build-time dependency integrity checking dan multi-stage minimal build.
 
 ---
 

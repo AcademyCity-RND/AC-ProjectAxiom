@@ -59,7 +59,7 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 | **Visualisasi Metrik**| **Apache ECharts & Recharts** | ECharts v6 / React v3 | Heatmap aktivitas 24/7, grafik entropi waktu, dan radar chart perilaku |
 | **Data Fetching / Polling**| **TanStack Query** | v5.x | Polling asynchronous investigation task & cache state management |
 | **Dossier Export** | **@react-pdf/renderer** | v4.x (Client-side) | Pembuatan berkas PDF resmi instan langsung dari browser tanpa beban server |
-| **Backend Engine** | **FastAPI (Python)** | v0.115.5 / Py 3.11/3.12 | Asynchronous high-throughput processing, Pydantic v2 validation |
+| **Backend Engine** | **FastAPI (Python)** | v0.115.11 / Starlette 0.46.2 / Py 3.11/3.12 | Asynchronous high-throughput processing, Pydantic v2 validation, hardened against multipart CVE-2024-47874 & ReDoS |
 | **Database Relasional**| **PostgreSQL** | v16+ (Docker) | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
 | **Vector Database** | **ChromaDB** | v0.5.20 / Server v0.5.5 | Indexing dan pencarian semantic similarity copypasta antar-cuitan |
 | **Scraping Adapter** | **Twikit + Scraper Pool** | v2.2.0 Async Engine | Penarikan data X (Twitter) berbasis session cookie gratis & anti-block |

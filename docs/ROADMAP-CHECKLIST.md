@@ -44,6 +44,12 @@
 - [x] **Docker Compose Up** untuk: PostgreSQL 16, ChromaDB (v0.5.5), Backend FastAPI (healthy), Frontend Nginx
 - [x] **Konfigurasi `.env`** (Database, Groq Key, Port Settings)
 - [x] **Setup Testing & Verification** (`pytest.ini` & `tests/test_health.py` lulus 100%)
+- [x] **Security Audit & Tech Stack Hardening (CVE 2024–2026):**
+  - FastAPI 0.115.11 & Starlette 0.46.2 (Mitigasi CVE-2024-47874)
+  - python-multipart 0.0.20 (Mitigasi CVE-2024-42561)
+  - Jinja2 3.1.6 (Mitigasi CVE-2024-56326 & CVE-2025-27516)
+  - React 19 + Vite 8 locked dependencies (CSR zero SSR attack vector)
+  - Verified Docker container rebuild & build-time dependency verification test pass
 
 #### 1.2 Database Schema & ORM (Hari 1-2: Sabtu-Minggu)
 - [ ] **Desain & Implementasi Model SQLAlchemy (Alembic Migration):**
