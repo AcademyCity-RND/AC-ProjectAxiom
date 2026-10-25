@@ -14,7 +14,7 @@ router = APIRouter()
 def investigate_target(
     payload: InvestigationRequest,
     request: Request,
-    current_user: TokenPayload = Depends(require_roles([UserRole.ANALYST, UserRole.INVESTIGATOR, UserRole.ADMIN]))
+    current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN]))
 ):
     """
     Endpoint terlindungi untuk memulai investigasi terhadap aktor siber kognitif.

@@ -19,20 +19,20 @@ def test_jwt_token_generation_and_login():
     """Uji coba autentikasi login dan penerbitan JWT Bearer Token."""
     # 1. Login gagal jika kredensial salah
     res_fail = client.post("/api/v1/auth/login", json={
-        "username": "analyst01",
+        "username": "user01",
         "password": "WrongPassword123"
     })
     assert res_fail.status_code == 401
 
     # 2. Login berhasil dengan akun demonstrasi
     res_success = client.post("/api/v1/auth/login", json={
-        "username": "analyst01",
-        "password": "AxiomAnalyst2026!"
+        "username": "user01",
+        "password": "AxiomUser2026!"
     })
     assert res_success.status_code == 200
     data = res_success.json()
     assert "access_token" in data
-    assert data["role"] == "analyst"
+    assert data["role"] == "user"
     assert data["token_type"] == "bearer"
 
     # 3. Akses route profil terproteksi (/api/v1/auth/me)
@@ -41,7 +41,7 @@ def test_jwt_token_generation_and_login():
         "Authorization": f"Bearer {token}"
     })
     assert res_me.status_code == 200
-    assert res_me.json()["username"] == "analyst01"
+    assert res_me.json()["username"] == "user01"
 
 
 def test_protected_investigation_endpoint_without_token():
@@ -55,10 +55,10 @@ def test_protected_investigation_endpoint_without_token():
 
 def test_investigation_input_validation_and_anti_ssrf():
     """Uji coba validasi ketat Pydantic dan mekanisme pencegahan Anti-SSRF."""
-    # Dapatkan token operator sah
+    # Dapatkan token pengguna sah
     res_login = client.post("/api/v1/auth/login", json={
-        "username": "analyst01",
-        "password": "AxiomAnalyst2026!"
+        "username": "user01",
+        "password": "AxiomUser2026!"
     })
     token = res_login.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
