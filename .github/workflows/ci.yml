@@ -33,6 +33,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Create .env from template
+        run: cp .env.example .env
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -104,6 +107,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Create .env from template
+        run: cp .env.example .env
 
       - name: Validate Docker Compose Config
         run: docker compose config
