@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     # ChromaDB
     CHROMA_HOST: str = "chromadb"
     CHROMA_PORT: int = 8000
+    CHROMA_COLLECTION_NAME: str = "actor_narratives"
+    EMBEDDING_MODEL_NAME: str = "all-MiniLM-L6-v2"
+    CIB_SIMILARITY_THRESHOLD: float = 0.85
 
     # Groq API
     GROQ_API_KEY: str = ""

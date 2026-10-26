@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt --prefer-binary
 RUN python -c "\
 import fastapi, pydantic, sqlalchemy, alembic, chromadb, \
        sentence_transformers, torch, transformers, xgboost, \
-       sklearn, scipy, numpy, pandas, twikit, groq; \
+       sklearn, scipy, numpy, pandas, twscrape, groq; \
 print('✅ [Axiom Build Test] All backend dependencies successfully verified!')"
 
 # 5. Copy backend source code
