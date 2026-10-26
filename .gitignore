@@ -12,3 +12,4 @@ build/
 tmp/
 *.db
 data/sessions/
+data/chromadb/
