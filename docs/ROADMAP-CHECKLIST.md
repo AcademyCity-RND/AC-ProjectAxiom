@@ -86,14 +86,19 @@
 - [x] **Unit Testing Scraper (`tests/test_scraper.py`):** 5/5 tests passed tanpa hit API riil (12/12 suite passed total)
 
 #### 1.4 ChromaDB & Local Embedding Pipeline (Hari 3-5: Senin-Kamis)
-- [ ] **Inisialisasi Chroma Client** (persistent path `./data/chromadb`)
-- [ ] **Collection Schema:** `actor_narratives` (metadata: actor_id, case_id, timestamp, content_hash)
-- [ ] **Embedding Service (`services/embedder.py`):**
-  - [ ] Load `sentence-transformers/all-MiniLM-L6-v2` (local, CPU/GPU auto)
-  - [ ] `embed_texts(texts: List[str]) -> List[List[float]]` (batch size 32)
-  - [ ] `upsert_activities(case_id: str, actor_id: str, activities: List[ActivityLog])`
-  - [ ] `query_similar(case_id: str, query_text: str, top_k: int=10, threshold: float=0.85)` → CIB Detection
-- [ ] **Integrasi ke Scraper:** Setelah fetch tweet → langsung embed & upsert ke Chroma.
+- [x] **Inisialisasi Chroma Client** (ChromaDB 0.5.20, loopback port hardening `127.0.0.1:8001`)
+- [x] **Collection Schema:** `actor_narratives` (metadata: actor_username, case_id, activity_type, posted_at, lang; metric: cosine distance)
+- [x] **Embedding Service (`services/embedder.py`):**
+  - [x] Load `sentence-transformers/all-MiniLM-L6-v2` (local CPU, singleton cache)
+  - [x] `embed_text(text: str) -> List[float]` & `embed_batch(texts: List[str]) -> List[List[float]]` (vektor 384-dimensi)
+  - [x] `compute_similarity(vec_a, vec_b)` & `compute_similarity_matrix(vectors)` (pairwise cosine similarity)
+- [x] **Vector Store Service (`services/vector_store.py`):**
+  - [x] `upsert_narratives(items: List[Dict])` → Batch embedding & simpan ke koleksi ChromaDB
+  - [x] `query_similar_narratives(query_text, n_results, where)` → Pencarian kemiripan semantik
+  - [x] `detect_semantic_clusters(case_id, threshold=0.85)` → Deteksi Copypasta Terkoordinasi CIB (Formula PRD 5.2)
+- [x] **Unit Testing & Verifikasi (`tests/test_embeddings.py` & `test_chroma_embed.py`):** 4/4 passed (16/16 total suite passed 100% tanpa error/warning)
+
+
 
 #### 1.5 Feature Engineering & XGBoost Baseline (Hari 4-6: Rabu-Jumat)
 - [ ] **Feature Extractor (`services/features.py`):**

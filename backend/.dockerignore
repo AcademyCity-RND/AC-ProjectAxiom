@@ -1,0 +1,30 @@
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Local Data, Sessions, & Logs
+data/
+tmp/
+*.log
+*.sqlite
+*.db
+
+# Git & IDE configs
+.git/
+.gitignore
+.vscode/
+.idea/

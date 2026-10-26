@@ -20,7 +20,7 @@ services:
       - axiom_net
 
   chromadb:
-    image: chromadb/chroma:0.5.5
+    image: chromadb/chroma:0.5.20
     container_name: axiom_chromadb
     volumes:
       - chroma_data:/chroma/chroma
@@ -35,6 +35,7 @@ services:
       - axiom_net
 
   backend:
+    image: axiom-backend:1.0.0
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -62,6 +63,7 @@ services:
       - axiom_net
 
   frontend:
+    image: axiom-frontend:1.0.0
     build:
       context: ./frontend
       dockerfile: Dockerfile
