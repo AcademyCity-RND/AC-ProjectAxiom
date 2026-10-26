@@ -71,18 +71,19 @@
 - [x] **Generate & Run Migration:** `alembic revision --autogenerate -m "init schema..."` → `alembic upgrade head` (9 tabel terverifikasi di PostgreSQL)
 - [x] **Database Unit & Relationship Testing:** `tests/test_db_models.py` lulus 100% (7/7 tests passed)
 
-#### 1.3 Scraper Engine: X (Twitter) — **CRITICAL PATH** (Hari 2-4: Minggu-Rabu)
-- [ ] **Wrapper `twikit` Session Pool Manager:**
-  - [ ] Load akun dari `X_ACCOUNTS_POOL` (env JSON array)
-  - [ ] Login & persist cookies ke file/DB per akun
-  - [ ] Rotasi akun otomatis saat rate-limit / error 429
-  - [ ] Health check periodik sesi (validasi cookie masih hidup)
-- [ ] **Fungsi Ekstraksi Data Target (`services/x_scraper.py`):**
-  - [ ] `get_user_profile(username: str)` → Profile + Metrics (followers, following, created_at, verified)
-  - [ ] `get_user_tweets(username: str, count: int=200)` → List[Tweet] (original + replies, exclude retweets optional)
-  - [ ] `get_user_replies(username: str, count: int=100)` → List[Reply] (dengan `in_reply_to_user_id` & `conversation_id`)
-  - [ ] **Error Handling:** User not found, Private account, Suspended, Rate limit (exponential backoff)
-- [ ] **Unit Test Scraper:** Mock HTML/JSON response, test parsing logic tanpa hit API riil.
+#### 1.3 Scraper Engine: X (Twitter via `twscrape`) — **CRITICAL PATH** (Hari 2-4: Minggu-Rabu)
+- [x] **Engine `twscrape` Adapter (`services/scraper/twscrape_adapter.py`):**
+  - [x] Konfigurasi aman 1 akun burner: `wait_timeout=60`, `wait_interval=5.0`, `raise_when_no_account=False`
+  - [x] Manajemen sesi SQLite lokal (`data/sessions/x_accounts.db`) via auth cookies (`auth_token` & `ct0`)
+  - [x] Pembatasan chunk aman (`limit=50`) & jeda waktu alami (`asyncio.sleep`) anti-banned
+- [x] **Fungsi Ekstraksi Data Target (`services/scraper/x_scraper.py`):**
+  - [x] `get_user_profile(username: str)` → Profile + Metrics (followers, following, created_at, verified)
+  - [x] `get_user_tweets(username: str, count: int=150)` → List[Tweet] (original + replies, engagement metrics)
+  - [x] `get_user_replies(username: str, count: int=100)` → List[Reply] (dengan `in_reply_to_user` & `conversation_id`)
+  - [x] **Error Handling Kustom (`exceptions.py`):** TargetNotFound, PrivateAccount, RateLimitExhausted
+- [x] **Offline Demo & Mock Data Generator (`services/scraper/mock_data.py`):**
+  - [x] Arketipe Buzzer (`infiltrator_01`), Bot (`bot_amplifier_02`), dan Organik (`budi_santoso_dev`) untuk demo tanpa internet/kredensial
+- [x] **Unit Testing Scraper (`tests/test_scraper.py`):** 5/5 tests passed tanpa hit API riil (12/12 suite passed total)
 
 #### 1.4 ChromaDB & Local Embedding Pipeline (Hari 3-5: Senin-Kamis)
 - [ ] **Inisialisasi Chroma Client** (persistent path `./data/chromadb`)
