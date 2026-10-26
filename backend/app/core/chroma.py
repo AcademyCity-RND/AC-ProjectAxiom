@@ -16,23 +16,45 @@ _chroma_client: Optional[chromadb.ClientAPI] = None
 def get_chroma_client() -> chromadb.ClientAPI:
     """
     Singleton provider untuk HttpClient ChromaDB.
-    Terkoneksi ke service ChromaDB internal atau port forwarding.
+    Mendukung fallback otomatis ke localhost:8001 (host dev) dan EphemeralClient (CI / in-memory).
     """
     global _chroma_client
     if _chroma_client is None:
+        # 1. Coba host/port yang dikonfigurasi
         try:
             logger.info(f"Menghubungkan ke ChromaDB di {settings.CHROMA_HOST}:{settings.CHROMA_PORT}...")
-            _chroma_client = chromadb.HttpClient(
+            client = chromadb.HttpClient(
                 host=settings.CHROMA_HOST,
                 port=settings.CHROMA_PORT,
                 settings=ChromaSettings(anonymized_telemetry=False)
             )
-            # Verifikasi koneksi awal
-            _chroma_client.heartbeat()
+            client.heartbeat()
+            _chroma_client = client
             logger.info("Koneksi ke ChromaDB berhasil terjalin.")
+            return _chroma_client
         except Exception as e:
-            logger.error(f"Gagal menghubungkan ke ChromaDB ({settings.CHROMA_HOST}:{settings.CHROMA_PORT}): {e}")
-            raise
+            logger.warning(f"Koneksi ke {settings.CHROMA_HOST}:{settings.CHROMA_PORT} gagal ({e}). Mencoba fallback...")
+
+        # 2. Coba localhost:8001 jika berbeda (misal dijalankan di Windows host)
+        if settings.CHROMA_HOST != "localhost" or settings.CHROMA_PORT != 8001:
+            try:
+                client = chromadb.HttpClient(
+                    host="localhost",
+                    port=8001,
+                    settings=ChromaSettings(anonymized_telemetry=False)
+                )
+                client.heartbeat()
+                _chroma_client = client
+                logger.info("Koneksi ke ChromaDB host (localhost:8001) berhasil.")
+                return _chroma_client
+            except Exception:
+                pass
+
+        # 3. Fallback terakhir: In-Memory EphemeralClient (untuk CI & air-gapped demo tanpa container terpisah)
+        logger.info("Menggunakan ChromaDB EphemeralClient (In-Memory) untuk mode terisolasi.")
+        _chroma_client = chromadb.EphemeralClient(
+            settings=ChromaSettings(anonymized_telemetry=False)
+        )
     return _chroma_client
 
 

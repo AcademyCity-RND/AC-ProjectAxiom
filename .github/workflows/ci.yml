@@ -29,6 +29,14 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      chromadb:
+        image: chromadb/chroma:0.5.20
+        ports:
+          - 8000:8000
+        env:
+          IS_PERSISTENT: "TRUE"
+          ANONYMIZED_TELEMETRY: "FALSE"
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -59,6 +67,8 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: axiom_db
           POSTGRES_PORT: 5432
+          CHROMA_HOST: localhost
+          CHROMA_PORT: 8000
         run: |
           cd backend
           alembic upgrade head
@@ -70,6 +80,8 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: axiom_db
           POSTGRES_PORT: 5432
+          CHROMA_HOST: localhost
+          CHROMA_PORT: 8000
         run: |
           cd backend
           pytest
