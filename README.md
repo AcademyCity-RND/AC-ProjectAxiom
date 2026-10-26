@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI Pipeline](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml)
-[![Tests: 7/7 Passed](https://img.shields.io/badge/Tests-7%2F7%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
+[![Tests: 30/30 Passed](https://img.shields.io/badge/Tests-30%2F30%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI: 0.115.11](https://img.shields.io/badge/FastAPI-0.115.11-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Vite: 8](https://img.shields.io/badge/Vite-8.3-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -101,10 +101,12 @@ axiom/
 │   │   ├── models/            # SQLAlchemy DB Models
 │   │   ├── schemas/           # Pydantic Schemas (Request/Response)
 │   │   └── services/          # Core Engines:
-│   │       ├── scraper/       # Twikit Twitter & YouTube parsers
-│   │       ├── ml/            # Embedder, Feature Extractor, XGBoost
-│   │       ├── llm/           # Groq Llama 3 Analyst
-│   │       └── orchestrator.py# Main Investigation Pipeline Coordinator
+│   │       ├── scraper/       # twscrape Twitter & YouTube parsers
+│   │       ├── features.py    # 21-Feature Extractor (Temporal, Structural, Content, Network)
+│   │       ├── classifier.py  # XGBoost Tri-Class Bot Classifier & XAI
+│   │       ├── embedder.py    # MiniLM-L6-v2 Local Vector Embedder
+│   │       ├── vector_store.py# ChromaDB Client & CIB Cluster Detector
+│   │       └── investigation_orchestrator.py # End-to-end Pipeline Coordinator
 │   ├── alembic/               # Database Migration Scripts
 │   ├── tests/                 # Unit & Integration Tests
 │   ├── Dockerfile             # Container Definition Backend
@@ -184,8 +186,8 @@ pnpm dev
 
 - [x] **Dokumentasi & Spesifikasi PRD** (Selesai di `docs/PRD-Axiom.md`)
 - [x] **Master Checklist & Roadmap** (Selesai di `docs/ROADMAP-CHECKLIST.md`)
-- [x] **Minggu 1:** Ingesti X (Twitter), Skema DB, ChromaDB, & XGBoost Baseline (Infrastruktur & Dependencies Siap)
-- [ ] **Minggu 2:** Integrasi Groq LLM Explainable AI, YouTube Auditing, PDF Export
+- [x] **Minggu 1:** Ingesti X (Twitter), Skema DB, ChromaDB, XGBoost Baseline & Core API Orchestrator (100% Selesai: Milestone 1.1 s/d 1.6)
+- [ ] **Minggu 2:** Integrasi Groq LLM Explainable AI, Prompt Injection Defense, YouTube Auditing, PDF Export
 - [ ] **Minggu 3:** Dashboard Vite + React 19, React Flow Network Graph, Circadian Heatmap
 - [ ] **Minggu 4:** Pengujian Menyeluruh, Video Demo, Slide Deck, & Submission (15 Nov 2026)
 

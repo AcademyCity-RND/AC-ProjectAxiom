@@ -1,35 +1,54 @@
+import uuid
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, status, Request
+from typing import Dict, Any, Optional, List
+from fastapi import APIRouter, Depends, status, Request, BackgroundTasks, HTTPException
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.models.case import InvestigationCase
+from app.models.actor import ActorProfile
+from app.models.detection import DetectionResult
+from app.models.cluster import ClusterLink
 from app.schemas.investigation import InvestigationRequest
 from app.schemas.auth import TokenPayload, UserRole
 from app.schemas.audit import AuditLogCreate, AuditActionEnum
 from app.api.v1.deps import require_roles
+from app.core.rate_limiter import investigation_rate_limiter
+from app.services.investigation_orchestrator import run_investigation_pipeline
 
-logger = logging.getLogger("axiom.audit")
+logger = logging.getLogger("axiom.investigate")
 router = APIRouter()
 
 
-@router.post("/target", summary="Memulai Investigasi Target Kognitif")
-def investigate_target(
+@router.post("/actor", summary="Memulai Investigasi Target Kognitif", status_code=status.HTTP_200_OK)
+@router.post("/target", summary="Memulai Investigasi Target Kognitif (Alias)", status_code=status.HTTP_200_OK)
+async def start_investigation(
     payload: InvestigationRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
     current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN]))
 ):
     """
-    Endpoint terlindungi untuk memulai investigasi terhadap aktor siber kognitif.
-    - Wajib membawa header `Authorization: Bearer <token>`.
-    - Input tervalidasi secara ketat terhadap karakter terlarang, pola regex platform, dan Anti-SSRF.
-    - Mencatat jejak audit (Accounting) atas setiap penarikan data.
+    Endpoint utama untuk memulai investigasi terhadap aktor siber kognitif.
+    - Dilindungi Rate Limiting (Maks 10 request/menit).
+    - Validasi Input Ketat & Anti-SSRF.
+    - Audit Trail Accounting otomatis.
+    - Menjadwalkan background task orkestrasi investigasi.
     """
+    # 1. Cek Rate Limiting
+    client_key = current_user.sub or (request.client.host if request.client else "127.0.0.1")
+    investigation_rate_limiter.check(request, custom_key=client_key)
+
     client_ip = request.client.host if request.client else "unknown"
 
-    # Pencatatan Audit Trail (Accounting)
+    # 2. Catat Audit Trail
     audit_entry = AuditLogCreate(
         username=current_user.sub or "anonymous",
         role=current_user.role or "unknown",
         action=AuditActionEnum.INVESTIGATE_TARGET,
-        target=f"{payload.platform}:{payload.target}",
+        target=f"{payload.platform.value}:{payload.target}",
         ip_address=client_ip,
         details={
             "max_interactions": payload.max_interactions,
@@ -40,12 +59,182 @@ def investigate_target(
     )
     logger.info(f"AUDIT_LOG: {audit_entry.model_dump_json()}")
 
+    # 3. Buat Entitas InvestigationCase di Database
+    case_id = str(uuid.uuid4())
+    case = InvestigationCase(
+        id=case_id,
+        target=payload.target,
+        platform=payload.platform.value,
+        status="queued",
+        max_interactions=payload.max_interactions,
+        depth_level=payload.depth_level,
+        created_by=current_user.sub,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(case)
+    db.commit()
+
+    # 4. Tambahkan Orchestration Pipeline ke BackgroundTasks
+    background_tasks.add_task(
+        run_investigation_pipeline,
+        case_id=case_id,
+        target=payload.target,
+        platform=payload.platform.value,
+        max_interactions=payload.max_interactions
+    )
+
     return {
-        "status": "accepted",
-        "message": f"Investigasi untuk target '{payload.target}' pada platform '{payload.platform}' telah dijadwalkan.",
-        "case_id": "case_preview_001",
+        "status": "queued",
+        "message": f"Investigasi untuk target '{payload.target}' pada platform '{payload.platform.value}' telah dijadwalkan.",
+        "case_id": case_id,
         "operator": current_user.sub,
         "sanitized_target": payload.target,
-        "platform": payload.platform,
+        "platform": payload.platform.value,
         "max_interactions": payload.max_interactions,
+    }
+
+
+@router.get("/{case_id}", summary="Mengambil Detail & Status Kasus Investigasi")
+def get_investigation_case(
+    case_id: str,
+    db: Session = Depends(get_db),
+    current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN]))
+):
+    """
+    Mengambil status kasus investigasi, profil aktor, metrik, hasil klasifikasi XGBoost,
+    serta faktor penjelas XAI.
+    """
+    case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
+    if not case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
+        )
+
+    actor = db.query(ActorProfile).filter(ActorProfile.case_id == case_id).first()
+    detection = db.query(DetectionResult).filter(DetectionResult.case_id == case_id).first()
+
+    actor_data = None
+    if actor:
+        actor_data = {
+            "username": actor.username,
+            "display_name": actor.display_name,
+            "bio": actor.bio,
+            "followers_count": actor.followers_count,
+            "following_count": actor.following_count,
+            "is_verified": actor.is_verified,
+            "profile_metadata": actor.profile_metadata
+        }
+
+    detection_data = None
+    if detection:
+        detection_data = {
+            "predicted_class": detection.predicted_class,
+            "confidence": detection.confidence,
+            "class_probabilities": detection.class_probabilities,
+            "extracted_features": detection.extracted_features,
+            "threat_attribution": detection.threat_attribution
+        }
+
+    return {
+        "case_id": case.id,
+        "target": case.target,
+        "platform": case.platform,
+        "status": case.status,
+        "created_at": case.created_at.isoformat() if case.created_at else None,
+        "completed_at": case.completed_at.isoformat() if case.completed_at else None,
+        "actor": actor_data,
+        "detection": detection_data,
+        "result_summary": case.result_summary
+    }
+
+
+@router.get("/{case_id}/graph", summary="Mengambil Graf Jejaring Kasus (Format Cytoscape)")
+def get_case_graph(
+    case_id: str,
+    min_confidence: float = 0.5,
+    db: Session = Depends(get_db),
+    current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN]))
+):
+    """
+    Menghasilkan data node dan edge jejaring interaksi/klaster copypasta CIB
+    dalam format Cytoscape.js yang siap divisualisasikan pada frontend.
+    """
+    case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
+    if not case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
+        )
+
+    actor = db.query(ActorProfile).filter(ActorProfile.case_id == case_id).first()
+    detection = db.query(DetectionResult).filter(DetectionResult.case_id == case_id).first()
+    cluster_links = db.query(ClusterLink).filter(ClusterLink.case_id == case_id).all()
+
+    target_username = actor.username if actor else case.target
+    predicted_class = detection.predicted_class if detection else "UNKNOWN"
+    confidence = detection.confidence if detection else 0.0
+
+    nodes: List[Dict[str, Any]] = []
+    edges: List[Dict[str, Any]] = []
+    seen_nodes = set()
+
+    # 1. Node Pusat Target
+    target_node_id = f"actor_{target_username}"
+    nodes.append({
+        "data": {
+            "id": target_node_id,
+            "label": f"@{target_username}",
+            "type": "target",
+            "class_label": predicted_class,
+            "confidence": confidence,
+            "color": "#ef4444" if predicted_class in ("BOT", "BUZZER") else "#10b981",
+            "size": 60
+        }
+    })
+    seen_nodes.add(target_node_id)
+
+    # 2. Node & Edges Klaster CIB
+    for link in cluster_links:
+        if link.similarity_score < min_confidence:
+            continue
+
+        partner = link.target_actor
+        partner_id = f"actor_{partner}"
+
+        if partner_id not in seen_nodes:
+            nodes.append({
+                "data": {
+                    "id": partner_id,
+                    "label": f"@{partner}",
+                    "type": "coordinated_account",
+                    "class_label": "BUZZER",
+                    "color": "#f59e0b",
+                    "size": 40
+                }
+            })
+            seen_nodes.add(partner_id)
+
+        edge_id = f"edge_{link.id}"
+        edges.append({
+            "data": {
+                "id": edge_id,
+                "source": target_node_id,
+                "target": partner_id,
+                "weight": link.similarity_score,
+                "label": f"{int(link.similarity_score * 100)}% Sim",
+                "link_type": link.link_type,
+                "evidence": link.evidence_snippet
+            }
+        })
+
+    return {
+        "case_id": case_id,
+        "target": target_username,
+        "total_nodes": len(nodes),
+        "total_edges": len(edges),
+        "elements": {
+            "nodes": nodes,
+            "edges": edges
+        }
     }

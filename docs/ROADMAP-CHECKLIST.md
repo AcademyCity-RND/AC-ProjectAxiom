@@ -120,18 +120,24 @@ eply_ratio, hashtag_density, mention_density
 - [x] **Unit Testing Komprehensif (	ests/test_bot_detector.py):** 7/7 passed (total 23/23 tests passed 100% tanpa error/warning)
 
 #### 1.6 API Endpoint Inti & Anti-Abuse (Hari 5-7: Kamis-Sabtu)
-- [ ] **Rate Limiting / Throttling Middleware (`slowapi`):**
-  - [ ] Batasi pemanggilan endpoint investigasi (maks 10 request/menit per operator) untuk melindungi scraper pool dari ban.
-- [ ] **`POST /api/v1/investigate/actor`** → Terima username, validasi regex & anti-SSRF, buat `InvestigationCase`, trigger background task.
-- [ ] **Background Task (`services/investigation_orchestrator.py`):**
-  - [ ] 1. Scrape Profile & Activities
-  - [ ] 2. Simpan ke PostgreSQL & ChromaDB
-  - [ ] 3. Extract Features → Predict XGBoost
-  - [ ] 4. Query Chroma untuk CIB Cluster
-  - [ ] 5. Siapkan konteks untuk LLM (Groq)
-  - [ ] 6. Update `InvestigationCase` status `completed` + `result_json`
-- [ ] **`GET /api/v1/investigate/{case_id}`** → Return status & hasil lengkap.
-- [ ] **`GET /api/v1/network/graph/{case_id}`** → Return nodes/edges untuk Cytoscape (filter `min_confidence`).
+- [x] **Rate Limiting / Throttling Middleware (pp/core/rate_limiter.py):**
+  - [x] Sliding window rate limiter (maks 10 request/menit per operator/IP) anti-ban pool scraper
+  - [x] Header standar Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining (HTTP 429)
+- [x] **POST /api/v1/investigate/actor (dan alias /target):**
+  - [x] Terima username, validasi regex & anti-SSRF, buat InvestigationCase, trigger background task asinkron
+- [x] **Background Task Orchestrator (services/investigation_orchestrator.py):**
+  - [x] 1. Scrape Profile & Activities (XScraper dengan auto-fallback mock data)
+  - [x] 2. Simpan ke PostgreSQL (ActorProfile, ActivityLog) & ChromaDB (ctor_narratives)
+  - [x] 3. Ekstraksi 21 fitur & inferensi XGBoost (predicted_class, confidence, class_probabilities, XAI)
+  - [x] 4. Query Chroma untuk CIB Cluster ({semantic} \ge 0.85$) dan persistensi ClusterLink
+  - [x] 5. Update InvestigationCase status completed + 
+esult_summary
+- [x] **GET /api/v1/investigate/{case_id}:**
+  - [x] Return status kasus, profil aktor, hasil deteksi XGBoost, dan faktor penjelasan XAI
+- [x] **GET /api/v1/network/graph/{case_id} (dan /investigate/{case_id}/graph):**
+  - [x] Return nodes/edges terstruktur format Cytoscape.js dengan color-coded threat class & confidence
+- [x] **Unit & Integration Test Suite (	ests/test_investigate_api.py):**
+  - [x] 7/7 tests passed (total 30/30 suite tests passed 100% tanpa error/warning)
 
 ---
 
