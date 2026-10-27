@@ -16,6 +16,7 @@ from app.services.vector_store import VectorStoreService
 from app.services.features import extract_actor_features
 from app.services.classifier import get_classifier
 from app.services.llm_analyst import get_llm_analyst_service
+from app.services.analytics import compute_advanced_analytics
 
 logger = logging.getLogger("axiom.orchestrator")
 
@@ -212,6 +213,9 @@ async def run_investigation_pipeline(
         # ---------------------------------------------------------
         # 6. FINALISASI STATUS KASUS
         # ---------------------------------------------------------
+        # Analitik Mendalam (Circadian, Entropy, Narrative Drift)
+        analytics_data = compute_advanced_analytics(all_activities)
+
         summary = {
             "target": target,
             "platform": platform,
@@ -221,7 +225,8 @@ async def run_investigation_pipeline(
             "total_activities": len(all_activities),
             "cluster_links_count": cluster_links_count,
             "top_features": top_features,
-            "forensic_dossier": dossier_data
+            "forensic_dossier": dossier_data,
+            "analytics": analytics_data
         }
         case.status = "completed"
         case.completed_at = datetime.now(timezone.utc)

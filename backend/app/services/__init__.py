@@ -16,6 +16,12 @@ from app.services.instagram_auditor import (
     generate_mock_instagram_comments
 )
 from app.services.event_orchestrator import run_event_investigation_pipeline
+from app.services.analytics import (
+    generate_circadian_heatmap,
+    calculate_posting_entropy,
+    detect_narrative_drift,
+    compute_advanced_analytics,
+)
 
 __all__ = [
     "EmbeddingService",
@@ -37,4 +43,8 @@ __all__ = [
     "fetch_instagram_comments",
     "generate_mock_instagram_comments",
     "run_event_investigation_pipeline",
+    "generate_circadian_heatmap",
+    "calculate_posting_entropy",
+    "detect_narrative_drift",
+    "compute_advanced_analytics",
 ]

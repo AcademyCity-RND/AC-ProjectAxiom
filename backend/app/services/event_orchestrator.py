@@ -15,6 +15,7 @@ from app.services.youtube_auditor import fetch_youtube_comments, detect_temporal
 from app.services.instagram_auditor import fetch_instagram_comments
 from app.services.vector_store import VectorStoreService
 from app.services.llm_analyst import get_llm_analyst_service
+from app.services.analytics import compute_advanced_analytics
 
 logger = logging.getLogger("axiom.event_orchestrator")
 
@@ -279,6 +280,9 @@ async def run_event_investigation_pipeline(
         # ---------------------------------------------------------
         # 7. FINALISASI STATUS KASUS
         # ---------------------------------------------------------
+        # Analitik Mendalam (Circadian, Entropy, Narrative Drift)
+        analytics_data = compute_advanced_analytics(comments)
+
         summary = {
             "target": event_url,
             "platform": platform,
@@ -289,7 +293,8 @@ async def run_event_investigation_pipeline(
             "top_10_attackers": top_10_attackers,
             "forensic_dossier": dossier_data,
             "predicted_class": overall_threat,
-            "confidence": confidence
+            "confidence": confidence,
+            "analytics": analytics_data
         }
 
         case.status = "completed"

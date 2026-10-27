@@ -179,11 +179,18 @@ esult_summary
   - [x] 11/11 tests passed (total 48/48 suite tests passed 100% tanpa error/warning)
 
 #### 2.3 Advanced Analytics Calculations (Hari 3-5)
-- [ ] **Circadian Heatmap Generator (`services/analytics.py`):**
-  - [ ] Input: List[timestamp] → Output: Matrix 24x7 (jam x hari) normalized count.
-  - [ ] Deteksi "Working Hours Pattern" (chi-square test vs uniform distribution).
-- [ ] **Entropy Calculator:** Shannon entropy pada interval waktu posting.
-- [ ] **Narrative Drift Detector:** Clustering temporal embedding (sliding window 6 jam) → deteksi pergeseran topik.
+- [x] **Circadian Heatmap Generator (`services/analytics.py`):**
+  - [x] Input: List[timestamp] → Output: Matrix 24x7 & 7x24 normalized count.
+  - [x] Deteksi "Working Hours Pattern" (Uji Goodness-of-Fit Chi-Square vs Uniform Distribution: Structured Office Hours vs 24/7 Automation vs Organic).
+- [x] **Entropy Calculator (`calculate_posting_entropy`):**
+  - [x] Shannon entropy pada interval selisih waktu posting berturut-turut (Δt) dengan 8 behavioral interval bins (skala H_norm).
+- [x] **Narrative Drift Detector (`detect_narrative_drift`):**
+  - [x] Evaluasi pergeseran semantik temporal (sliding time window) berbasis centroid embedding MiniLM & cosine drift.
+- [x] **API & Orchestrator Integration:**
+  - [x] Pipeline integrasi otomatis pada `investigation_orchestrator.py` & `event_orchestrator.py` (`result_summary["analytics"]`).
+  - [x] Endpoint `GET /api/v1/investigate/{case_id}/analytics` siap konsumsi untuk chart frontend.
+- [x] **Unit & Integration Test Suite (`tests/test_analytics.py`):**
+  - [x] 11/11 tests passed (total 59/59 suite tests passed 100% tanpa error/warning).
 
 #### 2.4 PDF/CSV Export Engine & Full Forensic Ledger (Hari 5-7)
 - [ ] **Template Jinja2/WeasyPrint (`templates/dossier.html`):**

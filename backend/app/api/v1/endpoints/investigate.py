@@ -314,3 +314,61 @@ def get_case_graph(
             "edges": edges
         }
     }
+
+
+
+@router.get("/{case_id}/analytics", summary="Mengambil Analitik Tingkat Lanjut (Sirkadian, Entropi, Narrative Drift)")
+def get_case_analytics(
+    case_id: str,
+    db: Session = Depends(get_db),
+    current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN]))
+):
+    """
+    Mengambil data analitik mendalam untuk kasus investigasi:
+    1. Circadian Heatmap (Matriks 24x7, Pola Jam Kerja & Uji Chi-Square)
+    2. Posting Interval Shannon Entropy (Tingkat kekakuan/otomasi waktu)
+    3. Narrative Drift (Pergeseran fokus narasi temporal sliding window)
+    """
+    case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
+    if not case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
+        )
+
+    # 1. Cek apakah sudah tersimpan di result_summary
+    if case.result_summary and "analytics" in case.result_summary:
+        return {
+            "case_id": case.id,
+            "target": case.target,
+            "platform": case.platform,
+            "analytics": case.result_summary["analytics"]
+        }
+
+    # 2. Jika belum, hitung secara on-the-fly dari ActivityLog kasus
+    activities = (
+        db.query(ActivityLog)
+        .join(ActorProfile)
+        .filter(ActorProfile.case_id == case_id)
+        .order_by(ActivityLog.posted_at.asc())
+        .all()
+    )
+
+    act_data = [
+        {
+            "content": a.content,
+            "posted_at": a.posted_at,
+            "activity_type": a.activity_type
+        }
+        for a in activities
+    ]
+
+    from app.services.analytics import compute_advanced_analytics
+    analytics_payload = compute_advanced_analytics(act_data)
+
+    return {
+        "case_id": case.id,
+        "target": case.target,
+        "platform": case.platform,
+        "analytics": analytics_payload
+    }
