@@ -1,7 +1,8 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, investigate, network
+from app.api.v1.endpoints import auth, investigate, network, export
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication & Access Control (AAA)"])
 api_router.include_router(investigate.router, prefix="/investigate", tags=["Investigation Core"])
 api_router.include_router(network.router, prefix="/network", tags=["Network Graph & CIB Analysis"])
+api_router.include_router(export.router, prefix="/export", tags=["Report & Forensic Export Engine"])

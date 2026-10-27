@@ -193,19 +193,21 @@ esult_summary
   - [x] 11/11 tests passed (total 59/59 suite tests passed 100% tanpa error/warning).
 
 #### 2.4 PDF/CSV Export Engine & Full Forensic Ledger (Hari 5-7)
-- [ ] **Template Jinja2/WeasyPrint (`templates/dossier.html`):**
-  - [ ] Cover: Case ID, Target, Timestamp, Classification Badge.
-  - [ ] Section 1: Executive Summary (Sintesis Llama 3.3, Target Threat Level, Rekomendasi Taktis).
-  - [ ] Section 2: Technical Evidence (Tabel 21 Fitur XGBoost & Circadian 24/7 Heatmap).
-  - [ ] Section 3: Network Topology (Visualisasi Graf Klaster CIB Cytoscape).
-  - [ ] Section 4 (Dual-Tier Forensic Audit Ledger):
-    - [ ] 4A. Top 10 Core Attackers (Akun penyerang inti & template narasi dominan).
-    - [ ] 4B. Full Comprehensive Commenter Audit Ledger (Daftar lengkap 100% seluruh akun komentator, klasifikasi AI Bot/Buzzer/Organik, skor kemiripan, dan teks narasi).
-  - [ ] Footer: Hash Verifikasi Kriptografis (SHA-256 Fingerprint) untuk integritas barang bukti hukum.
-- [ ] **Data Export Capabilities:**
-  - [ ] `GET /api/v1/export/report/{case_id}?format=pdf` → Berkas Dossier Resmi siap cetak.
-  - [ ] `GET /api/v1/export/report/{case_id}?format=csv` → Raw dataset lengkap 100% data mentah seluruh komentator (siap olah di Gephi/Excel).
-  - [ ] Dashboard Web Interactive Table: Filter kilat [Semua Komentar], [Hanya Buzzer/Bot], [Hanya Organik].
+- [x] **Template Jinja2 (`app/templates/dossier.html`):**
+  - [x] Cover: Case ID, Target, Timestamp, Classification Badge (RAHASIA / CLASSIFIED).
+  - [x] Section 1: Executive Summary (Sintesis Llama 3.3, Target Threat Level, Rekomendasi Taktis).
+  - [x] Section 2: Technical Evidence (Tabel 21 Fitur XGBoost & Circadian 24/7 Heatmap).
+  - [x] Section 3: Network Topology & CIB Clusters.
+  - [x] Section 4 (Format Dual-Tier Forensic Audit Ledger):
+    - [x] 4A. Top 10 Core Attackers (Akun penyerang inti, skor risiko & volume narasi).
+    - [x] 4B. Full Comprehensive Commenter Audit Ledger (Daftar lengkap 100% seluruh akun komentator, klasifikasi AI Bot/Buzzer/Organik, skor kemiripan, dan teks narasi).
+  - [x] Footer: Hash Verifikasi Kriptografis (SHA-256 Fingerprint) untuk integritas barang bukti hukum.
+- [x] **Data Export Capabilities (`services/report_exporter.py` & `endpoints/export.py`):**
+  - [x] `GET /api/v1/export/report/{case_id}?format=html|pdf` → Berkas Dossier Resmi siap cetak (@media print A4).
+  - [x] `GET /api/v1/export/report/{case_id}?format=csv` → Raw dataset lengkap 100% data mentah seluruh komentator (RFC 4180 siap olah di Gephi/Excel).
+  - [x] `GET /api/v1/export/ledger/{case_id}` → Dual-Tier JSON untuk dashboard web interactive table (filter kilat Semua, Buzzer/Bot, Organik).
+- [x] **Unit & Integration Test Suite (`tests/test_report_export.py`):**
+  - [x] 3/3 tests passed (total 62/62 suite tests passed 100% tanpa error/warning).
 
 ---
 
