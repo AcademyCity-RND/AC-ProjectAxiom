@@ -110,3 +110,52 @@ class InvestigationRequest(BaseModel):
             )
 
         return cleaned
+
+
+EVENT_ALLOWED_DOMAINS = {
+    "youtube.com",
+    "www.youtube.com",
+    "youtu.be",
+    "instagram.com",
+    "www.instagram.com",
+}
+
+
+class EventInvestigationRequest(BaseModel):
+    """
+    Request model untuk audit komentar massal berbasis URL postingan / video (YouTube / Instagram).
+    Dilengkapi Anti-SSRF dan auto-resolver platform.
+    """
+    url: str = Field(..., min_length=5, max_length=500, description="URL publik video YouTube atau postingan/reel Instagram")
+    max_comments: int = Field(default=200, ge=10, le=500, description="Batas penarikan komentar (10 - 500)")
+    depth_level: int = Field(default=1, ge=1, le=3, description="Kedalaman audit")
+
+    @field_validator("url")
+    @classmethod
+    def validate_and_sanitize_event_url(cls, v: str) -> str:
+        cleaned = v.strip()
+        if any(c in cleaned for c in ["\x00", "\r", "\n", ";", "--", "'", '"', "<", ">"]):
+            raise ValueError("Karakter ilegal terdeteksi pada URL.")
+
+        if not (cleaned.startswith("http://") or cleaned.startswith("https://")):
+            raise ValueError("URL harus diawali dengan http:// atau https://")
+
+        parsed = urlparse(cleaned)
+        hostname = (parsed.hostname or "").lower()
+
+        if is_private_or_loopback(hostname):
+            raise ValueError("Akses ke alamat internal / privat diblokir oleh sistem keamanan (Anti-SSRF).")
+
+        if hostname not in EVENT_ALLOWED_DOMAINS:
+            raise ValueError(f"Domain '{hostname}' tidak didukung untuk audit event. Gunakan URL YouTube atau Instagram resmi.")
+
+        return cleaned
+
+    @property
+    def detected_platform(self) -> PlatformEnum:
+        hostname = (urlparse(self.url).hostname or "").lower()
+        if "youtube" in hostname or "youtu.be" in hostname:
+            return PlatformEnum.YOUTUBE
+        elif "instagram" in hostname:
+            return PlatformEnum.INSTAGRAM
+        return PlatformEnum.X
