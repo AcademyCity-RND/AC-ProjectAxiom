@@ -161,20 +161,22 @@ esult_summary
   - [x] 7/7 tests passed (total 37/37 suite tests passed 100% tanpa error/warning)
 
 #### 2.2 YouTube & Instagram Auditing Module (Hari 2-4)
-- [ ] **YouTube Comment Fetcher Engine (`services/youtube_auditor.py`):**
-  - [ ] Integrasi `youtube-comment-downloader` (Innertube pure HTTP client tanpa kuota API & tanpa login)
-  - [ ] Ekstraksi 200–500 komentar: `comment_id`, `author_id`, `author_name`, `text`, `published_at`, `likes`
-  - [ ] Deteksi *Temporal Influx Anomaly* (lonjakan komentar serentak di menit awal)
-  - [ ] Simpan ke `ActivityLog` (`platform=youtube`) + Embed ke ChromaDB (`actor_narratives`)
-  - [ ] Auto-fallback ke YouTube Data API v3 (jika API key tersedia) atau simulated mock dataset saat offline
-- [ ] **Instagram Public Post Comment Auditor (`services/instagram_auditor.py`):**
-  - [ ] Integrasi `instaloader` (GraphQL public post comments parser dengan session file support)
-  - [ ] Ekstraksi komentar publik: `comment_id`, `username`, `text`, `created_at`, `likes_count`
-  - [ ] Simpan ke `ActivityLog` (`platform=instagram`) + Embed ke ChromaDB
-  - [ ] Auto-fallback ke mock dataset jika postingan terbentur batasan login / offline
-- [ ] **Unified Multi-Platform Endpoint (`POST /api/v1/investigate/event`):**
-  - [ ] Terima URL publik (YouTube / Instagram), deteksi platform otomatis, validasi Anti-SSRF
-  - [ ] Trigger orchestrator audit komentar massal & deteksi klaster CIB copypasta
+- [x] **YouTube Comment Fetcher Engine (`services/youtube_auditor.py`):**
+  - [x] Integrasi `youtube-comment-downloader` (Innertube pure HTTP client tanpa kuota API & tanpa login)
+  - [x] Ekstraksi 200–500 komentar: `comment_id`, `author_id`, `author_name`, `text`, `published_at`, `likes`
+  - [x] Deteksi *Temporal Influx Anomaly* (lonjakan komentar serentak di menit awal via sliding window)
+  - [x] Simpan ke `ActivityLog` (`platform=youtube`) + Embed ke ChromaDB (`actor_narratives`)
+  - [x] Auto-fallback ke simulated mock dataset saat offline/air-gapped
+- [x] **Instagram Public Post Comment Auditor (`services/instagram_auditor.py`):**
+  - [x] Integrasi `instaloader` (GraphQL public post comments parser dengan session file support)
+  - [x] Ekstraksi komentar publik: `comment_id`, `username`, `text`, `created_at`, `likes_count`
+  - [x] Simpan ke `ActivityLog` (`platform=instagram`) + Embed ke ChromaDB
+  - [x] Auto-fallback ke mock dataset jika postingan terbentur batasan login / offline
+- [x] **Unified Multi-Platform Endpoint (`POST /api/v1/investigate/event`):**
+  - [x] Terima URL publik (YouTube / Instagram), deteksi platform otomatis, validasi Anti-SSRF
+  - [x] Trigger background orchestrator audit komentar massal & deteksi klaster CIB copypasta (`run_event_investigation_pipeline`)
+- [x] **Unit & Integration Test Suite (`tests/test_event_auditor.py`):**
+  - [x] 11/11 tests passed (total 48/48 suite tests passed 100% tanpa error/warning)
 
 #### 2.3 Advanced Analytics Calculations (Hari 3-5)
 - [ ] **Circadian Heatmap Generator (`services/analytics.py`):**

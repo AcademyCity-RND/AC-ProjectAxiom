@@ -10,12 +10,13 @@ from app.models.case import InvestigationCase
 from app.models.actor import ActorProfile
 from app.models.detection import DetectionResult
 from app.models.cluster import ClusterLink
-from app.schemas.investigation import InvestigationRequest
+from app.schemas.investigation import InvestigationRequest, EventInvestigationRequest
 from app.schemas.auth import TokenPayload, UserRole
 from app.schemas.audit import AuditLogCreate, AuditActionEnum
 from app.api.v1.deps import require_roles
 from app.core.rate_limiter import investigation_rate_limiter
 from app.services.investigation_orchestrator import run_investigation_pipeline
+from app.services.event_orchestrator import run_event_investigation_pipeline
 
 logger = logging.getLogger("axiom.investigate")
 router = APIRouter()
@@ -91,6 +92,81 @@ async def start_investigation(
         "sanitized_target": payload.target,
         "platform": payload.platform.value,
         "max_interactions": payload.max_interactions,
+    }
+
+
+@router.post("/event", summary="Memulai Audit Komentar Massal Postingan (YouTube / Instagram)", status_code=status.HTTP_200_OK)
+async def start_event_investigation(
+    payload: EventInvestigationRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN]))
+):
+    """
+    Endpoint untuk audit massal komentar postingan YouTube atau Instagram.
+    - Dilindungi Rate Limiting (Maks 10 request/menit).
+    - Validasi Input Ketat, Whitelist Domain & Anti-SSRF.
+    - Deteksi platform otomatis dari URL (YouTube / Instagram).
+    - Audit Trail Accounting otomatis.
+    - Menjadwalkan background task audit event.
+    """
+    # 1. Cek Rate Limiting
+    client_key = current_user.sub or (request.client.host if request.client else "127.0.0.1")
+    investigation_rate_limiter.check(request, custom_key=client_key)
+
+    client_ip = request.client.host if request.client else "unknown"
+    platform = payload.detected_platform.value
+
+    # 2. Catat Audit Trail
+    audit_entry = AuditLogCreate(
+        username=current_user.sub or "anonymous",
+        role=current_user.role or "unknown",
+        action=AuditActionEnum.INVESTIGATE_TARGET,
+        target=f"{platform}:{payload.url}",
+        ip_address=client_ip,
+        details={
+            "max_comments": payload.max_comments,
+            "depth_level": payload.depth_level,
+            "type": "event_audit"
+        },
+        timestamp=datetime.now(timezone.utc),
+        status="ACCEPTED",
+    )
+    logger.info(f"AUDIT_LOG_EVENT: {audit_entry.model_dump_json()}")
+
+    # 3. Buat Entitas InvestigationCase di Database
+    case_id = str(uuid.uuid4())
+    case = InvestigationCase(
+        id=case_id,
+        target=payload.url,
+        platform=platform,
+        status="queued",
+        max_interactions=payload.max_comments,
+        depth_level=payload.depth_level,
+        created_by=current_user.sub,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(case)
+    db.commit()
+
+    # 4. Tambahkan Event Pipeline ke BackgroundTasks
+    background_tasks.add_task(
+        run_event_investigation_pipeline,
+        case_id=case_id,
+        event_url=payload.url,
+        platform=platform,
+        max_comments=payload.max_comments
+    )
+
+    return {
+        "status": "queued",
+        "message": f"Audit komentar event untuk URL '{payload.url}' pada platform '{platform}' telah dijadwalkan.",
+        "case_id": case_id,
+        "operator": current_user.sub,
+        "url": payload.url,
+        "platform": platform,
+        "max_comments": payload.max_comments,
     }
 
 
