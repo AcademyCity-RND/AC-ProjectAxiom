@@ -15,6 +15,7 @@ from app.services.scraper.x_scraper import XScraperService
 from app.services.vector_store import VectorStoreService
 from app.services.features import extract_actor_features
 from app.services.classifier import get_classifier
+from app.services.llm_analyst import get_llm_analyst_service
 
 logger = logging.getLogger("axiom.orchestrator")
 
@@ -33,7 +34,8 @@ async def run_investigation_pipeline(
     4. Simpan narasi & embedding ke ChromaDB
     5. Analisis klaster koordinasi CIB (Copypasta)
     6. Ekstraksi 21 fitur statistik & inferensi XGBoost (HUMAN, BOT, BUZZER)
-    7. Simpan hasil deteksi & finalisasi kasus -> completed
+    7. Sintesis Intelijen Forensik & XAI via Groq Llama 3.3
+    8. Simpan hasil deteksi & finalisasi kasus -> completed
     """
     logger.info(f"Memulai pipeline investigasi untuk kasus '{case_id}' (target: @{target})...")
     
@@ -176,7 +178,23 @@ async def run_investigation_pipeline(
         classifier = get_classifier()
         predicted_class, confidence, class_probs, top_features = classifier.predict(features)
 
-        # Simpan hasil deteksi
+        # ---------------------------------------------------------
+        # 5. SINTESIS FORENSIK INTELIJEN (GROQ LLAMA 3.3)
+        # ---------------------------------------------------------
+        llm_service = get_llm_analyst_service()
+        dossier = llm_service.generate_forensic_dossier(
+            target=actor.username,
+            platform=platform,
+            predicted_class=predicted_class,
+            confidence=confidence,
+            features=features,
+            top_xai_features=top_features,
+            sample_activities=all_activities,
+            cluster_info=cluster_info
+        )
+        dossier_data = dossier.model_dump()
+
+        # Simpan hasil deteksi & XAI
         detection = DetectionResult(
             case_id=case_id,
             actor_username=actor.username,
@@ -184,12 +202,15 @@ async def run_investigation_pipeline(
             confidence=confidence,
             class_probabilities=class_probs,
             extracted_features=features,
-            threat_attribution={"top_features": top_features}
+            threat_attribution={
+                "top_features": top_features,
+                "forensic_dossier": dossier_data
+            }
         )
         db.add(detection)
 
         # ---------------------------------------------------------
-        # 5. FINALISASI STATUS KASUS
+        # 6. FINALISASI STATUS KASUS
         # ---------------------------------------------------------
         summary = {
             "target": target,
@@ -199,14 +220,15 @@ async def run_investigation_pipeline(
             "class_probabilities": class_probs,
             "total_activities": len(all_activities),
             "cluster_links_count": cluster_links_count,
-            "top_features": top_features
+            "top_features": top_features,
+            "forensic_dossier": dossier_data
         }
         case.status = "completed"
         case.completed_at = datetime.now(timezone.utc)
         case.result_summary = summary
         db.commit()
 
-        logger.info(f"Pipeline investigasi kasus '{case_id}' selesai. Hasil: {predicted_class} ({confidence * 100:.1f}%)")
+        logger.info(f"Pipeline investigasi kasus '{case_id}' selesai. Hasil: {predicted_class} ({confidence * 100:.1f}%), Threat: {dossier.threat_level}")
         return summary
 
     except Exception as e:

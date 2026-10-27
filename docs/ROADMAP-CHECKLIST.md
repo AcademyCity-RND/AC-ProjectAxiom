@@ -147,25 +147,34 @@ esult_summary
 ### ✅ Checklist Detail Minggu 2
 
 #### 2.1 Groq LLM Integration, Explainable AI & Prompt Defense (Hari 1-3)
-- [ ] **Prompt Engineering & Injection Defense (`prompts/forensic_analysis.txt`):**
-  - [ ] Input: Klasifikasi, Fitur Ekstrak, Top 5 Sampel Tweet Ekstrem, Hasil Cluster CIB.
-  - [ ] **Adversarial Prompt Guard:** Bungkus teks postingan dalam delimiter XML `<scraped_content>...</scraped_content>` dan beri instruksi sistem ketat agar LLM mengabaikan perintah dalam cuitan.
-  - [ ] Output Terstruktur (JSON): `threat_level`, `primary_agenda`, `evidence_points[]`, `recommended_action`.
-- [ ] **Service `services/llm_analyst.py`:**
-  - [ ] Client Groq (API Key dari env)
-  - [ ] `generate_dossier(case_data: dict) -> ForensicDossierSchema`
-  - [ ] Retry logic & fallback ke template statis jika API gagal.
-- [ ] **Integrasikan ke Orchestrator:** Panggil LLM setelah XGBoost + CIB selesai, simpan hasil ke `DetectionResult.llm_analysis_json`.
+- [x] **Prompt Engineering & Injection Defense (`services/llm_analyst.py`):**
+  - [x] Input: Target, Klasifikasi XGBoost, 21 Fitur, Top XAI, CIB Cluster, Sampel Cuitan
+  - [x] **Adversarial Prompt Guard:** Netralisasi token injeksi (`[REDACTED_CONTROL_TOKEN]`) dan pembungkusan XML delimiter `<scraped_evidence>` dengan instruksi isolasi militer PUSSIBERAD
+  - [x] Output Terstruktur (Pydantic `ForensicDossier` JSON): `threat_level` (CRITICAL/HIGH/MEDIUM/LOW), `primary_agenda`, `target_institution`, `evidence_points[]`, `tactical_recommendation`, `attribution_summary`
+- [x] **Service `services/llm_analyst.py`:**
+  - [x] Client Groq LPU Llama 3.3 70B (`llama-3.3-70b-versatile` dengan fallback `llama-3.1-8b-instant`)
+  - [x] `generate_forensic_dossier(...) -> ForensicDossier`
+  - [x] Fallback deterministik berbasis aturan intelejen jika API key tidak diisi atau offline (air-gapped ready)
+- [x] **Integrasikan ke Orchestrator (`services/investigation_orchestrator.py`):**
+  - [x] Panggil LLM setelah XGBoost + CIB selesai, simpan hasil ke `DetectionResult.threat_attribution` dan `InvestigationCase.result_summary`
+- [x] **Unit & Integration Test Suite (`tests/test_llm_analyst.py`):**
+  - [x] 7/7 tests passed (total 37/37 suite tests passed 100% tanpa error/warning)
 
 #### 2.2 YouTube & Instagram Auditing Module (Hari 2-4)
-- [ ] **YouTube Comment Fetcher (`services/youtube_auditor.py`):**
-  - [ ] YouTube Data API v3: `commentThreads.list(videoId, maxResults=500)`
-  - [ ] Parsing: `author_channel_id`, `author_display_name`, `text_display`, `published_at`, `like_count`
-  - [ ] Simpan ke `ActivityLog` (platform=youtube) + Embed ke Chroma (collection terpisah `youtube_comments`).
-- [ ] **Instagram Public Post Comments (`services/instagram_auditor.py`):**
-  - [ ] Graph API (jika token) atau Scraper publik (fragile, prioritas rendah).
-  - [ ] Minimal: Ambil komentar dari URL Postingan publik.
-- [ ] **Endpoint `POST /api/v1/investigate/event`** → Terima URL, deteksi platform, trigger auditor.
+- [ ] **YouTube Comment Fetcher Engine (`services/youtube_auditor.py`):**
+  - [ ] Integrasi `youtube-comment-downloader` (Innertube pure HTTP client tanpa kuota API & tanpa login)
+  - [ ] Ekstraksi 200–500 komentar: `comment_id`, `author_id`, `author_name`, `text`, `published_at`, `likes`
+  - [ ] Deteksi *Temporal Influx Anomaly* (lonjakan komentar serentak di menit awal)
+  - [ ] Simpan ke `ActivityLog` (`platform=youtube`) + Embed ke ChromaDB (`actor_narratives`)
+  - [ ] Auto-fallback ke YouTube Data API v3 (jika API key tersedia) atau simulated mock dataset saat offline
+- [ ] **Instagram Public Post Comment Auditor (`services/instagram_auditor.py`):**
+  - [ ] Integrasi `instaloader` (GraphQL public post comments parser dengan session file support)
+  - [ ] Ekstraksi komentar publik: `comment_id`, `username`, `text`, `created_at`, `likes_count`
+  - [ ] Simpan ke `ActivityLog` (`platform=instagram`) + Embed ke ChromaDB
+  - [ ] Auto-fallback ke mock dataset jika postingan terbentur batasan login / offline
+- [ ] **Unified Multi-Platform Endpoint (`POST /api/v1/investigate/event`):**
+  - [ ] Terima URL publik (YouTube / Instagram), deteksi platform otomatis, validasi Anti-SSRF
+  - [ ] Trigger orchestrator audit komentar massal & deteksi klaster CIB copypasta
 
 #### 2.3 Advanced Analytics Calculations (Hari 3-5)
 - [ ] **Circadian Heatmap Generator (`services/analytics.py`):**
@@ -174,15 +183,20 @@ esult_summary
 - [ ] **Entropy Calculator:** Shannon entropy pada interval waktu posting.
 - [ ] **Narrative Drift Detector:** Clustering temporal embedding (sliding window 6 jam) → deteksi pergeseran topik.
 
-#### 2.4 PDF/CSV Export Engine (Hari 5-7)
+#### 2.4 PDF/CSV Export Engine & Full Forensic Ledger (Hari 5-7)
 - [ ] **Template Jinja2/WeasyPrint (`templates/dossier.html`):**
   - [ ] Cover: Case ID, Target, Timestamp, Classification Badge.
-  - [ ] Section 1: Executive Summary (dari LLM).
-  - [ ] Section 2: Technical Evidence (Feature Table, Charts).
-  - [ ] Section 3: Network Topology (Graph Image embed).
-  - [ ] Section 4: Activity Log Appendix (Top 50).
-  - [ ] Footer: Hash Verifikasi (SHA256) untuk integritas bukti.
-- [ ] **Endpoint `GET /api/v1/export/report/{case_id}?format=pdf|csv`** → StreamingResponse file.
+  - [ ] Section 1: Executive Summary (Sintesis Llama 3.3, Target Threat Level, Rekomendasi Taktis).
+  - [ ] Section 2: Technical Evidence (Tabel 21 Fitur XGBoost & Circadian 24/7 Heatmap).
+  - [ ] Section 3: Network Topology (Visualisasi Graf Klaster CIB Cytoscape).
+  - [ ] Section 4 (Dual-Tier Forensic Audit Ledger):
+    - [ ] 4A. Top 10 Core Attackers (Akun penyerang inti & template narasi dominan).
+    - [ ] 4B. Full Comprehensive Commenter Audit Ledger (Daftar lengkap 100% seluruh akun komentator, klasifikasi AI Bot/Buzzer/Organik, skor kemiripan, dan teks narasi).
+  - [ ] Footer: Hash Verifikasi Kriptografis (SHA-256 Fingerprint) untuk integritas barang bukti hukum.
+- [ ] **Data Export Capabilities:**
+  - [ ] `GET /api/v1/export/report/{case_id}?format=pdf` → Berkas Dossier Resmi siap cetak.
+  - [ ] `GET /api/v1/export/report/{case_id}?format=csv` → Raw dataset lengkap 100% data mentah seluruh komentator (siap olah di Gephi/Excel).
+  - [ ] Dashboard Web Interactive Table: Filter kilat [Semua Komentar], [Hanya Buzzer/Bot], [Hanya Organik].
 
 ---
 
