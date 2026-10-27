@@ -31,7 +31,7 @@ Berdasarkan realitas arsitektur media sosial publik dan kebutuhan kompetisi PUSS
    * **YouTube & Instagram — Crisis Response / Event Auditing:**
      * Input: URL Video YouTube atau URL Postingan Publik Instagram.
      * Log yang ditarik: Seluruh komentar publik pada postingan/video tersebut untuk mendeteksi apakah terjadi serbuan botnet terkoordinasi (*coordinated comment flooding*).
-     * YouTube menggunakan YouTube Data API v3 (kuota gratis 10.000 unit/hari) / scraper; Instagram menggunakan public post comment extractor.
+     * YouTube menggunakan youtube-comment-downloader (Innertube pure HTTP streaming tanpa API key & tanpa login) dengan fallback YouTube Data API v3; Instagram menggunakan Instaloader (GraphQL public post comment parser dengan dukungan session file).
    * **BATASAN TEGAS:** Sistem **TIDAK MENJANJIKAN** pelacakan riwayat komentar keluar (*outgoing comments*) per-username di YouTube, Instagram, atau Facebook karena batasan privasi arsitektur platform tersebut (*walled garden*).
 2. **Kemandirian Infrastruktur (Air-Gapped & On-Premise Ready):**
    * Core AI pipeline (XGBoost + Embedding `all-MiniLM-L6-v2`) dapat berjalan 100% lokal di CPU/GPU mandiri tanpa mengirim data intelijen sensitif ke server luar, memenuhi standar operasional militer PUSSIBERAD.
@@ -62,7 +62,7 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 | **Backend Engine** | **FastAPI (Python)** | v0.115.11 / Starlette 0.46.2 / Py 3.11/3.12 | Asynchronous high-throughput processing, Pydantic v2 validation, hardened against multipart CVE-2024-47874 & ReDoS |
 | **Database Relasional**| **PostgreSQL** | v16+ (Docker) | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
 | **Vector Database** | **ChromaDB** | v0.5.20 / Server v0.5.5 | Indexing dan pencarian semantic similarity copypasta antar-cuitan |
-| **Scraping Adapter** | **twscrape (vladkens/twscrape)** | v0.20.1 Async Engine | Penarikan data X (Twitter) berbasis session cookie gratis & anti-block (wait_timeout=60) |
+| **Scraping Adapters** | **twscrape**, **youtube-comment-downloader**, **instaloader** | Open-source Multi-Platform Engine | Ingesti multi-platform tanpa biaya langganan: X (cookie session pool), YouTube (Innertube HTTP parser), dan Instagram (GraphQL public parser) |
 | **ML Classifier** | **XGBoost & Scikit-Learn** | v2.1.3 / v1.5.2 | Klasifikasi tabular 3-kelas (*Bot, Buzzer, Manusia*) dalam <50ms |
 | **NLP Embeddings** | **Sentence-Transformers** | `all-MiniLM-L6-v2` / v3.3.1 | Embedding semantik 384-dimensi lokal (cepat, hemat RAM, akurat) |
 | **Narrative LLM** | **Llama 3.3 70B via Groq** | Free Tier API (<1s inference) | Sintesis narasi intelejen, deteksi framing isu, dan perangkum laporan |
@@ -112,8 +112,8 @@ flowchart TD
 
     subgraph Ingestion["Data Ingestion Adapters"]
         XAdapter["X (Twitter) Engine\n(Twikit Session Pool)"]
-        YTAdapter["YouTube Video Auditor\n(Comment Threads API)"]
-        IGAdapter["Instagram Post Auditor\n(Public Comment Parser)"]
+        YTAdapter["YouTube Video Auditor\n(youtube-comment-downloader)"]
+        IGAdapter["Instagram Post Auditor\n(Instaloader Public Engine)"]
     end
 
     subgraph AI["Analytical & ML Engine"]
