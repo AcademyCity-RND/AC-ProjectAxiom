@@ -147,15 +147,18 @@ esult_summary
 ### ✅ Checklist Detail Minggu 2
 
 #### 2.1 Groq LLM Integration, Explainable AI & Prompt Defense (Hari 1-3)
-- [ ] **Prompt Engineering & Injection Defense (`prompts/forensic_analysis.txt`):**
-  - [ ] Input: Klasifikasi, Fitur Ekstrak, Top 5 Sampel Tweet Ekstrem, Hasil Cluster CIB.
-  - [ ] **Adversarial Prompt Guard:** Bungkus teks postingan dalam delimiter XML `<scraped_content>...</scraped_content>` dan beri instruksi sistem ketat agar LLM mengabaikan perintah dalam cuitan.
-  - [ ] Output Terstruktur (JSON): `threat_level`, `primary_agenda`, `evidence_points[]`, `recommended_action`.
-- [ ] **Service `services/llm_analyst.py`:**
-  - [ ] Client Groq (API Key dari env)
-  - [ ] `generate_dossier(case_data: dict) -> ForensicDossierSchema`
-  - [ ] Retry logic & fallback ke template statis jika API gagal.
-- [ ] **Integrasikan ke Orchestrator:** Panggil LLM setelah XGBoost + CIB selesai, simpan hasil ke `DetectionResult.llm_analysis_json`.
+- [x] **Prompt Engineering & Injection Defense (`services/llm_analyst.py`):**
+  - [x] Input: Target, Klasifikasi XGBoost, 21 Fitur, Top XAI, CIB Cluster, Sampel Cuitan
+  - [x] **Adversarial Prompt Guard:** Netralisasi token injeksi (`[REDACTED_CONTROL_TOKEN]`) dan pembungkusan XML delimiter `<scraped_evidence>` dengan instruksi isolasi militer PUSSIBERAD
+  - [x] Output Terstruktur (Pydantic `ForensicDossier` JSON): `threat_level` (CRITICAL/HIGH/MEDIUM/LOW), `primary_agenda`, `target_institution`, `evidence_points[]`, `tactical_recommendation`, `attribution_summary`
+- [x] **Service `services/llm_analyst.py`:**
+  - [x] Client Groq LPU Llama 3.3 70B (`llama-3.3-70b-versatile` dengan fallback `llama-3.1-8b-instant`)
+  - [x] `generate_forensic_dossier(...) -> ForensicDossier`
+  - [x] Fallback deterministik berbasis aturan intelejen jika API key tidak diisi atau offline (air-gapped ready)
+- [x] **Integrasikan ke Orchestrator (`services/investigation_orchestrator.py`):**
+  - [x] Panggil LLM setelah XGBoost + CIB selesai, simpan hasil ke `DetectionResult.threat_attribution` dan `InvestigationCase.result_summary`
+- [x] **Unit & Integration Test Suite (`tests/test_llm_analyst.py`):**
+  - [x] 7/7 tests passed (total 37/37 suite tests passed 100% tanpa error/warning)
 
 #### 2.2 YouTube & Instagram Auditing Module (Hari 2-4)
 - [ ] **YouTube Comment Fetcher Engine (`services/youtube_auditor.py`):**

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI Pipeline](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml)
-[![Tests: 30/30 Passed](https://img.shields.io/badge/Tests-30%2F30%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
+[![Tests: 37/37 Passed](https://img.shields.io/badge/Tests-37%2F37%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI: 0.115.11](https://img.shields.io/badge/FastAPI-0.115.11-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Vite: 8](https://img.shields.io/badge/Vite-8.3-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
