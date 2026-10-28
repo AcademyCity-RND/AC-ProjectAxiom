@@ -2,7 +2,7 @@ import re
 from enum import Enum
 from urllib.parse import urlparse
 import ipaddress
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, AliasChoices
 
 
 class PlatformEnum(str, Enum):
@@ -126,7 +126,13 @@ class EventInvestigationRequest(BaseModel):
     Request model untuk audit komentar massal berbasis URL postingan / video (YouTube / Instagram).
     Dilengkapi Anti-SSRF dan auto-resolver platform.
     """
-    url: str = Field(..., min_length=5, max_length=500, description="URL publik video YouTube atau postingan/reel Instagram")
+    url: str = Field(
+        ...,
+        validation_alias=AliasChoices("url", "event_url"),
+        min_length=5,
+        max_length=500,
+        description="URL publik video YouTube atau postingan/reel Instagram"
+    )
     max_comments: int = Field(default=200, ge=10, le=500, description="Batas penarikan komentar (10 - 500)")
     depth_level: int = Field(default=1, ge=1, le=3, description="Kedalaman audit")
 

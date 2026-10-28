@@ -39,7 +39,24 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('axiom_token');
     }
-    const errorMsg = error.response?.data?.detail || error.message || 'Terjadi kesalahan sistem';
+    const rawDetail = error.response?.data?.detail;
+    let errorMsg = 'Terjadi kesalahan sistem';
+
+    if (typeof rawDetail === 'string') {
+      errorMsg = rawDetail;
+    } else if (Array.isArray(rawDetail)) {
+      // Format validasi Pydantic (e.g. [{ loc: [...], msg: "..." }])
+      errorMsg = rawDetail
+        .map((item: any) =>
+          item.msg ? `${item.loc?.slice(-1)[0] || 'parameter'}: ${item.msg}` : JSON.stringify(item)
+        )
+        .join('; ');
+    } else if (rawDetail && typeof rawDetail === 'object') {
+      errorMsg = JSON.stringify(rawDetail);
+    } else if (error.message) {
+      errorMsg = error.message;
+    }
+
     return Promise.reject(new Error(errorMsg));
   }
 );
@@ -80,6 +97,7 @@ export const api = {
   ): Promise<{ status: string; message: string; case_id: string; platform?: string }> => {
     const detectedPlatform = eventUrl.includes('instagram.com') ? 'instagram' : 'youtube';
     const response = await apiClient.post('/investigate/event', {
+      url: eventUrl,
       event_url: eventUrl,
       max_comments: maxComments,
     });
