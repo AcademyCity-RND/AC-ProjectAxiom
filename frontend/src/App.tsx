@@ -32,6 +32,7 @@ import {
   TrendingUp,
   Clock,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import type { PlatformType } from './types';
 
@@ -54,6 +55,8 @@ export const App: React.FC = () => {
     recentCases,
     isAnalyzing,
     isPolling,
+    error,
+    clearError,
     loadCases,
     loadStats,
     startActorInvestigation,
@@ -293,6 +296,22 @@ export const App: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Error Alert Notification Banner */}
+          {error && (
+            <div className="bg-rose-950/70 border border-rose-500/50 p-3 rounded text-xs text-rose-300 flex items-center justify-between animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button
+                onClick={clearError}
+                className="text-rose-400 hover:text-rose-200 text-xs px-2 py-0.5 rounded border border-rose-800/40 hover:bg-rose-900/30 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          )}
 
           {/* ACTIVE VIEW LOGIC:
               Case 1: User is filling the investigation form
