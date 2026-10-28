@@ -102,41 +102,38 @@
 
 #### 1.5 Feature Engineering & XGBoost Baseline (Hari 4-6: Rabu-Jumat)
 - [x] **Feature Extractor (services/features.py):**
-  - [x] Temporal: 	emporal_entropy, posts_per_day, ctive_hours_count, urstiness_score (Goh-Barabasi parameter)
-  - [x] Structural: ollower_following_ratio, ollowers_count, ollowing_count, username_digit_ratio, has_default_avatar, is_verified, io_length
-  - [x] Content & Perilaku: vg_text_length, unique_word_ratio (TTR leksikal), url_ratio, media_ratio, 
-etweet_ratio, 
-eply_ratio, hashtag_density, mention_density
+  - [x] Temporal: temporal_entropy, posts_per_day, active_hours_count, burstiness_score (Goh-Barabasi parameter)
+  - [x] Structural: follower_following_ratio, followers_count, following_count, username_digit_ratio, has_default_avatar, is_verified, bio_length
+  - [x] Content & Perilaku: avg_text_length, unique_word_ratio (TTR leksikal), url_ratio, media_ratio, retweet_ratio, reply_ratio, hashtag_density, mention_density
   - [x] Network & Semantik CIB (integrasi Chroma): max_semantic_similarity, cluster_size
 - [x] **Dataset Labeling (Benchmark Cresci-2017 & TwiBot-20):**
-  - [x] Generator dataset sintetis 360 sampel: 120 Bot, 120 Buzzer, 120 Human (pp/services/dataset_generator.py)
+  - [x] Generator dataset sintetis 360 sampel: 120 Bot, 120 Buzzer, 120 Human (app/services/dataset_generator.py)
   - [x] Simpan dataset ke data/training/labeled_features.csv
 - [x] **Train XGBoost Tri-Class Classifier (services/classifier.py):**
-  - [x] 	rain() → simpan model artifact data/models/xgboost_tri_class.json
+  - [x] train() → simpan model artifact data/models/xgboost_tri_class.json
   - [x] predict(features: dict) -> (label, confidence, probabilities, top_features)
   - [x] Validasi akurasi test set 100% (> target 85%) & Macro F1 100%
   - [x] Explainable AI (XAI) feature importance ranking & reason generator
   - [x] Fallback heuristik deterministik anti-crash jika model cold-start/offline
-- [x] **Unit Testing Komprehensif (	ests/test_bot_detector.py):** 7/7 passed (total 23/23 tests passed 100% tanpa error/warning)
+- [x] **Unit Testing Komprehensif (tests/test_bot_detector.py):** 7/7 passed (total 23/23 tests passed 100% tanpa error/warning)
 
 #### 1.6 API Endpoint Inti & Anti-Abuse (Hari 5-7: Kamis-Sabtu)
-- [x] **Rate Limiting / Throttling Middleware (pp/core/rate_limiter.py):**
+- [x] **Rate Limiting / Throttling Middleware (app/core/rate_limiter.py):**
   - [x] Sliding window rate limiter (maks 10 request/menit per operator/IP) anti-ban pool scraper
   - [x] Header standar Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining (HTTP 429)
 - [x] **POST /api/v1/investigate/actor (dan alias /target):**
   - [x] Terima username, validasi regex & anti-SSRF, buat InvestigationCase, trigger background task asinkron
 - [x] **Background Task Orchestrator (services/investigation_orchestrator.py):**
   - [x] 1. Scrape Profile & Activities (XScraper dengan auto-fallback mock data)
-  - [x] 2. Simpan ke PostgreSQL (ActorProfile, ActivityLog) & ChromaDB (ctor_narratives)
+  - [x] 2. Simpan ke PostgreSQL (ActorProfile, ActivityLog) & ChromaDB (actor_narratives)
   - [x] 3. Ekstraksi 21 fitur & inferensi XGBoost (predicted_class, confidence, class_probabilities, XAI)
   - [x] 4. Query Chroma untuk CIB Cluster ({semantic} \ge 0.85$) dan persistensi ClusterLink
-  - [x] 5. Update InvestigationCase status completed + 
-esult_summary
+  - [x] 5. Update InvestigationCase status completed + result_summary
 - [x] **GET /api/v1/investigate/{case_id}:**
   - [x] Return status kasus, profil aktor, hasil deteksi XGBoost, dan faktor penjelasan XAI
 - [x] **GET /api/v1/network/graph/{case_id} (dan /investigate/{case_id}/graph):**
   - [x] Return nodes/edges terstruktur format Cytoscape.js dengan color-coded threat class & confidence
-- [x] **Unit & Integration Test Suite (	ests/test_investigate_api.py):**
+- [x] **Unit & Integration Test Suite (tests/test_investigate_api.py):**
   - [x] 7/7 tests passed (total 30/30 suite tests passed 100% tanpa error/warning)
 
 ---
@@ -216,11 +213,27 @@ esult_summary
 
 ### ✅ Checklist Detail Minggu 3
 
-#### 3.1 Setup Next.js 15 & Design System (Hari 1-2)
-- [ ] `pnpm create next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"`
-- [ ] **Install Dependencies:** `cytoscape`, `cytoscape-cose-bilkent`, `recharts`, `lucide-react`, `clsx`, `tailwind-merge`, `zustand`, `axios`, `react-hot-toast`.
-- [ ] **Theme Config:** `tailwind.config.ts` → Palet "Cyber Defense Dark" (PRD Section 7.1).
-- [ ] **Global State (Zustand):** `useCaseStore`, `useUIStore` (loading, theme, notifications).
+#### 3.1 Setup Frontend Core, Cyber Defense Theme & Global State (Hari 1-2)
+- [x] **Setup Modern React 19 + Vite 8 + Tailwind CSS v4:**
+  - [x] Setup tooling: `pnpm`, React 19, TypeScript ~6.0, Tailwind CSS v4 (@tailwindcss/vite).
+  - [x] Konfigurasi path alias `@/*` -> `./src`, proxy Vite dev server ke backend FastAPI (`http://localhost:8000`).
+- [x] **Install Dependencies Visualisasi & State:**
+  - [x] `lucide-react`, `clsx`, `tailwind-merge`, `zustand`, `axios`, `@xyflow/react`, `echarts`, `echarts-for-react`, `@tanstack/react-query`, `@react-pdf/renderer`.
+- [x] **Design System & Theme Config (`DESIGN.md` & `style.css`):**
+  - [x] Palet "PUSSIBERAD Focused Tactical Intelligence": `#090D16` (Canvas), `#0F172A` (Primary Surface), `#1E293B` (Border), `#38BDF8` (Tactical Cyan), `#EF4444` (Bot/Attack Red), `#F59E0B` (Buzzer Amber), `#10B981` (Human Emerald).
+  - [x] Kepatuhan ketat Anti-Slop (`antislop-ui`, `antislop-human`, `antislop-code`): Zero generic AI purple-blue gradients, solid matte surfaces, WCAG AAA text contrast, strict 3-group viewport rule, 4 KPI cap, penegakan `tabular-nums`.
+- [x] **Global State & API Client Layer:**
+  - [x] `src/services/api.ts`: Axios client dengan endpoint wrapper lengkap (`startActorInvestigation`, `startEventInvestigation`, `getCaseStatus`/`getCaseDetails`, `getNetworkGraph`/`getCaseGraph`, `getAnalytics`/`getCaseAnalytics`, `getAuditLedger`, `getExportReportUrl`, `checkHealth`).
+  - [x] `src/store/useCaseStore.ts`: Zustand store untuk active case, status polling otomatis, graph data, analytics, audit ledger, and error handling.
+  - [x] `src/store/useAuthStore.ts`: Mock military credential store (Operator PUSSIBERAD, clearance level, status koneksi).
+- [x] **Shell Layout Components & Progressive Disclosure:**
+  - [x] `src/components/layout/Header.tsx`: PUSSIBERAD insignia, system status indicator, real-time clock, operator badge.
+  - [x] `src/components/layout/Sidebar.tsx`: Ramping 220px, 5 modul utama (Overview, Narrative Monitor, Network Graph, Target Directory, Case Reports).
+  - [x] `src/components/common/InspectorDrawer.tsx`: Contextual inspector 380px slide-over untuk detail forensik & telemetry raw JSON.
+  - [x] `src/components/common/ThreatBadge.tsx`: Attribution badges dengan 10% bg, 30% border, dan radius 4px.
+  - [x] `src/components/layout/Layout.tsx` & `src/App.tsx`: App shell responsif, single primary action CTA, table capped at 5 columns.
+- [x] **Verifikasi Build:**
+  - [x] TypeScript compiler (`tsc`) & Vite production bundle pass 100% tanpa error/warning.
 
 #### 3.2 Halaman Utama: Investigation Workspace (Hari 2-4)
 - [ ] **Layout:** Sidebar navigasi + Header (Search Bar Global + Status Scraper Pool).
