@@ -99,6 +99,16 @@ async def run_investigation_pipeline(
         db.flush()
 
         for act in all_activities:
+            metrics_data = dict(act.get("metrics") or {})
+            if "has_media" not in metrics_data and "has_media" in act:
+                metrics_data["has_media"] = act["has_media"]
+            if "hashtags" not in metrics_data and "hashtags" in act:
+                metrics_data["hashtags"] = act["hashtags"]
+            if "mentions" not in metrics_data and "mentions" in act:
+                metrics_data["mentions"] = act["mentions"]
+            if "urls" not in metrics_data and "urls" in act:
+                metrics_data["urls"] = act["urls"]
+
             activity = ActivityLog(
                 actor_id=actor.id,
                 platform_post_id=act.get("platform_post_id"),
@@ -107,7 +117,7 @@ async def run_investigation_pipeline(
                 posted_at=act.get("posted_at") or datetime.now(timezone.utc),
                 in_reply_to_user=act.get("in_reply_to_user"),
                 conversation_id=act.get("conversation_id"),
-                metrics=act.get("metrics"),
+                metrics=metrics_data,
                 embedding_id=f"{case_id}_{actor.id}_{act.get('platform_post_id')}"
             )
             db.add(activity)

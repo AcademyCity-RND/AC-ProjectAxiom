@@ -17,7 +17,9 @@ BUZZER_SAMPLE = {
             "statuses_count": 2340,
             "media_count": 12,
             "favourites_count": 310,
-            "profile_image_url": "https://pbs.twimg.com/profile_images/default_avatar.png"
+            "profile_image_url": "https://pbs.twimg.com/profile_images/default_avatar.png",
+            "default_profile_image": True,
+            "has_default_avatar": True
         }
     },
     "tweets": [
@@ -109,7 +111,9 @@ BOT_SAMPLE = {
             "statuses_count": 8900,
             "media_count": 0,
             "favourites_count": 10,
-            "profile_image_url": "https://pbs.twimg.com/profile_images/default_avatar.png"
+            "profile_image_url": "https://pbs.twimg.com/profile_images/default_avatar.png",
+            "default_profile_image": True,
+            "has_default_avatar": True
         }
     },
     "tweets": [
@@ -146,7 +150,9 @@ ORGANIC_SAMPLE = {
             "statuses_count": 1540,
             "media_count": 140,
             "favourites_count": 2890,
-            "profile_image_url": "https://pbs.twimg.com/profile_images/default_avatar.png"
+            "profile_image_url": "https://pbs.twimg.com/profile_images/custom_user.jpg",
+            "default_profile_image": False,
+            "has_default_avatar": False
         }
     },
     "tweets": [
