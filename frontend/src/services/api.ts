@@ -6,6 +6,8 @@ import type {
   AnalyticsData,
   LedgerItem,
   TopAttacker,
+  CaseSummary,
+  SystemStats,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -89,6 +91,26 @@ export const api = {
   },
   getCaseDetails: async (caseId: string): Promise<InvestigationCase> => {
     const response = await apiClient.get(`/investigate/${caseId}`);
+    return response.data;
+  },
+
+  // 3b. Mengambil Statistik Agregat Sistem dari PostgreSQL
+  getStats: async (): Promise<SystemStats> => {
+    const response = await apiClient.get('/investigate/stats');
+    return response.data;
+  },
+
+  // 3c. Mengambil Riwayat Kasus Riil dari PostgreSQL
+  getCases: async (
+    limit: number = 50,
+    offset: number = 0,
+    platform?: string,
+    statusFilter?: string
+  ): Promise<{ total: number; limit: number; offset: number; cases: CaseSummary[] }> => {
+    const params: Record<string, any> = { limit, offset };
+    if (platform) params.platform = platform;
+    if (statusFilter) params.status_filter = statusFilter;
+    const response = await apiClient.get('/investigate/cases', { params });
     return response.data;
   },
 

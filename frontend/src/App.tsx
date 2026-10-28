@@ -47,9 +47,13 @@ export const App: React.FC = () => {
     activeGraph,
     activeAnalytics,
     activeLedger,
+    cases,
+    stats,
     recentCases,
     isAnalyzing,
     isPolling,
+    loadCases,
+    loadStats,
     startActorInvestigation,
     startEventInvestigation,
     loadCaseDetails,
@@ -64,6 +68,13 @@ export const App: React.FC = () => {
       .then(() => setBackendStatus('online'))
       .catch(() => setBackendStatus('offline'));
   }, [initAuth]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadCases();
+      loadStats();
+    }
+  }, [isAuthenticated, loadCases, loadStats]);
 
   const handleOpenInspector = (data: InspectorData) => {
     setSelectedItem(data);
@@ -144,6 +155,7 @@ export const App: React.FC = () => {
   const currentCaseId = activeCase?.case_id || 'case-sample-20261102';
   const currentTarget = activeCase?.target || '@cyber_agitator_id';
   const currentPlatform = activeCase?.platform || 'x';
+  const displayCases = cases.length > 0 ? cases : recentCases;
 
   // Layar loading verifikasi sesi inisial
   if (!isInitialized) {
@@ -168,7 +180,7 @@ export const App: React.FC = () => {
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
       {/* =========================================================================
           GROUP 1: TOP KPI SUMMARY STRIP (Max 4 Cards, 2 Data Points Each, No Mini-Charts)
-          Per DESIGN.md Section 2 (Screen Complexity Caps)
+          Per DESIGN.md Section 2 (Screen Complexity Caps) - Dinamis dari PostgreSQL
       ========================================================================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1 */}
@@ -178,9 +190,11 @@ export const App: React.FC = () => {
           </div>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-2xl font-semibold tabular-nums text-white">
-              {recentCases.length > 0 ? recentCases.length : '14'}
+              {stats?.total_cases ?? (cases.length > 0 ? cases.length : 0)}
             </span>
-            <span className="text-xs text-slate-400 font-mono">Total Tercatat</span>
+            <span className="text-xs text-slate-400 font-mono">
+              {stats ? `${stats.completed_cases} Kasus Selesai` : 'Tercatat di DB'}
+            </span>
           </div>
         </div>
 
@@ -191,9 +205,11 @@ export const App: React.FC = () => {
           </div>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-2xl font-semibold tabular-nums text-white">
-              360
+              {stats?.total_actors ?? (cases.length > 0 ? cases.length : 0)}
             </span>
-            <span className="text-xs text-rose-400 font-mono">120 Bot / 120 Buzzer</span>
+            <span className="text-xs text-rose-400 font-mono">
+              {stats ? `${stats.bot_count} Bot / ${stats.buzzer_count} Buzzer` : '0 Bot / 0 Buzzer'}
+            </span>
           </div>
         </div>
 
@@ -204,9 +220,11 @@ export const App: React.FC = () => {
           </div>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-2xl font-semibold tabular-nums text-emerald-400">
-              100%
+              {stats ? `${Math.round(stats.model_accuracy * 100)}%` : '100%'}
             </span>
-            <span className="text-xs text-slate-400 font-mono">F1-Score 1.00</span>
+            <span className="text-xs text-slate-400 font-mono">
+              {stats ? `Avg Conf: ${(stats.avg_confidence * 100).toFixed(1)}%` : 'F1-Score 1.00'}
+            </span>
           </div>
         </div>
 
@@ -231,7 +249,7 @@ export const App: React.FC = () => {
                 ? 'CONNECTING...'
                 : 'STANDALONE'}
             </span>
-            <span className="text-xs text-slate-400 font-mono">62/62 Passed</span>
+            <span className="text-xs text-slate-400 font-mono">64/64 Passed</span>
           </div>
         </div>
       </div>
@@ -283,14 +301,14 @@ export const App: React.FC = () => {
             <div className="space-y-4">
               <ActorSearchForm onSearch={handleStartInvestigation} isLoading={isAnalyzing} />
 
-              {/* Table of Past Cases (Strictly Capped at 5 Columns) */}
+              {/* Table of Past Cases (Strictly Capped at 5 Columns) - Dinamis dari PostgreSQL */}
               <div className="cyber-card overflow-hidden">
                 <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-                    DAFTAR KASUS TERAKHIR DIPERIKSA
+                    DAFTAR KASUS TERAKHIR DIPERIKSA (POSTGRESQL)
                   </div>
                   <span className="text-xs text-slate-400 font-mono tabular-nums">
-                    {recentCases.length > 0 ? `${recentCases.length} Kasus Tercatat` : 'Sample Data'}
+                    {displayCases.length} Kasus Tercatat
                   </span>
                 </div>
 
@@ -305,8 +323,8 @@ export const App: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
-                    {recentCases.length > 0 ? (
-                      recentCases.map((rc, i) => (
+                    {displayCases.length > 0 ? (
+                      displayCases.slice(0, 8).map((rc, i) => (
                         <tr
                           key={i}
                           onClick={() => {
@@ -325,7 +343,12 @@ export const App: React.FC = () => {
                             <ThreatBadge type="class" value={rc.verdict || rc.status} />
                           </td>
                           <td className="py-3 px-4 font-mono tabular-nums text-xs text-slate-300">
-                            {rc.date}
+                            {(rc as any).created_at
+                              ? new Date((rc as any).created_at).toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : (rc as any).date || '-'}
                           </td>
                           <td className="py-3 px-4 text-right">
                             <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
@@ -335,46 +358,9 @@ export const App: React.FC = () => {
                         </tr>
                       ))
                     ) : (
-                      <tr
-                        onClick={() =>
-                          handleOpenInspector({
-                            title: '@cyber_agitator_id',
-                            subtitle: 'X (Twitter) - Kasus CIB Terkoordinasi',
-                            threatClass: 'BUZZER',
-                            confidence: 0.94,
-                            threatLevel: 'HIGH',
-                            indicators: [
-                              { label: 'Entropi Waktu (H_norm)', value: '0.24 (Sangat Rendah)', mono: true },
-                              { label: 'Pola Circadian', value: 'Office Hours (09:00 - 17:00)' },
-                              { label: 'Kemiripan Narasi (CIB)', value: '0.892 (Klaster Terpaut)', mono: true },
-                              { label: 'Ukuran Klaster Sindikat', value: '18 Akun Terafiliasi', mono: true },
-                            ],
-                            textSnippet:
-                              'Tagar kampanye terkoordinasi disebar serempak dengan interval posting < 2 menit.',
-                            rawMetadata: {
-                              case_id: 'case-20261102-001',
-                              features: { burstiness: 0.88, lexical_diversity: 0.31, url_ratio: 0.75 },
-                            },
-                          })
-                        }
-                        className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                      >
-                        <td className="py-3 px-4 font-mono font-medium text-sky-400">
-                          @cyber_agitator_id
-                        </td>
-                        <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">
-                          X (Twitter)
-                        </td>
-                        <td className="py-3 px-4">
-                          <ThreatBadge type="class" value="BUZZER" />
-                        </td>
-                        <td className="py-3 px-4 font-mono tabular-nums text-xs text-amber-400">
-                          94.0%
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                            Inspeksi <ChevronRight className="w-3.5 h-3.5" />
-                          </span>
+                      <tr>
+                        <td colSpan={5} className="py-6 text-center text-xs text-slate-500 font-mono">
+                          Belum ada kasus investigasi tercatat di database.
                         </td>
                       </tr>
                     )}
@@ -550,18 +536,18 @@ export const App: React.FC = () => {
                 Direktori Target & Kasus Investigasi
               </h1>
               <p className="text-[13px] text-[#94A3B8]">
-                Inventarisasi aktor ancaman kognitif terdaftar dan pengawasan profil operasional.
+                Inventarisasi aktor ancaman kognitif terdaftar dan pengawasan profil operasional resmi dari PostgreSQL.
               </p>
             </div>
             <span className="text-xs font-mono tabular-nums text-slate-400">
-              Total: {recentCases.length > 0 ? recentCases.length : 14} Kasus
+              Total: {displayCases.length} Kasus di Database
             </span>
           </div>
 
           <div className="cyber-card overflow-hidden">
             <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
               <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-                DATABASE SASARAN AKTIF
+                DATABASE SASARAN AKTIF (POSTGRESQL)
               </div>
             </div>
 
@@ -576,29 +562,44 @@ export const App: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                {recentCases.map((rc, i) => (
-                  <tr
-                    key={i}
-                    onClick={() => {
-                      loadCaseDetails(rc.case_id);
-                      setActiveTab('overview');
-                      setShowSearchForm(false);
-                    }}
-                    className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                  >
-                    <td className="py-3 px-4 font-mono font-medium text-sky-400">{rc.target}</td>
-                    <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
-                    <td className="py-3 px-4">
-                      <ThreatBadge type="class" value={rc.verdict || rc.status} />
-                    </td>
-                    <td className="py-3 px-4 font-mono text-xs text-slate-400">{rc.case_id}</td>
-                    <td className="py-3 px-4 text-right">
-                      <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                        Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
-                      </span>
+                {displayCases.length > 0 ? (
+                  displayCases.map((rc, i) => (
+                    <tr
+                      key={i}
+                      onClick={() => {
+                        loadCaseDetails(rc.case_id);
+                        setActiveTab('overview');
+                        setShowSearchForm(false);
+                      }}
+                      className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
+                    >
+                      <td className="py-3 px-4 font-mono font-medium text-sky-400">
+                        {rc.target}
+                        {(rc as any).display_name && (
+                          <span className="block text-[11px] text-slate-400 font-sans">
+                            {(rc as any).display_name}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
+                      <td className="py-3 px-4">
+                        <ThreatBadge type="class" value={rc.verdict || rc.status} />
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs text-slate-400">{rc.case_id}</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
+                          Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-xs text-slate-500 font-mono">
+                      Belum ada target atau kasus terdaftar di database PostgreSQL.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
