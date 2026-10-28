@@ -1,6 +1,7 @@
-import React from 'react';
-import { User, CheckCircle2, ChevronRight, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, CheckCircle2, ChevronRight, Info, ShieldAlert, Check } from 'lucide-react';
 import { ThreatBadge } from '../common/ThreatBadge';
+import { useCaseStore } from '../../store/useCaseStore';
 import type { ActorSummary, DetectionResultData } from '../../types';
 
 interface ActorSummaryCardProps {
@@ -43,6 +44,29 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   const postsPerDay = features.posts_per_day !== undefined ? Number(features.posts_per_day).toFixed(1) : '0.0';
   const burstiness = features.burstiness_score !== undefined ? Number(features.burstiness_score).toFixed(2) : '0.00';
   const temporalEntropy = features.temporal_entropy !== undefined ? Number(features.temporal_entropy).toFixed(2) : '0.00';
+
+  const [isAddedToWatchlist, setIsAddedToWatchlist] = useState<boolean>(false);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
+
+  const handleAddToWatchlist = async () => {
+    setIsAdding(true);
+    try {
+      const cls = (predictedClass || 'SUSPICIOUS').toUpperCase();
+      const defaultTag = cls === 'BOT' ? 'propaganda_botnet' : cls === 'BUZZER' ? 'buzzer_coordinator' : 'suspicious_cib';
+      await useCaseStore.getState().addToWatchlist({
+        username: target,
+        platform: platform.toLowerCase(),
+        tag: defaultTag,
+        notes: `Ditambahkan dari investigasi kasus. Klasifikasi AI: ${predictedClass} (Keyakinan: ${confidencePercent}%)`,
+      });
+      setIsAddedToWatchlist(true);
+      setTimeout(() => setIsAddedToWatchlist(false), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Gagal menambahkan target ke Watchlist');
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   return (
     <div className="cyber-card p-4 space-y-4">
@@ -172,20 +196,44 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
         </div>
       </div>
 
-      {/* Footer Action: Trigger Inspector Drawer */}
-      <div className="pt-2 flex items-center justify-between">
+      {/* Footer Action: Trigger Inspector Drawer & Watchlist */}
+      <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
           <Info className="w-3.5 h-3.5" />
           Ekstraksi 21 fitur lengkap tersedia
         </span>
-        <button
-          type="button"
-          onClick={onInspectFeatures}
-          className="border border-[#1E293B] bg-[#0F172A] hover:bg-[#1E293B] text-slate-300 hover:text-white px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
-        >
-          <span>Inspeksi 21 Fitur XAI</span>
-          <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAddToWatchlist}
+            disabled={isAddedToWatchlist || isAdding}
+            className={`border px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120 ${
+              isAddedToWatchlist
+                ? 'border-emerald-600 bg-emerald-950/40 text-emerald-400'
+                : 'border-[#1E293B] bg-[#0F172A] hover:bg-[#1E293B] text-slate-300 hover:text-white'
+            }`}
+          >
+            {isAddedToWatchlist ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Terpantau</span>
+              </>
+            ) : (
+              <>
+                <ShieldAlert className="w-3.5 h-3.5 text-sky-400" />
+                <span>{isAdding ? 'Menyimpan...' : 'Pantau di Watchlist'}</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onInspectFeatures}
+            className="border border-[#1E293B] bg-[#0F172A] hover:bg-[#1E293B] text-slate-300 hover:text-white px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
+          >
+            <span>Inspeksi 21 Fitur XAI</span>
+            <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
+          </button>
+        </div>
       </div>
     </div>
   );

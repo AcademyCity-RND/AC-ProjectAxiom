@@ -201,3 +201,21 @@ export interface SystemStats {
   model_accuracy: number;
   system_status: string;
 }
+
+export interface WatchlistItem {
+  id: number;
+  username: string;
+  platform: string;
+  tag: string;
+  notes?: string | null;
+  added_by?: string | null;
+  added_at: string;
+  last_checked_at?: string | null;
+}
+
+export interface WatchlistCreatePayload {
+  username: string;
+  platform?: string;
+  tag?: string;
+  notes?: string;
+}

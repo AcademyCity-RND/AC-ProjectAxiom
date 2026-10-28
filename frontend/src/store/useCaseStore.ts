@@ -9,6 +9,8 @@ import type {
   LedgerItem,
   CaseSummary,
   SystemStats,
+  WatchlistItem,
+  WatchlistCreatePayload,
 } from '../types';
 
 interface CaseState {
@@ -21,6 +23,7 @@ interface CaseState {
   } | null;
   cases: CaseSummary[];
   stats: SystemStats | null;
+  watchlist: WatchlistItem[];
   recentCases: Array<{
     case_id: string;
     target: string;
@@ -33,11 +36,15 @@ interface CaseState {
   isPolling: boolean;
   isLoadingCases: boolean;
   isLoadingStats: boolean;
+  isLoadingWatchlist: boolean;
   error: string | null;
 
   setActiveCase: (c: InvestigationCase | null) => void;
   loadCases: (limit?: number, offset?: number) => Promise<void>;
   loadStats: () => Promise<void>;
+  loadWatchlist: (tag?: string) => Promise<void>;
+  addToWatchlist: (payload: WatchlistCreatePayload) => Promise<void>;
+  deleteFromWatchlist: (id: number) => Promise<void>;
   startActorInvestigation: (target: string, platform?: PlatformType, maxCount?: number) => Promise<string>;
   startEventInvestigation: (url: string, maxCount?: number) => Promise<string>;
   loadCaseDetails: (caseId: string) => Promise<void>;
@@ -57,11 +64,13 @@ export const useCaseStore = create<CaseState>((set, get) => {
     activeLedger: null,
     cases: [],
     stats: null,
+    watchlist: [],
     recentCases: initialRecent,
     isAnalyzing: false,
     isPolling: false,
     isLoadingCases: false,
     isLoadingStats: false,
+    isLoadingWatchlist: false,
     error: null,
 
     setActiveCase: (c) => set({ activeCase: c }),
@@ -88,6 +97,36 @@ export const useCaseStore = create<CaseState>((set, get) => {
       } catch (err: any) {
         console.warn('[loadStats error]:', err.message);
         set({ isLoadingStats: false });
+      }
+    },
+
+    // Mengambil daftar target Watchlist resmi dari database
+    loadWatchlist: async (tag?: string) => {
+      set({ isLoadingWatchlist: true });
+      try {
+        const items = await api.getWatchlist(tag);
+        set({ watchlist: items, isLoadingWatchlist: false });
+      } catch (err: any) {
+        console.warn('[loadWatchlist error]:', err.message);
+        set({ isLoadingWatchlist: false });
+      }
+    },
+
+    addToWatchlist: async (payload: WatchlistCreatePayload) => {
+      try {
+        const newItem = await api.addToWatchlist(payload);
+        set((state) => ({ watchlist: [newItem, ...state.watchlist] }));
+      } catch (err: any) {
+        throw new Error(err.message || 'Gagal menambahkan target ke watchlist');
+      }
+    },
+
+    deleteFromWatchlist: async (id: number) => {
+      try {
+        await api.deleteFromWatchlist(id);
+        set((state) => ({ watchlist: state.watchlist.filter((w) => w.id !== id) }));
+      } catch (err: any) {
+        throw new Error(err.message || 'Gagal menghapus target dari watchlist');
       }
     },
 

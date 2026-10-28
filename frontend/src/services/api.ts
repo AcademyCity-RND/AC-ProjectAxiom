@@ -8,6 +8,8 @@ import type {
   TopAttacker,
   CaseSummary,
   SystemStats,
+  WatchlistItem,
+  WatchlistCreatePayload,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -161,6 +163,23 @@ export const api = {
       ? `${API_BASE_URL.replace(/\/api\/v1\/?$/, '')}/health`
       : '/health';
     const response = await axios.get(targetUrl, { timeout: 3000 });
+    return response.data;
+  },
+
+  // 9. Modul Watchlist & Manajemen Target Permanen
+  getWatchlist: async (tag?: string): Promise<WatchlistItem[]> => {
+    const params = tag ? { tag } : undefined;
+    const response = await apiClient.get('/watchlist', { params });
+    return response.data;
+  },
+
+  addToWatchlist: async (payload: WatchlistCreatePayload): Promise<WatchlistItem> => {
+    const response = await apiClient.post('/watchlist', payload);
+    return response.data;
+  },
+
+  deleteFromWatchlist: async (watchlistId: number): Promise<{ status: string; message: string }> => {
+    const response = await apiClient.delete(`/watchlist/${watchlistId}`);
     return response.data;
   },
 };

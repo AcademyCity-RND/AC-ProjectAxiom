@@ -18,6 +18,7 @@ import { NarrativeDriftChart } from './components/visualization/NarrativeDriftCh
 import { DualTierLedgerTable } from './components/reports/DualTierLedgerTable';
 import { ExportActionPanel } from './components/reports/ExportActionPanel';
 import { LoginPage } from './components/auth/LoginPage';
+import { WatchlistManager } from './components/watchlist/WatchlistManager';
 import { useAuthStore } from './store/useAuthStore';
 import {
   Plus,
@@ -37,6 +38,7 @@ import type { PlatformType } from './types';
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [narrativeSubView, setNarrativeSubView] = useState<'circadian_entropy' | 'drift'>('circadian_entropy');
+  const [targetsSubView, setTargetsSubView] = useState<'cases' | 'watchlist'>('cases');
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [selectedItem, setSelectedItem] = useState<InspectorData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
@@ -526,83 +528,117 @@ export const App: React.FC = () => {
       )}
 
       {/* =========================================================================
-          MODULE 4: TARGET DIRECTORY
+          MODULE 4: TARGET DIRECTORY & WATCHLIST
       ========================================================================= */}
       {activeTab === 'targets' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
-                Direktori Target & Kasus Investigasi
+                Direktori Target & Manajemen Sasaran
               </h1>
               <p className="text-[13px] text-[#94A3B8]">
                 Inventarisasi aktor ancaman kognitif terdaftar dan pengawasan profil operasional resmi dari PostgreSQL.
               </p>
             </div>
-            <span className="text-xs font-mono tabular-nums text-slate-400">
-              Total: {displayCases.length} Kasus di Database
-            </span>
+
+            {/* Sub-View Switcher: Cases vs Watchlist */}
+            <div className="flex items-center p-0.5 bg-[#090D16] border border-[#1E293B] rounded text-xs self-start sm:self-auto">
+              <button
+                onClick={() => setTargetsSubView('cases')}
+                className={`px-3 py-1 rounded transition-colors ${
+                  targetsSubView === 'cases'
+                    ? 'bg-[#1E293B] text-sky-400 font-medium'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Kasus Terdaftar ({displayCases.length})
+              </button>
+              <button
+                onClick={() => setTargetsSubView('watchlist')}
+                className={`px-3 py-1 rounded transition-colors ${
+                  targetsSubView === 'watchlist'
+                    ? 'bg-[#1E293B] text-sky-400 font-medium'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Watchlist Persisten
+              </button>
+            </div>
           </div>
 
-          <div className="cyber-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-                DATABASE SASARAN AKTIF (POSTGRESQL)
+          {targetsSubView === 'watchlist' ? (
+            <WatchlistManager
+              onStartInvestigate={(target, platform) => {
+                handleStartInvestigation(target, platform, 150, false);
+                setActiveTab('overview');
+                setShowSearchForm(false);
+              }}
+            />
+          ) : (
+            <div className="cyber-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+                  DATABASE SASARAN AKTIF (POSTGRESQL)
+                </div>
+                <span className="text-xs font-mono tabular-nums text-slate-400">
+                  Total: {displayCases.length} Kasus
+                </span>
               </div>
-            </div>
 
-            <table className="w-full text-left text-[13px]">
-              <thead className="border-b border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-                <tr>
-                  <th className="py-3 px-4">Target / Akun</th>
-                  <th className="py-3 px-4">Platform</th>
-                  <th className="py-3 px-4">Klasifikasi AI</th>
-                  <th className="py-3 px-4">Case ID</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/50">
-                {displayCases.length > 0 ? (
-                  displayCases.map((rc, i) => (
-                    <tr
-                      key={i}
-                      onClick={() => {
-                        loadCaseDetails(rc.case_id);
-                        setActiveTab('overview');
-                        setShowSearchForm(false);
-                      }}
-                      className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                    >
-                      <td className="py-3 px-4 font-mono font-medium text-sky-400">
-                        {rc.target}
-                        {(rc as any).display_name && (
-                          <span className="block text-[11px] text-slate-400 font-sans">
-                            {(rc as any).display_name}
+              <table className="w-full text-left text-[13px]">
+                <thead className="border-b border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+                  <tr>
+                    <th className="py-3 px-4">Target / Akun</th>
+                    <th className="py-3 px-4">Platform</th>
+                    <th className="py-3 px-4">Klasifikasi AI</th>
+                    <th className="py-3 px-4">Case ID</th>
+                    <th className="py-3 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50">
+                  {displayCases.length > 0 ? (
+                    displayCases.map((rc, i) => (
+                      <tr
+                        key={i}
+                        onClick={() => {
+                          loadCaseDetails(rc.case_id);
+                          setActiveTab('overview');
+                          setShowSearchForm(false);
+                        }}
+                        className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
+                      >
+                        <td className="py-3 px-4 font-mono font-medium text-sky-400">
+                          {rc.target}
+                          {(rc as any).display_name && (
+                            <span className="block text-[11px] text-slate-400 font-sans">
+                              {(rc as any).display_name}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
+                        <td className="py-3 px-4">
+                          <ThreatBadge type="class" value={rc.verdict || rc.status} />
+                        </td>
+                        <td className="py-3 px-4 font-mono text-xs text-slate-400">{rc.case_id}</td>
+                        <td className="py-3 px-4 text-right">
+                          <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
+                            Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
                           </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
-                      <td className="py-3 px-4">
-                        <ThreatBadge type="class" value={rc.verdict || rc.status} />
-                      </td>
-                      <td className="py-3 px-4 font-mono text-xs text-slate-400">{rc.case_id}</td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                          Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
-                        </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-xs text-slate-500 font-mono">
+                        Belum ada target atau kasus terdaftar di database PostgreSQL.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-xs text-slate-500 font-mono">
-                      Belum ada target atau kasus terdaftar di database PostgreSQL.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

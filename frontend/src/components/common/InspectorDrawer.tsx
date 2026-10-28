@@ -1,6 +1,7 @@
-import React from 'react';
-import { X, ExternalLink, Shield, Activity, Calendar, Hash } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ExternalLink, Shield, Activity, Calendar, Hash, ShieldAlert, Check } from 'lucide-react';
 import { ThreatBadge } from './ThreatBadge';
+import { useCaseStore } from '../../store/useCaseStore';
 
 export interface InspectorData {
   title: string;
@@ -24,7 +25,34 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   onClose,
   data,
 }) => {
+  const [isAdded, setIsAdded] = useState<boolean>(false);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
+
   if (!isOpen || !data) return null;
+
+  const isAccount = data.title.startsWith('@') || Boolean(data.threatClass);
+
+  const handleAddToWatchlist = async () => {
+    if (!isAccount) return;
+    setIsAdding(true);
+    try {
+      const cls = (data.threatClass || 'SUSPICIOUS').toUpperCase();
+      const defaultTag =
+        cls === 'BOT' ? 'propaganda_botnet' : cls === 'BUZZER' ? 'buzzer_coordinator' : 'suspicious_cib';
+      await useCaseStore.getState().addToWatchlist({
+        username: data.title,
+        platform: 'x',
+        tag: defaultTag,
+        notes: `Ditambahkan dari Forensic Inspector. Klasifikasi: ${data.threatClass || 'SUSPICIOUS'} (${data.threatLevel || 'UNKNOWN'})`,
+      });
+      setIsAdded(true);
+      setTimeout(() => setIsAdded(false), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Gagal menambahkan sasaran ke Watchlist');
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   return (
     <aside
@@ -130,8 +158,32 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
       </div>
 
       {/* Drawer Footer Actions */}
-      <div className="p-3 border-t border-[#1E293B] bg-[#131C2E] flex items-center justify-between">
-        <span className="text-[10px] text-slate-500 font-mono">PUSSIBERAD FORENSIC</span>
+      <div className="p-3 border-t border-[#1E293B] bg-[#131C2E] flex items-center justify-between gap-2">
+        {isAccount ? (
+          <button
+            onClick={handleAddToWatchlist}
+            disabled={isAdded || isAdding}
+            className={`px-2.5 py-1.5 rounded text-xs inline-flex items-center gap-1.5 transition-colors border ${
+              isAdded
+                ? 'border-emerald-600 bg-emerald-950/40 text-emerald-400'
+                : 'border-sky-800/40 bg-sky-950/30 text-sky-300 hover:bg-sky-900/40'
+            }`}
+          >
+            {isAdded ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Terpantau di Watchlist</span>
+              </>
+            ) : (
+              <>
+                <ShieldAlert className="w-3.5 h-3.5 text-sky-400" />
+                <span>{isAdding ? 'Menyimpan...' : 'Pantau Akun Ini'}</span>
+              </>
+            )}
+          </button>
+        ) : (
+          <span className="text-[10px] text-slate-500 font-mono">PUSSIBERAD FORENSIC</span>
+        )}
         <button
           onClick={onClose}
           className="px-3 py-1.5 rounded text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
