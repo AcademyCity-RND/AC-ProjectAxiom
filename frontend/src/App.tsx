@@ -157,9 +157,15 @@ export const App: React.FC = () => {
     });
   };
 
-  const currentCaseId = activeCase?.case_id || 'case-sample-20261102';
-  const currentTarget = activeCase?.target || '@cyber_agitator_id';
-  const currentPlatform = activeCase?.platform || 'x';
+  const activeOrAvailableCase =
+    activeCase ||
+    cases.find((c) => c.status === 'completed') ||
+    cases[0] ||
+    null;
+
+  const currentCaseId = activeOrAvailableCase?.case_id || '';
+  const currentTarget = activeOrAvailableCase?.target || 'Belum Ada Kasus Terpilih';
+  const currentPlatform = activeOrAvailableCase?.platform || 'x';
   const displayCases = cases.length > 0 ? cases : recentCases;
 
   // Layar loading verifikasi sesi inisial
@@ -671,6 +677,8 @@ export const App: React.FC = () => {
             caseId={currentCaseId}
             target={currentTarget}
             platform={currentPlatform}
+            cases={cases}
+            onSelectCase={(cid) => loadCaseDetails(cid)}
           />
 
           {/* Dual-Tier Ledger Table */}
@@ -679,8 +687,8 @@ export const App: React.FC = () => {
             fullLedger={activeLedger?.full_ledger}
             caseId={currentCaseId}
             onInspectRow={handleOpenInspector}
-            onExportCsv={() => window.open(api.getExportReportUrl(currentCaseId, 'csv'))}
-            onExportHtml={() => window.open(api.getExportReportUrl(currentCaseId, 'html'))}
+            onExportCsv={() => currentCaseId && api.downloadReport(currentCaseId, 'csv')}
+            onExportHtml={() => currentCaseId && api.downloadReport(currentCaseId, 'html')}
           />
         </div>
       )}

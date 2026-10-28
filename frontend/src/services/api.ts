@@ -172,7 +172,33 @@ export const api = {
     const base = API_BASE_URL.startsWith('http')
       ? API_BASE_URL
       : `${window.location.origin}${API_BASE_URL}`;
-    return `${base}/export/report/${caseId}?format=${format}`;
+    const token = localStorage.getItem('axiom_token');
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+    return `${base}/export/report/${caseId}?format=${format}${tokenParam}`;
+  },
+
+  // 7b. Eksekusi Unduh Berkas Laporan Terotentikasi (Blob Streaming)
+  downloadReport: async (caseId: string, format: 'html' | 'csv'): Promise<void> => {
+    const response = await apiClient.get(`/export/report/${caseId}?format=${format}`, {
+      responseType: 'blob',
+    });
+    const mimeType = format === 'html' ? 'text/html;charset=utf-8' : 'text/csv;charset=utf-8';
+    const blob = new Blob([response.data], { type: mimeType });
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    if (format === 'html') {
+      const win = window.open(blobUrl, '_blank');
+      if (!win) {
+        window.location.href = blobUrl;
+      }
+    } else {
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `axiom_ledger_${caseId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   },
 
   // 8. Health Check Sistem
