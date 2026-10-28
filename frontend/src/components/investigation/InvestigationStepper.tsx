@@ -1,0 +1,184 @@
+import React, { useEffect, useState } from 'react';
+import {
+  DownloadCloud,
+  Cpu,
+  Binary,
+  Layers,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+} from 'lucide-react';
+
+interface InvestigationStepperProps {
+  status: 'queued' | 'in_progress' | 'completed' | 'failed' | string;
+  caseId: string;
+  target: string;
+  platform: string;
+}
+
+export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
+  status,
+  caseId,
+  target,
+  platform,
+}) => {
+  const [elapsed, setElapsed] = useState<number>(0);
+
+  useEffect(() => {
+    if (status === 'completed' || status === 'failed') return;
+    const interval = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [status]);
+
+  // Map high-level status to discrete pipeline steps
+  const steps = [
+    {
+      id: 'ingestion',
+      name: 'Ingestion & Scraping',
+      desc: `Pengambilan profil & log riwayat ${platform.toUpperCase()}`,
+      icon: DownloadCloud,
+    },
+    {
+      id: 'features',
+      name: 'Feature Extraction',
+      desc: 'Ekstraksi 21 parameter perilaku & struktur akun',
+      icon: Binary,
+    },
+    {
+      id: 'inference',
+      name: 'XGBoost Classification',
+      desc: 'Inferensi model Tri-Class (Human, Buzzer, Bot)',
+      icon: Cpu,
+    },
+    {
+      id: 'clustering',
+      name: 'CIB Clustering',
+      desc: 'Deteksi klaster terkoordinasi (Cosine >= 0.85)',
+      icon: Layers,
+    },
+    {
+      id: 'synthesis',
+      name: 'Forensic Synthesis',
+      desc: 'Penalaran ancaman Groq Llama 3.3 70B',
+      icon: Sparkles,
+    },
+  ];
+
+  // Determine active step index based on status and elapsed time
+  const getActiveStepIndex = () => {
+    if (status === 'completed') return 5; // all done
+    if (status === 'failed') return -1;
+    if (status === 'queued') return 0;
+    // in_progress simulation based on elapsed seconds (orchestrator completes in ~2-4s)
+    if (elapsed < 1) return 0;
+    if (elapsed < 2) return 1;
+    if (elapsed < 3) return 2;
+    if (elapsed < 4) return 3;
+    return 4;
+  };
+
+  const activeIndex = getActiveStepIndex();
+
+  return (
+    <div className="cyber-card p-4 space-y-4">
+      {/* Stepper Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#1E293B]">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+              STATUS PIPELINE FORENSIK
+            </span>
+            <span className="text-xs font-mono text-slate-400">&bull; ID: {caseId}</span>
+          </div>
+          <div className="text-sm font-semibold text-white flex items-center gap-2">
+            Target: <span className="font-mono text-sky-400">{target}</span>
+            <span className="text-xs uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">
+              {platform}
+            </span>
+          </div>
+        </div>
+
+        {/* Status Badge & Elapsed Timer */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono tabular-nums bg-[#090D16] border border-[#1E293B] px-2.5 py-1 rounded">
+            <Clock className="w-3.5 h-3.5 text-sky-400" />
+            <span>{elapsed}s</span>
+          </div>
+
+          <div>
+            {status === 'completed' ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-emerald-500/10 text-[#34D399] border border-emerald-500/30 font-mono">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                SELESAI (COMPLETED)
+              </span>
+            ) : status === 'failed' ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-rose-500/10 text-[#F87171] border border-rose-500/30 font-mono">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                GAGAL (FAILED)
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/30 font-mono">
+                <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+                MEMPROSES PIPELINE...
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 5-Stage Stepper Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+        {steps.map((step, idx) => {
+          const Icon = step.icon;
+          const isDone = activeIndex > idx;
+          const isCurrent = activeIndex === idx && status !== 'completed' && status !== 'failed';
+          const isPending = activeIndex < idx;
+
+          return (
+            <div
+              key={step.id}
+              className={`p-3 rounded border transition-all duration-150 ${
+                isDone
+                  ? 'bg-[#131C2E] border-emerald-500/30 text-slate-200'
+                  : isCurrent
+                  ? 'bg-[#1E293B] border-sky-400 text-white shadow-sm ring-1 ring-sky-400/20'
+                  : 'bg-[#090D16] border-[#1E293B] text-slate-500 opacity-60'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <div
+                  className={`w-6 h-6 rounded flex items-center justify-center text-xs font-mono font-semibold ${
+                    isDone
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : isCurrent
+                      ? 'bg-sky-400/20 text-sky-400 animate-pulse'
+                      : 'bg-slate-800 text-slate-500'
+                  }`}
+                >
+                  {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
+                </div>
+                <Icon
+                  className={`w-4 h-4 ${
+                    isDone
+                      ? 'text-emerald-400'
+                      : isCurrent
+                      ? 'text-sky-400'
+                      : 'text-slate-600'
+                  }`}
+                />
+              </div>
+
+              <div className="text-xs font-medium truncate">{step.name}</div>
+              <div className="text-[10px] text-slate-400 leading-tight mt-0.5 line-clamp-2">
+                {step.desc}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

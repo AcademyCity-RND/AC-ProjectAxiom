@@ -236,10 +236,33 @@
   - [x] TypeScript compiler (`tsc`) & Vite production bundle pass 100% tanpa error/warning.
 
 #### 3.2 Halaman Utama: Investigation Workspace (Hari 2-4)
-- [ ] **Layout:** Sidebar navigasi + Header (Search Bar Global + Status Scraper Pool).
-- [ ] **Component `ActorSearchForm`:** Input `@username` / URL, Select Platform, Button "Analyze".
-- [ ] **Component `CaseStatusCard`:** Polling status case (pending/processing/completed/failed) dengan progress stepper.
-- [ ] **Component `ClassificationBadge`:** Animasi warna + Confidence Ring (SVG).
+- [x] **Component `ActorSearchForm` (`src/components/investigation/ActorSearchForm.tsx`):**
+  - [x] Mode toggle: Input target aktor `@username` vs Event URL postingan (YouTube / Instagram).
+  - [x] Selector platform (X, YouTube, Instagram) & batas kedalaman sampel (100, 150, 200).
+  - [x] Validasi ketat format username & protokol URL dengan status error informatif.
+  - [x] Tombol CTA utama tunggal (*One Action Priority*) `#38BDF8` ("Mulai Investigasi") dengan animasi loading.
+  - [x] Chip preset demo instan (`@cyber_agitator_id`, `@bot_amplifier_99`, URL YouTube) untuk kemudahan pengujian demo.
+- [x] **Component `InvestigationStepper` (`src/components/investigation/InvestigationStepper.tsx`):**
+  - [x] Visualisasi 5 tahap pipeline latar belakang: Ingestion -> Feature Extraction -> XGBoost Inference -> CIB Clustering -> Forensic Synthesis.
+  - [x] Live timer elapsed seconds, indikator step aktif berdenyut (*pulse*), checkmark penyelesaian hijau.
+  - [x] Penanganan status: `queued`, `in_progress`, `completed`, `failed`.
+- [x] **Component `ActorSummaryCard` (`src/components/investigation/ActorSummaryCard.tsx`):**
+  - [x] Kartu profil aktor target: identitas `@username`, nama tampilan, lencana verifikasi, bio deskripsi.
+  - [x] **Circular Confidence Ring (SVG)**: Indikator persentase keyakinan model dinamis sesuai kelas ancaman (Emerald, Amber, Rose).
+  - [x] Strip metrik struktural & perilaku: Pengikut/Mengikuti, Frekuensi Postingan/Hari, Burstiness ($B$), Entropi Temporal ($H$).
+  - [x] Tombol pemicu slide-over `InspectorDrawer` untuk inspeksi mendalam 21 fitur XAI.
+- [x] **Component `ForensicDossierCard` (`src/components/investigation/ForensicDossierCard.tsx`):**
+  - [x] Header berkas dossier resmi PUSSIBERAD (Klasifikasi RAHASIA) dengan lencana `ThreatLevel` (CRITICAL, HIGH, MEDIUM, LOW).
+  - [x] Agenda operasi utama & institusi/sasaran yang ditargetkan.
+  - [x] Daftar poin bukti forensik terverifikasi (*verified forensic evidence points*).
+  - [x] Rekomendasi taktis operasi pertahanan siber kognitif Satgas PUSSIBERAD.
+  - [x] Footer sidik jari kriptografis rantai barang bukti hukum (*Digital Chain of Custody*) SHA-256 terintegrasi.
+- [x] **Integrasi Workspace & Progressive Disclosure (`src/App.tsx`):**
+  - [x] Navigasi mulus: Form Pencarian -> Live Stepper -> Tampilan Hasil (Actor Summary + Dossier Card berdampingan).
+  - [x] Kepatuhan ketat aturan 3-group viewport `DESIGN.md` dan rasio whitespace > 25%.
+- [x] **Verifikasi Build & Docker Deployment:**
+  - [x] TypeScript compiler (`tsc`) & Vite production bundle pass 100% (0 errors, 0 warnings).
+  - [x] Container Docker `axiom_frontend` di-rebuild dan dijalankan permanen di port 3000.
 
 #### 3.3 Visualisasi Inti (Hari 3-5)
 - [ ] **Network Graph (`NetworkGraph.tsx` + Cytoscape):**

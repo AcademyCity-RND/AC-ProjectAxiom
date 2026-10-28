@@ -7,22 +7,38 @@ import {
   InspectorData,
 } from './components/common/InspectorDrawer';
 import { ThreatBadge } from './components/common/ThreatBadge';
+import { ActorSearchForm } from './components/investigation/ActorSearchForm';
+import { InvestigationStepper } from './components/investigation/InvestigationStepper';
+import { ActorSummaryCard } from './components/investigation/ActorSummaryCard';
+import { ForensicDossierCard } from './components/investigation/ForensicDossierCard';
 import {
-  Search,
   Plus,
   RefreshCw,
   FileDown,
   Activity,
   Layers,
   ChevronRight,
+  ArrowLeft,
+  Share2,
 } from 'lucide-react';
+import type { PlatformType } from './types';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [selectedItem, setSelectedItem] = useState<InspectorData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-  const { recentCases } = useCaseStore();
+  const [showSearchForm, setShowSearchForm] = useState<boolean>(true);
+
+  const {
+    activeCase,
+    recentCases,
+    isAnalyzing,
+    isPolling,
+    startActorInvestigation,
+    startEventInvestigation,
+    loadCaseDetails,
+  } = useCaseStore();
 
   useEffect(() => {
     // Health check ke backend FastAPI
@@ -39,6 +55,56 @@ export const App: React.FC = () => {
 
   const handleCloseInspector = () => {
     setIsDrawerOpen(false);
+  };
+
+  // Handler search dari ActorSearchForm
+  const handleStartInvestigation = async (
+    target: string,
+    platform: PlatformType,
+    maxCount: number,
+    isEvent: boolean
+  ) => {
+    setShowSearchForm(false);
+    try {
+      if (isEvent) {
+        await startEventInvestigation(target, maxCount);
+      } else {
+        await startActorInvestigation(target, platform, maxCount);
+      }
+    } catch (err) {
+      console.error('[Investigation start error]:', err);
+    }
+  };
+
+  // Inspect 21 XAI Features in Inspector Drawer
+  const handleInspect21Features = () => {
+    if (!activeCase || !activeCase.detection) return;
+    const features = activeCase.detection.extracted_features || {};
+    const topXai = activeCase.detection.threat_attribution?.top_features || [];
+
+    handleOpenInspector({
+      title: `Analisis 21-Fitur: @${activeCase.target}`,
+      subtitle: `Klasifikasi AI: ${activeCase.detection.predicted_class} (${Math.round(
+        activeCase.detection.confidence * 100
+      )}%)`,
+      threatClass: activeCase.detection.predicted_class,
+      confidence: activeCase.detection.confidence,
+      threatLevel: activeCase.detection.threat_attribution?.forensic_dossier?.threat_level || 'HIGH',
+      indicators: Object.entries(features).map(([k, v]) => {
+        const topMatch = topXai.find((f) => f.feature === k);
+        return {
+          label: topMatch ? `★ ${k} (${topMatch.explanation})` : k,
+          value: typeof v === 'number' ? v.toFixed(3) : String(v),
+          mono: true,
+        };
+      }),
+      rawMetadata: {
+        case_id: activeCase.case_id,
+        probabilities: activeCase.detection.class_probabilities,
+        extracted_features: features,
+        top_xai_explanations: topXai,
+      },
+    });
   };
 
   return (
@@ -118,7 +184,7 @@ export const App: React.FC = () => {
       ========================================================================= */}
       {activeTab === 'overview' && (
         <div className="space-y-4">
-          {/* Header Controls: Single Primary Action CTA + Max 2 Secondary Outline Actions */}
+          {/* Header Controls: Single Primary Action CTA + Secondary Outline Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
@@ -131,25 +197,15 @@ export const App: React.FC = () => {
 
             {/* Actions: EXACTLY ONE SOLID PRIMARY CTA */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() =>
-                  handleOpenInspector({
-                    title: 'Formulir Investigasi Cepat',
-                    subtitle: 'Masukkan @handle target atau URL postingan',
-                    indicators: [
-                      { label: 'Cakupan Platform', value: 'X, YouTube, Instagram' },
-                      { label: 'Waktu Analisis', value: '< 2.5 Detik', mono: true },
-                      { label: 'Explainable AI', value: 'Groq Llama 3.3 70B' },
-                    ],
-                    textSnippet:
-                      'Silakan masukkan username aktor atau link video/postingan untuk memulai pipeline investigasi otomatis.',
-                  })
-                }
-                className="bg-[#38BDF8] text-slate-950 hover:bg-[#38BDF8]/90 font-medium px-3.5 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Investigasi Target
-              </button>
+              {!showSearchForm && (
+                <button
+                  onClick={() => setShowSearchForm(true)}
+                  className="bg-[#38BDF8] text-slate-950 hover:bg-[#38BDF8]/90 font-medium px-3.5 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Investigasi Target Baru
+                </button>
+              )}
 
               <button
                 onClick={() => window.location.reload()}
@@ -161,160 +217,160 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Main Table: Strictly Capped at 5-6 Columns with Row Click -> Inspector Drawer */}
-          <div className="cyber-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-                DAFTAR KASUS & AKTOR TERAKHIR DIPERIKSA
+          {/* ACTIVE VIEW LOGIC:
+              Case 1: User is filling the investigation form
+              Case 2: Pipeline is executing (Stepper)
+              Case 3: Investigation complete (Actor Summary Card + Forensic Dossier Card)
+          */}
+          {showSearchForm && !isAnalyzing && !isPolling ? (
+            <div className="space-y-4">
+              <ActorSearchForm onSearch={handleStartInvestigation} isLoading={isAnalyzing} />
+
+              {/* Table of Past Cases (Strictly Capped at 5 Columns) */}
+              <div className="cyber-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+                    DAFTAR KASUS TERAKHIR DIPERIKSA
+                  </div>
+                  <span className="text-xs text-slate-400 font-mono tabular-nums">
+                    {recentCases.length > 0 ? `${recentCases.length} Kasus Tercatat` : 'Sample Data'}
+                  </span>
+                </div>
+
+                <table className="w-full text-left text-[13px]">
+                  <thead className="border-b border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+                    <tr>
+                      <th className="py-3 px-4">Target / Akun</th>
+                      <th className="py-3 px-4">Platform</th>
+                      <th className="py-3 px-4">Klasifikasi AI</th>
+                      <th className="py-3 px-4">Confidence</th>
+                      <th className="py-3 px-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/50">
+                    {recentCases.length > 0 ? (
+                      recentCases.map((rc, i) => (
+                        <tr
+                          key={i}
+                          onClick={() => {
+                            loadCaseDetails(rc.case_id);
+                            setShowSearchForm(false);
+                          }}
+                          className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
+                        >
+                          <td className="py-3 px-4 font-mono font-medium text-sky-400">
+                            {rc.target}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">
+                            {rc.platform}
+                          </td>
+                          <td className="py-3 px-4">
+                            <ThreatBadge type="class" value={rc.verdict || rc.status} />
+                          </td>
+                          <td className="py-3 px-4 font-mono tabular-nums text-xs text-slate-300">
+                            {rc.date}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
+                              Buka <ChevronRight className="w-3.5 h-3.5" />
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr
+                        onClick={() =>
+                          handleOpenInspector({
+                            title: '@cyber_agitator_id',
+                            subtitle: 'X (Twitter) - Kasus CIB Terkoordinasi',
+                            threatClass: 'BUZZER',
+                            confidence: 0.94,
+                            threatLevel: 'HIGH',
+                            indicators: [
+                              { label: 'Entropi Waktu (H_norm)', value: '0.24 (Sangat Rendah)', mono: true },
+                              { label: 'Pola Circadian', value: 'Office Hours (09:00 - 17:00)' },
+                              { label: 'Kemiripan Narasi (CIB)', value: '0.892 (Klaster Terpaut)', mono: true },
+                              { label: 'Ukuran Klaster Sindikat', value: '18 Akun Terafiliasi', mono: true },
+                            ],
+                            textSnippet:
+                              'Tagar kampanye terkoordinasi disebar serempak dengan interval posting < 2 menit.',
+                            rawMetadata: {
+                              case_id: 'case-20261102-001',
+                              features: { burstiness: 0.88, lexical_diversity: 0.31, url_ratio: 0.75 },
+                            },
+                          })
+                        }
+                        className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
+                      >
+                        <td className="py-3 px-4 font-mono font-medium text-sky-400">
+                          @cyber_agitator_id
+                        </td>
+                        <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">
+                          X (Twitter)
+                        </td>
+                        <td className="py-3 px-4">
+                          <ThreatBadge type="class" value="BUZZER" />
+                        </td>
+                        <td className="py-3 px-4 font-mono tabular-nums text-xs text-amber-400">
+                          94.0%
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
+                            Inspeksi <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <span className="text-xs text-slate-400 font-mono tabular-nums">
-                5 Kasus Terkini
-              </span>
             </div>
+          ) : (
+            /* Active Investigation Results or Stepper */
+            <div className="space-y-4">
+              {/* Back button to search form */}
+              <button
+                type="button"
+                onClick={() => setShowSearchForm(true)}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Kembali ke Form Pencarian Target
+              </button>
 
-            <table className="w-full text-left text-[13px]">
-              <thead className="border-b border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-                <tr>
-                  <th className="py-3 px-4">Target / Akun</th>
-                  <th className="py-3 px-4">Platform</th>
-                  <th className="py-3 px-4">Klasifikasi AI</th>
-                  <th className="py-3 px-4">Confidence</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/50">
-                {/* Sample forensic rows showcasing strict clean design */}
-                <tr
-                  onClick={() =>
-                    handleOpenInspector({
-                      title: '@cyber_agitator_id',
-                      subtitle: 'X (Twitter) - Kasus CIB Terkoordinasi',
-                      threatClass: 'BUZZER',
-                      confidence: 0.94,
-                      threatLevel: 'HIGH',
-                      indicators: [
-                        { label: 'Entropi Waktu (H_norm)', value: '0.24 (Sangat Rendah)', mono: true },
-                        { label: 'Pola Circadian', value: 'Office Hours (09:00 - 17:00)' },
-                        { label: 'Kemiripan Narasi (CIB)', value: '0.892 (Klaster Terpaut)', mono: true },
-                        { label: 'Ukuran Klaster Sindikat', value: '18 Akun Terafiliasi', mono: true },
-                      ],
-                      textSnippet:
-                        'Tagar kampanye terkoordinasi disebar serempak dengan interval posting < 2 menit.',
-                      rawMetadata: {
-                        case_id: 'case-20261102-001',
-                        features: { burstiness: 0.88, lexical_diversity: 0.31, url_ratio: 0.75 },
-                      },
-                    })
-                  }
-                  className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                >
-                  <td className="py-3 px-4 font-mono font-medium text-sky-400">
-                    @cyber_agitator_id
-                  </td>
-                  <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">
-                    X (Twitter)
-                  </td>
-                  <td className="py-3 px-4">
-                    <ThreatBadge type="class" value="BUZZER" />
-                  </td>
-                  <td className="py-3 px-4 font-mono tabular-nums text-xs text-amber-400">
-                    94.0%
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                      Inspeksi <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
-                  </td>
-                </tr>
+              {/* Live Orchestrator Stepper */}
+              <InvestigationStepper
+                status={activeCase?.status || (isAnalyzing || isPolling ? 'in_progress' : 'completed')}
+                caseId={activeCase?.case_id || 'investigating-active-session'}
+                target={activeCase?.target || 'Target Aktif'}
+                platform={activeCase?.platform || 'x'}
+              />
 
-                <tr
-                  onClick={() =>
-                    handleOpenInspector({
-                      title: '@bot_amplifier_99',
-                      subtitle: 'X (Twitter) - Bot Amplifikasi Narasi Otomatis',
-                      threatClass: 'BOT',
-                      confidence: 0.98,
-                      threatLevel: 'CRITICAL',
-                      indicators: [
-                        { label: 'Entropi Waktu (H_norm)', value: '0.08 (Otomasi Penuh)', mono: true },
-                        { label: 'Pola Circadian', value: '24/7 Non-Stop (p < 0.001)' },
-                        { label: 'Rasio Retweet', value: '96.4%', mono: true },
-                        { label: 'Default Avatar', value: 'Ya (Tanpa Bio)' },
-                      ],
-                      textSnippet:
-                        'Otomasi posting berulang tanpa jeda manusiawi selama 7 hari berturut-turut.',
-                      rawMetadata: {
-                        case_id: 'case-20261102-002',
-                        features: { posts_per_day: 142.5, unique_word_ratio: 0.12 },
-                      },
-                    })
-                  }
-                  className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                >
-                  <td className="py-3 px-4 font-mono font-medium text-sky-400">
-                    @bot_amplifier_99
-                  </td>
-                  <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">
-                    X (Twitter)
-                  </td>
-                  <td className="py-3 px-4">
-                    <ThreatBadge type="class" value="BOT" />
-                  </td>
-                  <td className="py-3 px-4 font-mono tabular-nums text-xs text-rose-400">
-                    98.0%
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                      Inspeksi <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
-                  </td>
-                </tr>
+              {/* Results Cards (Actor Summary + Forensic Dossier) */}
+              {activeCase && (activeCase.status === 'completed' || !isPolling) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Left: Actor Profile & Confidence Ring Card */}
+                  <ActorSummaryCard
+                    actor={activeCase.actor}
+                    detection={activeCase.detection}
+                    target={activeCase.target}
+                    platform={activeCase.platform}
+                    onInspectFeatures={handleInspect21Features}
+                  />
 
-                <tr
-                  onClick={() =>
-                    handleOpenInspector({
-                      title: '@analis_pertahanan',
-                      subtitle: 'X (Twitter) - Akun Publik Sah / Organik',
-                      threatClass: 'HUMAN',
-                      confidence: 0.95,
-                      threatLevel: 'LOW',
-                      indicators: [
-                        { label: 'Entropi Waktu (H_norm)', value: '0.84 (Pola Acak Alami)', mono: true },
-                        { label: 'Pola Circadian', value: 'Variatif & Akhir Pekan Alami' },
-                        { label: 'TTR Leksikal (Kosakata)', value: '0.72 (Kaya Kosakata)', mono: true },
-                        { label: 'Verifikasi Profil', value: 'Akun Terverifikasi' },
-                      ],
-                      textSnippet:
-                        'Opini pertahanan independen dengan pola distribusi waktu alami.',
-                      rawMetadata: {
-                        case_id: 'case-20261102-003',
-                        features: { follower_following_ratio: 2.4, media_ratio: 0.35 },
-                      },
-                    })
-                  }
-                  className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                >
-                  <td className="py-3 px-4 font-mono font-medium text-sky-400">
-                    @analis_pertahanan
-                  </td>
-                  <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">
-                    X (Twitter)
-                  </td>
-                  <td className="py-3 px-4">
-                    <ThreatBadge type="class" value="HUMAN" />
-                  </td>
-                  <td className="py-3 px-4 font-mono tabular-nums text-xs text-emerald-400">
-                    95.0%
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                      Inspeksi <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                  {/* Right: Forensic Intelligence Dossier Card */}
+                  <ForensicDossierCard
+                    dossier={
+                      activeCase.detection?.threat_attribution?.forensic_dossier ||
+                      activeCase.result_summary?.forensic_dossier
+                    }
+                    caseId={activeCase.case_id}
+                    target={activeCase.target}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
