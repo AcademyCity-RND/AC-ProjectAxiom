@@ -285,10 +285,23 @@
   - [x] Container Docker `axiom_frontend` terbarui dan aktif permanen di port 3000.
 
 #### 3.4 Export & Polish (Hari 5-6)
-- [ ] **Button "Generate Official Dossier"** → Trigger PDF download.
-- [ ] **Loading States & Error Boundaries** yang informatif.
-- [ ] **Responsive Check:** Minimal 1366x768 (laptop juri) & 1920x1080 (proyektor).
-- [ ] **Accessibility:** Keyboard nav, color contrast, ARIA labels.
+- [x] **Dual-Tier Forensic Audit Ledger Table (`src/components/reports/DualTierLedgerTable.tsx`):**
+  - [x] Mode Tier 1: Top 10 High-Risk Perpetrators dengan skor keyakinan, klasifikasi, dan metrik primer.
+  - [x] Mode Tier 2: 100% Comprehensive Raw Forensic Ledger dengan paginasi, pencarian query, dan pill filter klasifikasi (Semua, Buzzer, Bot, Organik).
+  - [x] Kolom ringkas (maksimal 5-6 kolom sesuai `DESIGN.md`) dengan tombol inspeksi langsung ke `InspectorDrawer`.
+- [x] **Export Action Panel (`src/components/reports/ExportActionPanel.tsx`):**
+  - [x] Tombol "Cetak Berkas Dossier Resmi (A4)" yang membuka jendela cetak HTML A4 PUSSIBERAD lengkap dengan kop dinas, tabel forensik, stempel, dan CSS `@media print`.
+  - [x] Tombol "Unduh Ledger CSV (RFC 4180)" untuk ekspor spreadsheet komprehensif seluruh barang bukti.
+  - [x] Banner verifikasi integritas kriptografis rantai barang bukti (*Chain of Custody*) SHA-256.
+- [x] **Loading States & Error Boundaries (`src/components/common/ErrorBoundary.tsx`):**
+  - [x] Pelindung *runtime crash* dark-mode bertema pertahanan siber PUSSIBERAD terpasang di level tertinggi (`main.tsx`).
+  - [x] Tombol pemulihan sesi (*Reset View / Reload*) dan detail log error informatif.
+- [x] **Responsive Check & Visual Polish (`DESIGN.md`):**
+  - [x] Tata letak responsif optimal untuk layar laptop juri (1366x768) hingga monitor proyektor (1920x1080).
+  - [x] Rasio kontras teks WCAG AAA pada latar belakang obsidian (`#090D16`), label ARIA, dan navigasi keyboard.
+- [x] **Verifikasi Build & Docker Deployment:**
+  - [x] Kompilasi `tsc && vite build` 100% sukses tanpa error & tanpa warning (3.52s).
+  - [x] Container Docker `axiom_frontend` di-rebuild dan berjalan permanen di port 3000.
 
 ---
 

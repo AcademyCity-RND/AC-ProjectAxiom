@@ -15,6 +15,8 @@ import { NetworkGraph } from './components/visualization/NetworkGraph';
 import { CircadianHeatmap } from './components/visualization/CircadianHeatmap';
 import { EntropyGauge } from './components/visualization/EntropyGauge';
 import { NarrativeDriftChart } from './components/visualization/NarrativeDriftChart';
+import { DualTierLedgerTable } from './components/reports/DualTierLedgerTable';
+import { ExportActionPanel } from './components/reports/ExportActionPanel';
 import {
   Plus,
   RefreshCw,
@@ -26,6 +28,7 @@ import {
   Share2,
   TrendingUp,
   Clock,
+  ShieldCheck,
 } from 'lucide-react';
 import type { PlatformType } from './types';
 
@@ -41,6 +44,7 @@ export const App: React.FC = () => {
     activeCase,
     activeGraph,
     activeAnalytics,
+    activeLedger,
     recentCases,
     isAnalyzing,
     isPolling,
@@ -132,6 +136,10 @@ export const App: React.FC = () => {
       rawMetadata: nodeRaw,
     });
   };
+
+  const currentCaseId = activeCase?.case_id || 'case-sample-20261102';
+  const currentTarget = activeCase?.target || '@cyber_agitator_id';
+  const currentPlatform = activeCase?.platform || 'x';
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
@@ -269,7 +277,7 @@ export const App: React.FC = () => {
                       <th className="py-3 px-4">Target / Akun</th>
                       <th className="py-3 px-4">Platform</th>
                       <th className="py-3 px-4">Klasifikasi AI</th>
-                      <th className="py-3 px-4">Confidence</th>
+                      <th className="py-3 px-4">Waktu</th>
                       <th className="py-3 px-4 text-right">Aksi</th>
                     </tr>
                   </thead>
@@ -575,41 +583,26 @@ export const App: React.FC = () => {
       )}
 
       {/* =========================================================================
-          MODULE 5: CASE REPORTS & DOSSIER
+          MODULE 5: CASE REPORTS & DUAL-TIER LEDGER EXPORT
       ========================================================================= */}
       {activeTab === 'reports' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
-                Laporan Forensik Resmi (Dossier PUSSIBERAD)
-              </h1>
-              <p className="text-[13px] text-[#94A3B8]">
-                Dokumen intelijen terklasifikasi dengan sidik jari integritas bukti digital SHA-256.
-              </p>
-            </div>
-            {activeCase && (
-              <a
-                href={api.getExportReportUrl(activeCase.case_id, 'html')}
-                target="_blank"
-                rel="noreferrer"
-                className="bg-[#38BDF8] text-slate-950 hover:bg-[#38BDF8]/90 font-medium px-3.5 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
-              >
-                <FileDown className="w-3.5 h-3.5" />
-                Cetak Dossier Resmi (A4)
-              </a>
-            )}
-          </div>
+          {/* Export Action & Certificate Panel */}
+          <ExportActionPanel
+            caseId={currentCaseId}
+            target={currentTarget}
+            platform={currentPlatform}
+          />
 
-          <div className="cyber-card p-6 text-xs text-slate-300 space-y-3 leading-relaxed">
-            <p>
-              Setiap berkas dossier forensik PUSSIBERAD dilengkapi hash verifikasi integritas rantai barang bukti
-              hukum (*Digital Chain of Custody*) SHA-256.
-            </p>
-            <div className="p-3 bg-[#131C2E] rounded border border-[#1E293B] font-mono text-[11px] text-slate-300">
-              Fingerprint Standar: SHA-256 Validated &bull; Dual-Tier Commenter Audit Ledger Ready
-            </div>
-          </div>
+          {/* Dual-Tier Ledger Table */}
+          <DualTierLedgerTable
+            topAttackers={activeLedger?.top_10_attackers}
+            fullLedger={activeLedger?.full_ledger}
+            caseId={currentCaseId}
+            onInspectRow={handleOpenInspector}
+            onExportCsv={() => window.open(api.getExportReportUrl(currentCaseId, 'csv'))}
+            onExportHtml={() => window.open(api.getExportReportUrl(currentCaseId, 'html'))}
+          />
         </div>
       )}
 
