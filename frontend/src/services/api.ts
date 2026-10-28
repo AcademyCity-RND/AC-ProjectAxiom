@@ -95,7 +95,12 @@ export const api = {
     eventUrl: string,
     maxComments: number = 200
   ): Promise<{ status: string; message: string; case_id: string; platform?: string }> => {
-    const detectedPlatform = eventUrl.includes('instagram.com') ? 'instagram' : 'youtube';
+    let detectedPlatform: PlatformType = 'youtube';
+    if (eventUrl.includes('instagram.com')) {
+      detectedPlatform = 'instagram';
+    } else if (eventUrl.includes('x.com') || eventUrl.includes('twitter.com')) {
+      detectedPlatform = 'x';
+    }
     const response = await apiClient.post('/investigate/event', {
       url: eventUrl,
       event_url: eventUrl,

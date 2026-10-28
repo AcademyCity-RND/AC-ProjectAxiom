@@ -22,6 +22,11 @@ from app.services.instagram_auditor import (
     generate_mock_instagram_comments,
     fetch_instagram_comments,
 )
+from app.services.x_auditor import (
+    extract_tweet_id,
+    generate_mock_tweet_replies,
+    fetch_x_tweet_replies,
+)
 from app.services.event_orchestrator import run_event_investigation_pipeline
 from app.schemas.investigation import EventInvestigationRequest
 
@@ -57,6 +62,20 @@ def test_extract_instagram_shortcode():
     # URL tidak valid
     assert extract_instagram_shortcode("https://twitter.com/post/123") is None
     assert extract_instagram_shortcode("") is None
+
+
+def test_extract_tweet_id():
+    # Format x.com/username/status/ID
+    assert extract_tweet_id("https://x.com/Kemhan_RI/status/1849372819203819201") == 1849372819203819201
+    # Format twitter.com/username/status/ID
+    assert extract_tweet_id("https://twitter.com/Puspen_TNI/status/1849372819203819202") == 1849372819203819202
+    # Format x.com/i/status/ID
+    assert extract_tweet_id("https://x.com/i/status/1849372819203819203") == 1849372819203819203
+    # Raw numeric string
+    assert extract_tweet_id("1849372819203819201") == 1849372819203819201
+    # URL tidak valid
+    assert extract_tweet_id("https://facebook.com/post/123") is None
+    assert extract_tweet_id("") is None
 
 
 # --------------------------------------------------------------------------
@@ -130,16 +149,43 @@ def test_fetch_instagram_comments_mock_fallback():
         assert "created_at" in comments[0]
 
 
+def test_generate_mock_tweet_replies():
+    replies = generate_mock_tweet_replies(tweet_id=1849372819203819201, count=30)
+    assert len(replies) == 30
+    assert replies[0]["platform"] == "x"
+    assert replies[0]["video_id"] == "1849372819203819201"
+    assert "author_name" in replies[0]
+    assert "text" in replies[0]
+    assert "published_at" in replies[0]
+
+
+@pytest.mark.asyncio
+async def test_fetch_x_tweet_replies_mock_fallback():
+    # Memastikan fallback mock balasan Tweet berfungsi jika auth/burner kosong
+    with patch("app.services.x_auditor.TwscrapeService.has_active_account", return_value=False):
+        comments = await fetch_x_tweet_replies("https://x.com/Kemhan_RI/status/1849372819203819201", max_comments=20)
+        assert len(comments) == 20
+        assert comments[0]["platform"] == "x"
+        assert "author_name" in comments[0]
+        assert "published_at" in comments[0]
+
+
 # --------------------------------------------------------------------------
 # 4. TEST ANTI-SSRF & SCHEMA VALIDATION
 # --------------------------------------------------------------------------
 def test_event_investigation_schema_anti_ssrf():
-    # Valid YouTube & Instagram
+    # Valid YouTube, Instagram, dan X
     req_yt = EventInvestigationRequest(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
     assert req_yt.detected_platform.value == "youtube"
 
     req_ig = EventInvestigationRequest(url="https://www.instagram.com/p/DA12345XYZ/")
     assert req_ig.detected_platform.value == "instagram"
+
+    req_x = EventInvestigationRequest(url="https://x.com/Kemhan_RI/status/1849372819203819201")
+    assert req_x.detected_platform.value == "x"
+
+    req_tw = EventInvestigationRequest(url="https://twitter.com/Puspen_TNI/status/1849372819203819202")
+    assert req_tw.detected_platform.value == "x"
 
     # Rejection of localhost
     with pytest.raises(ValueError, match="Anti-SSRF"):

@@ -15,6 +15,7 @@ Seluruh data yang diekstraksi melalui mesin scraper ini menjadi masukan (*input*
 2. [Spesifikasi Skema Data X (Twitter)](#2-spesifikasi-skema-data-x-twitter)
    - [2.1 Profil Aktor Target](#21-profil-aktor-target)
    - [2.2 Cuitan & Aktivitas Aktor](#22-cuitan--aktivitas-aktor)
+   - [2.3 Audit Komentar / Balasan Tweet (Event Investigation)](#23-audit-komentar--balasan-tweet-event-investigation)
 3. [Spesifikasi Skema Data YouTube](#3-spesifikasi-skema-data-youtube)
    - [3.1 Format URL yang Didukung (Video & Shorts)](#31-format-url-yang-didukung-video--shorts)
    - [3.2 Struktur Komentar YouTube](#32-struktur-komentar-youtube)
@@ -32,7 +33,7 @@ Sistem Axiom mengintegrasikan tiga modul scraper terspesialisasi di backend Fast
 
 | Platform | Modul Backend | Library / Protokol | Mode Operasi |
 | :--- | :--- | :--- | :--- |
-| **X (Twitter)** | `app.services.scraper.twscrape_adapter` | `twscrape` (SQLite Pool) | Cookies Auth (`auth_token`, `ct0`) + Human Jitter Delay + Mock Fallback |
+| **X (Twitter)** | `app.services.scraper.twscrape_adapter` (Aktor) & `app.services.x_auditor` (Tweet/Event) | `twscrape` (SQLite Pool) | Cookies Auth (`auth_token`, `ct0`) + Human Jitter Delay + Mock Fallback |
 | **YouTube** | `app.services.youtube_auditor` | `youtube-comment-downloader` | Pure Innertube HTTP Streaming (Tanpa Kuota API Key) |
 | **Instagram** | `app.services.instagram_auditor` | `instaloader` | GraphQL Public Endpoint + Auto Fallback Engine |
 
@@ -127,6 +128,45 @@ Daftar riwayat cuitan yang digunakan untuk ekstraksi fitur teks, leksikal, dan t
     "replies": 3,
     "views": 2100
   }
+}
+```
+
+---
+
+### 2.3 Audit Komentar / Balasan Tweet (Event Investigation)
+Platform X juga mendukung audit komentar / balasan massal berbasis URL cuitan (`/api/v1/investigate/event`), menggunakan mesin `app.services.x_auditor`.
+
+#### Format URL Tweet yang Didukung
+1. **Format Web Standar:** `https://x.com/Kemhan_RI/status/1849372819203819201`
+2. **Format Twitter Legacy:** `https://twitter.com/Puspen_TNI/status/1849372819203819202`
+3. **Format Short / Direct Status:** `https://x.com/i/status/1849372819203819203`
+4. **Tweet ID Numerik Mentah:** `1849372819203819201`
+
+#### Skema Field Komentar Balasan X
+* `comment_id` (*string*): ID unik balasan tweet di X.
+* `video_id` (*string*): ID cuitan induk target (*numeric Tweet ID string*).
+* `author_id` (*string*): ID / handle unik pengomentar (`"x_username"`).
+* `author_name` (*string*): Handle pengomentar dengan simbol `@` (misal: `"@buzzer_x_101"`).
+* `text` (*string*): Teks mentah balasan cuitan.
+* `published_at` (*string ISO-8601*): Waktu publikasi balasan cuitan (UTC).
+* `likes` (*integer*): Jumlah suka pada balasan.
+* `replies` (*integer*): Jumlah balasan bertingkat (*nested replies*).
+* `is_reply` (*boolean*): Selalu `true` untuk balasan tweet.
+* `platform` (*string*): Identifikasi platform (`"x"`).
+
+#### Contoh JSON Komentar Balasan X:
+```json
+{
+  "comment_id": "1849375000000000001",
+  "video_id": "1849372819203819201",
+  "author_id": "x_buzzer_kedaulatan",
+  "author_name": "@buzzer_kedaulatan",
+  "text": "Narasi propaganda ini sengaja disebar untuk memecah belah kedaulatan! Tolak provokasi! #KawalKedaulatan",
+  "published_at": "2026-10-24T09:25:14+00:00",
+  "likes": 18,
+  "replies": 1,
+  "is_reply": true,
+  "platform": "x"
 }
 ```
 

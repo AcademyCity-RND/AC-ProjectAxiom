@@ -13,6 +13,7 @@ from app.models.cluster import ClusterLink
 
 from app.services.youtube_auditor import fetch_youtube_comments, detect_temporal_influx_anomaly
 from app.services.instagram_auditor import fetch_instagram_comments
+from app.services.x_auditor import fetch_x_tweet_replies
 from app.services.vector_store import VectorStoreService
 from app.services.llm_analyst import get_llm_analyst_service
 from app.services.analytics import compute_advanced_analytics
@@ -56,6 +57,8 @@ async def run_event_investigation_pipeline(
             comments = fetch_youtube_comments(event_url, max_comments=max_comments)
         elif platform == "instagram":
             comments = fetch_instagram_comments(event_url, max_comments=max_comments)
+        elif platform == "x":
+            comments = await fetch_x_tweet_replies(event_url, max_comments=max_comments)
         else:
             raise ValueError(f"Platform tidak didukung untuk event audit: {platform}")
 

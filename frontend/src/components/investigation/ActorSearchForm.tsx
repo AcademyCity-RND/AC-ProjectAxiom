@@ -19,16 +19,12 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
     { label: '@cyber_agitator', platform: 'x' as PlatformType, mode: 'actor' as const },
     { label: '@bot_amplifier9', platform: 'x' as PlatformType, mode: 'actor' as const },
     { label: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', platform: 'youtube' as PlatformType, mode: 'event' as const },
+    { label: 'https://x.com/Kemhan_RI/status/1849372819203819201', platform: 'x' as PlatformType, mode: 'event' as const },
   ];
 
   const handleModeChange = (newMode: 'actor' | 'event') => {
     setMode(newMode);
     setErrorMsg(null);
-    if (newMode === 'event') {
-      if (platform === 'x') setPlatform('youtube');
-    } else {
-      setPlatform('x');
-    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,6 +38,8 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
         setPlatform('youtube');
       } else if (val.includes('instagram.com')) {
         setPlatform('instagram');
+      } else if (val.includes('x.com') || val.includes('twitter.com')) {
+        setPlatform('x');
       }
     }
   };
@@ -123,8 +121,8 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
               disabled={isLoading}
               placeholder={
                 mode === 'actor'
-                  ? 'Contoh: @cyber_agitator_id atau nama akun'
-                  : 'Contoh: https://www.youtube.com/watch?v=... atau instagram.com/p/...'
+                  ? 'Contoh: @cyber_agitator atau nama akun'
+                  : 'Contoh: URL video YouTube, postingan IG, atau cuitan X (status)'
               }
               className="w-full h-10 px-3.5 bg-[#090D16] border border-[#1E293B] rounded text-xs font-forensic text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-400 transition-colors"
             />
@@ -135,7 +133,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
             )}
           </div>
 
-          {/* Platform Selector (If Actor mode) */}
+          {/* Platform Selector */}
           {mode === 'actor' ? (
             <div className="flex items-center gap-1 bg-[#090D16] border border-[#1E293B] rounded p-1 shrink-0">
               <button
@@ -176,6 +174,18 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
               >
                 <Camera className="w-3.5 h-3.5" />
                 Instagram
+              </button>
+              <button
+                type="button"
+                onClick={() => setPlatform('x')}
+                className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                  platform === 'x'
+                    ? 'bg-[#1E293B] text-sky-400'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                X (Tweet)
               </button>
             </div>
           )}
