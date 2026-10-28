@@ -17,6 +17,8 @@ import { EntropyGauge } from './components/visualization/EntropyGauge';
 import { NarrativeDriftChart } from './components/visualization/NarrativeDriftChart';
 import { DualTierLedgerTable } from './components/reports/DualTierLedgerTable';
 import { ExportActionPanel } from './components/reports/ExportActionPanel';
+import { LoginModal } from './components/auth/LoginModal';
+import { useAuthStore } from './store/useAuthStore';
 import {
   Plus,
   RefreshCw,
@@ -52,14 +54,16 @@ export const App: React.FC = () => {
     startEventInvestigation,
     loadCaseDetails,
   } = useCaseStore();
+  const { initAuth } = useAuthStore();
 
   useEffect(() => {
-    // Health check ke backend FastAPI
+    // Inisialisasi autentikasi JWT & Health check ke backend FastAPI
+    initAuth();
     api
       .checkHealth()
       .then(() => setBackendStatus('online'))
       .catch(() => setBackendStatus('offline'));
-  }, []);
+  }, [initAuth]);
 
   const handleOpenInspector = (data: InspectorData) => {
     setSelectedItem(data);
@@ -615,6 +619,9 @@ export const App: React.FC = () => {
         onClose={handleCloseInspector}
         data={selectedItem}
       />
+
+      {/* Operator Authentication Modal (RBAC JWT) */}
+      <LoginModal />
     </Layout>
   );
 };

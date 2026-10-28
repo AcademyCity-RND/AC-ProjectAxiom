@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Radio, Activity, UserCheck } from 'lucide-react';
+import { Shield, Radio, Activity, UserCheck, KeyRound } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export const Header: React.FC = () => {
-  const { operatorName } = useAuthStore();
+  const { operatorName, operatorRole, isAuthenticated, openLoginModal } = useAuthStore();
   const [timeStr, setTimeStr] = useState<string>('');
 
   useEffect(() => {
@@ -66,16 +66,30 @@ export const Header: React.FC = () => {
           <span>{timeStr || 'Memuat waktu...'}</span>
         </div>
 
-        {/* Operator Badge */}
-        <div className="flex items-center gap-2.5 bg-[#1E293B]/70 border border-[#1E293B] px-3 py-1.5 rounded">
-          <div className="w-6 h-6 rounded-full bg-sky-950/80 flex items-center justify-center text-sky-300 text-xs font-semibold border border-sky-500/30">
-            <UserCheck className="w-3.5 h-3.5" />
+        {/* Interactive Operator Auth Badge */}
+        <button
+          type="button"
+          onClick={openLoginModal}
+          className="flex items-center gap-2.5 bg-[#1E293B]/70 hover:bg-[#1E293B] border border-[#1E293B] hover:border-sky-500/40 px-3 py-1.5 rounded transition-all text-left cursor-pointer group"
+          title="Klik untuk membuka autentikasi / ganti akun operator"
+        >
+          <div className="w-6 h-6 rounded-full bg-sky-950/80 flex items-center justify-center text-sky-300 text-xs font-semibold border border-sky-500/30 group-hover:border-sky-400">
+            {isAuthenticated ? <UserCheck className="w-3.5 h-3.5" /> : <KeyRound className="w-3.5 h-3.5" />}
           </div>
           <div className="text-left">
-            <div className="text-xs font-medium text-slate-200">{operatorName}</div>
-            <div className="text-[10px] text-emerald-400 font-mono tracking-tight">ROLE: CYBER_OPERATOR</div>
+            <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
+              <span>{operatorName || 'Guest'}</span>
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isAuthenticated ? 'bg-emerald-400' : 'bg-amber-400'
+                }`}
+              ></span>
+            </div>
+            <div className="text-[10px] text-sky-400 font-mono tracking-tight uppercase">
+              ROLE: {operatorRole || 'USER'}
+            </div>
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

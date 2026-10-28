@@ -16,9 +16,9 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
 
   // Quick preset targets for 1-click live demo testing
   const presets = [
-    { label: '@cyber_agitator_id', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { label: '@bot_amplifier_99', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { label: 'https://youtube.com/watch?v=demo_cib_wave', platform: 'youtube' as PlatformType, mode: 'event' as const },
+    { label: '@cyber_agitator', platform: 'x' as PlatformType, mode: 'actor' as const },
+    { label: '@bot_amplifier9', platform: 'x' as PlatformType, mode: 'actor' as const },
+    { label: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', platform: 'youtube' as PlatformType, mode: 'event' as const },
   ];
 
   const handleModeChange = (newMode: 'actor' | 'event') => {

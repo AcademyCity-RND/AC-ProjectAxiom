@@ -31,12 +31,30 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Tangani token expired / unauthorized
+    if (error.response?.status === 401) {
+      localStorage.removeItem('axiom_token');
+    }
     const errorMsg = error.response?.data?.detail || error.message || 'Terjadi kesalahan sistem';
     return Promise.reject(new Error(errorMsg));
   }
 );
 
 export const api = {
+  // 0. Autentikasi Pengguna & Sesi JWT
+  login: async (
+    username: string,
+    password: string
+  ): Promise<{ access_token: string; token_type: string; role: string; username: string }> => {
+    const response = await apiClient.post('/auth/login', { username, password });
+    return response.data;
+  },
+
+  getMe: async (): Promise<{ username: string; role: string; is_active: boolean }> => {
+    const response = await apiClient.get('/auth/me');
+    return response.data;
+  },
+
   // 1. Memulai Investigasi Target Akun (@username)
   startActorInvestigation: async (
     target: string,
