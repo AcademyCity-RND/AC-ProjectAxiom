@@ -5,12 +5,18 @@ import type {
   CytoscapeGraphData,
   AnalyticsData,
   PlatformType,
+  TopAttacker,
+  LedgerItem,
 } from '../types';
 
 interface CaseState {
   activeCase: InvestigationCase | null;
   activeGraph: CytoscapeGraphData | null;
   activeAnalytics: AnalyticsData | null;
+  activeLedger: {
+    top_10_attackers: TopAttacker[];
+    full_ledger: LedgerItem[];
+  } | null;
   recentCases: Array<{
     case_id: string;
     target: string;
@@ -40,6 +46,7 @@ export const useCaseStore = create<CaseState>((set, get) => {
     activeCase: null,
     activeGraph: null,
     activeAnalytics: null,
+    activeLedger: null,
     recentCases: initialRecent,
     isAnalyzing: false,
     isPolling: false,
@@ -119,13 +126,21 @@ export const useCaseStore = create<CaseState>((set, get) => {
             clearInterval(intervalId);
             set({ isPolling: false, isAnalyzing: false });
 
-            // Ambil graf jejaring & analitik secara paralel
+            // Ambil graf jejaring, analitik, dan ledger audit secara paralel
             try {
-              const [graphData, analyticsRes] = await Promise.all([
+              const [graphData, analyticsRes, ledgerRes] = await Promise.all([
                 api.getCaseGraph(caseId),
                 api.getCaseAnalytics(caseId),
+                api.getAuditLedger(caseId),
               ]);
-              set({ activeGraph: graphData, activeAnalytics: analyticsRes.analytics });
+              set({
+                activeGraph: graphData,
+                activeAnalytics: analyticsRes.analytics,
+                activeLedger: {
+                  top_10_attackers: ledgerRes.top_10_attackers,
+                  full_ledger: ledgerRes.full_ledger,
+                },
+              });
             } catch (auxErr) {
               console.warn('[Auxiliary data fetch error]:', auxErr);
             }
@@ -164,15 +179,20 @@ export const useCaseStore = create<CaseState>((set, get) => {
     loadCaseDetails: async (caseId: string) => {
       set({ isAnalyzing: true, error: null });
       try {
-        const [caseData, graphData, analyticsRes] = await Promise.all([
+        const [caseData, graphData, analyticsRes, ledgerRes] = await Promise.all([
           api.getCaseDetails(caseId),
           api.getCaseGraph(caseId),
           api.getCaseAnalytics(caseId),
+          api.getAuditLedger(caseId),
         ]);
         set({
           activeCase: caseData,
           activeGraph: graphData,
           activeAnalytics: analyticsRes.analytics,
+          activeLedger: {
+            top_10_attackers: ledgerRes.top_10_attackers,
+            full_ledger: ledgerRes.full_ledger,
+          },
           isAnalyzing: false,
         });
       } catch (err: any) {

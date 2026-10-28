@@ -236,26 +236,72 @@
   - [x] TypeScript compiler (`tsc`) & Vite production bundle pass 100% tanpa error/warning.
 
 #### 3.2 Halaman Utama: Investigation Workspace (Hari 2-4)
-- [ ] **Layout:** Sidebar navigasi + Header (Search Bar Global + Status Scraper Pool).
-- [ ] **Component `ActorSearchForm`:** Input `@username` / URL, Select Platform, Button "Analyze".
-- [ ] **Component `CaseStatusCard`:** Polling status case (pending/processing/completed/failed) dengan progress stepper.
-- [ ] **Component `ClassificationBadge`:** Animasi warna + Confidence Ring (SVG).
+- [x] **Component `ActorSearchForm` (`src/components/investigation/ActorSearchForm.tsx`):**
+  - [x] Mode toggle: Input target aktor `@username` vs Event URL postingan (YouTube / Instagram).
+  - [x] Selector platform (X, YouTube, Instagram) & batas kedalaman sampel (100, 150, 200).
+  - [x] Validasi ketat format username & protokol URL dengan status error informatif.
+  - [x] Tombol CTA utama tunggal (*One Action Priority*) `#38BDF8` ("Mulai Investigasi") dengan animasi loading.
+  - [x] Chip preset demo instan (`@cyber_agitator_id`, `@bot_amplifier_99`, URL YouTube) untuk kemudahan pengujian demo.
+- [x] **Component `InvestigationStepper` (`src/components/investigation/InvestigationStepper.tsx`):**
+  - [x] Visualisasi 5 tahap pipeline latar belakang: Ingestion -> Feature Extraction -> XGBoost Inference -> CIB Clustering -> Forensic Synthesis.
+  - [x] Live timer elapsed seconds, indikator step aktif berdenyut (*pulse*), checkmark penyelesaian hijau.
+  - [x] Penanganan status: `queued`, `in_progress`, `completed`, `failed`.
+- [x] **Component `ActorSummaryCard` (`src/components/investigation/ActorSummaryCard.tsx`):**
+  - [x] Kartu profil aktor target: identitas `@username`, nama tampilan, lencana verifikasi, bio deskripsi.
+  - [x] **Circular Confidence Ring (SVG)**: Indikator persentase keyakinan model dinamis sesuai kelas ancaman (Emerald, Amber, Rose).
+  - [x] Strip metrik struktural & perilaku: Pengikut/Mengikuti, Frekuensi Postingan/Hari, Burstiness ($B$), Entropi Temporal ($H$).
+  - [x] Tombol pemicu slide-over `InspectorDrawer` untuk inspeksi mendalam 21 fitur XAI.
+- [x] **Component `ForensicDossierCard` (`src/components/investigation/ForensicDossierCard.tsx`):**
+  - [x] Header berkas dossier resmi PUSSIBERAD (Klasifikasi RAHASIA) dengan lencana `ThreatLevel` (CRITICAL, HIGH, MEDIUM, LOW).
+  - [x] Agenda operasi utama & institusi/sasaran yang ditargetkan.
+  - [x] Daftar poin bukti forensik terverifikasi (*verified forensic evidence points*).
+  - [x] Rekomendasi taktis operasi pertahanan siber kognitif Satgas PUSSIBERAD.
+  - [x] Footer sidik jari kriptografis rantai barang bukti hukum (*Digital Chain of Custody*) SHA-256 terintegrasi.
+- [x] **Integrasi Workspace & Progressive Disclosure (`src/App.tsx`):**
+  - [x] Navigasi mulus: Form Pencarian -> Live Stepper -> Tampilan Hasil (Actor Summary + Dossier Card berdampingan).
+  - [x] Kepatuhan ketat aturan 3-group viewport `DESIGN.md` dan rasio whitespace > 25%.
+- [x] **Verifikasi Build & Docker Deployment:**
+  - [x] TypeScript compiler (`tsc`) & Vite production bundle pass 100% (0 errors, 0 warnings).
+  - [x] Container Docker `axiom_frontend` di-rebuild dan dijalankan permanen di port 3000.
 
-#### 3.3 Visualisasi Inti (Hari 3-5)
-- [ ] **Network Graph (`NetworkGraph.tsx` + Cytoscape):**
-  - [ ] Nodes: Target (besar), Cluster Members (kecil), color by class.
-  - [ ] Edges: Semantic similarity (dashed), Temporal coordination (solid), Reply/Retweet (directed).
-  - [ ] Controls: Zoom, Pan, Filter by edge type, Click node → Detail Sidebar.
-- [ ] **Circadian Heatmap (`Heatmap24x7.tsx` + Recharts/Canvas):**
-  - [ ] 24 Jam x 7 Hari grid, color intensity = activity volume.
-  - [ ] Overlay: "Working Hours" bounding box jika terdeteksi.
-- [ ] **Evidence Dossier Panel:** Accordion list bukti (Feature name, Value, Interpretation, Severity).
+#### 3.3 Visualisasi Inti: Network Graph, Heatmap & Entropy Gauge (Hari 3-5)
+- [x] **Network Graph (`src/components/visualization/NetworkGraph.tsx` + `@xyflow/react`):**
+  - [x] Nodes: Target inti di tengah (besar, aksen Tactical Cyan `#38BDF8`), anggota klaster periferi berwarna sesuai kelas ancaman (Bot Rose, Buzzer Amber, Organik Emerald).
+  - [x] Edges: Keterpautan semantik CIB (garis putus-putus amber dengan animasi aliran partikel), koordinasi temporal (garis solid biru), edge pasif dimute 35% opacity anti-hairball.
+  - [x] Kontrol: Zoom in/out, pan, reset view, filter berdasarkan tipe edge (`Semua`, `Klaster CIB`, `Interaksi Lain`).
+  - [x] Interaksi: Klik node mana pun otomatis membuka *Contextual Inspector Drawer* (380px) untuk melihat detail akun, skor keyakinan, dan bukti keterpautan.
+- [x] **Circadian Heatmap (`src/components/visualization/CircadianHeatmap.tsx`):**
+  - [x] Grid interaktif 24 Jam &times; 7 Hari dengan skala intensitas warna volume postingan.
+  - [x] Bounding box & penanda *Structured Working Hours* (Senin-Jumat 09:00 - 17:00) jika terdeteksi sindikat buzzer.
+  - [x] Statistik analitis: Rasio jam kerja, uji Chi-Square goodness-of-fit (&chi;&sup2; dengan $p < 0.001$), dan jam puncak aktivitas.
+- [x] **Shannon Posting Entropy Gauge (`src/components/visualization/EntropyGauge.tsx`):**
+  - [x] Pengukur linear $H_{norm} \in [0.00, 1.00]$ dengan ambang batas visual: $< 0.35$ (Otomasi Terjadwal/Bot), $0.35 - 0.70$ (Semi-Otomatis/Buzzer), $\ge 0.70$ (Variabilitas Alami).
+  - [x] Diagram batang 8-bin interval waktu postingan (< 1m s/d > 24h) dengan nilai median jeda waktu.
+- [x] **Narrative Drift Timeline (`src/components/visualization/NarrativeDriftChart.tsx`):**
+  - [x] Pelacak pergeseran centroid semantik embeddings MiniLM antar-jendela waktu dengan kata kunci teratas per fase.
+- [x] **Kepatuhan Aturan Kompleksitas Tampilan (`DESIGN.md`):**
+  - [x] Sub-tab switcher bersih pada modul narasi untuk membatasi maksimal 2 visualisasi per layar secara bersamaan.
+  - [x] Kompilasi `tsc && vite build` 100% lulus tanpa error dan tanpa warning (2.65s).
+  - [x] Container Docker `axiom_frontend` terbarui dan aktif permanen di port 3000.
 
 #### 3.4 Export & Polish (Hari 5-6)
-- [ ] **Button "Generate Official Dossier"** → Trigger PDF download.
-- [ ] **Loading States & Error Boundaries** yang informatif.
-- [ ] **Responsive Check:** Minimal 1366x768 (laptop juri) & 1920x1080 (proyektor).
-- [ ] **Accessibility:** Keyboard nav, color contrast, ARIA labels.
+- [x] **Dual-Tier Forensic Audit Ledger Table (`src/components/reports/DualTierLedgerTable.tsx`):**
+  - [x] Mode Tier 1: Top 10 High-Risk Perpetrators dengan skor keyakinan, klasifikasi, dan metrik primer.
+  - [x] Mode Tier 2: 100% Comprehensive Raw Forensic Ledger dengan paginasi, pencarian query, dan pill filter klasifikasi (Semua, Buzzer, Bot, Organik).
+  - [x] Kolom ringkas (maksimal 5-6 kolom sesuai `DESIGN.md`) dengan tombol inspeksi langsung ke `InspectorDrawer`.
+- [x] **Export Action Panel (`src/components/reports/ExportActionPanel.tsx`):**
+  - [x] Tombol "Cetak Berkas Dossier Resmi (A4)" yang membuka jendela cetak HTML A4 PUSSIBERAD lengkap dengan kop dinas, tabel forensik, stempel, dan CSS `@media print`.
+  - [x] Tombol "Unduh Ledger CSV (RFC 4180)" untuk ekspor spreadsheet komprehensif seluruh barang bukti.
+  - [x] Banner verifikasi integritas kriptografis rantai barang bukti (*Chain of Custody*) SHA-256.
+- [x] **Loading States & Error Boundaries (`src/components/common/ErrorBoundary.tsx`):**
+  - [x] Pelindung *runtime crash* dark-mode bertema pertahanan siber PUSSIBERAD terpasang di level tertinggi (`main.tsx`).
+  - [x] Tombol pemulihan sesi (*Reset View / Reload*) dan detail log error informatif.
+- [x] **Responsive Check & Visual Polish (`DESIGN.md`):**
+  - [x] Tata letak responsif optimal untuk layar laptop juri (1366x768) hingga monitor proyektor (1920x1080).
+  - [x] Rasio kontras teks WCAG AAA pada latar belakang obsidian (`#090D16`), label ARIA, dan navigasi keyboard.
+- [x] **Verifikasi Build & Docker Deployment:**
+  - [x] Kompilasi `tsc && vite build` 100% sukses tanpa error & tanpa warning (3.52s).
+  - [x] Container Docker `axiom_frontend` di-rebuild dan berjalan permanen di port 3000.
 
 ---
 
