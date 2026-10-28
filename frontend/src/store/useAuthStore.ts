@@ -13,84 +13,82 @@ interface AuthState {
   operatorName: string;
   operatorRole: string;
   isAuthenticated: boolean;
+  isInitialized: boolean;
   isLoading: boolean;
-  isModalOpen: boolean;
   error: string | null;
 
   initAuth: () => Promise<void>;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  openLoginModal: () => void;
-  closeLoginModal: () => void;
   clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
   const savedToken = localStorage.getItem('axiom_token');
-  const savedUsername = localStorage.getItem('axiom_operator') || 'admin';
-  const savedRole = localStorage.getItem('axiom_role') || 'ADMIN';
+  const savedUsername = localStorage.getItem('axiom_operator') || '';
+  const savedRole = localStorage.getItem('axiom_role') || '';
 
   return {
     token: savedToken,
-    user: savedToken ? { username: savedUsername, role: savedRole, is_active: true } : null,
+    user: savedToken && savedUsername ? { username: savedUsername, role: savedRole, is_active: true } : null,
     operatorName: savedUsername,
     operatorRole: savedRole,
     isAuthenticated: Boolean(savedToken),
+    isInitialized: false,
     isLoading: false,
-    isModalOpen: false,
     error: null,
 
-    openLoginModal: () => set({ isModalOpen: true, error: null }),
-    closeLoginModal: () => set({ isModalOpen: false, error: null }),
     clearError: () => set({ error: null }),
 
-    // Inisialisasi sesi saat aplikasi dimuat
+    // Inisialisasi sesi saat pertama kali aplikasi dibuka atau direfresh
     initAuth: async () => {
       const currentToken = localStorage.getItem('axiom_token');
-      if (currentToken) {
-        try {
-          const profile = await api.getMe();
-          set({
-            token: currentToken,
-            user: profile,
-            operatorName: profile.username,
-            operatorRole: profile.role.toUpperCase(),
-            isAuthenticated: true,
-          });
-          return;
-        } catch {
-          // Token kedaluwarsa atau tidak valid, hapus dan auto-handshake
-          localStorage.removeItem('axiom_token');
-        }
-      }
-
-      // Auto-Handshake Sesi Default Satgas PUSSIBERAD (mencegah evaluasi terhalang login awal)
-      try {
-        set({ isLoading: true });
-        const res = await api.login('admin', 'AxiomAdmin2026!');
-        localStorage.setItem('axiom_token', res.access_token);
-        localStorage.setItem('axiom_operator', res.username);
-        localStorage.setItem('axiom_role', res.role.toUpperCase());
+      if (!currentToken) {
+        // Tidak ada token -> Wajib Login (TIDAK ADA AUTO-LOGIN)
         set({
-          token: res.access_token,
-          user: { username: res.username, role: res.role, is_active: true },
-          operatorName: res.username,
-          operatorRole: res.role.toUpperCase(),
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } catch (err: any) {
-        set({
-          isLoading: false,
-          isAuthenticated: false,
           token: null,
           user: null,
-          error: err.message || 'Gagal menginisialisasi sesi autentikasi.',
+          operatorName: '',
+          operatorRole: '',
+          isAuthenticated: false,
+          isInitialized: true,
+          isLoading: false,
+        });
+        return;
+      }
+
+      // Verifikasi keabsahan token ke endpoint /auth/me di backend
+      try {
+        set({ isLoading: true });
+        const profile = await api.getMe();
+        set({
+          token: currentToken,
+          user: profile,
+          operatorName: profile.username,
+          operatorRole: profile.role.toUpperCase(),
+          isAuthenticated: true,
+          isInitialized: true,
+          isLoading: false,
+        });
+      } catch (err) {
+        // Token kedaluwarsa atau tidak valid di backend -> Bersihkan sesi & paksa login
+        console.warn('[Auth] Token tidak valid atau sesi kedaluwarsa:', err);
+        localStorage.removeItem('axiom_token');
+        localStorage.removeItem('axiom_operator');
+        localStorage.removeItem('axiom_role');
+        set({
+          token: null,
+          user: null,
+          operatorName: '',
+          operatorRole: '',
+          isAuthenticated: false,
+          isInitialized: true,
+          isLoading: false,
         });
       }
     },
 
-    // Login manual operator
+    // Login resmi personel
     login: async (username: string, password: string): Promise<boolean> => {
       set({ isLoading: true, error: null });
       try {
@@ -98,6 +96,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         localStorage.setItem('axiom_token', res.access_token);
         localStorage.setItem('axiom_operator', res.username);
         localStorage.setItem('axiom_role', res.role.toUpperCase());
+
         set({
           token: res.access_token,
           user: { username: res.username, role: res.role, is_active: true },
@@ -105,20 +104,21 @@ export const useAuthStore = create<AuthState>((set, get) => {
           operatorRole: res.role.toUpperCase(),
           isAuthenticated: true,
           isLoading: false,
-          isModalOpen: false,
           error: null,
         });
         return true;
       } catch (err: any) {
+        const errorMsg =
+          err.message || 'Kredensial login tidak valid. Pastikan username dan password benar.';
         set({
           isLoading: false,
-          error: err.message || 'Kredensial login tidak valid. Periksa username dan password.',
+          error: errorMsg,
         });
         return false;
       }
     },
 
-    // Logout operator
+    // Logout resmi: hapus sesi & tendang langsung ke landing/login page
     logout: () => {
       localStorage.removeItem('axiom_token');
       localStorage.removeItem('axiom_operator');
@@ -126,10 +126,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({
         token: null,
         user: null,
-        operatorName: 'Guest',
-        operatorRole: 'USER',
+        operatorName: '',
+        operatorRole: '',
         isAuthenticated: false,
-        isModalOpen: true, // Buka modal login langsung setelah logout
+        error: null,
       });
     },
   };

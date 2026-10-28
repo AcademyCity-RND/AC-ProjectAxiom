@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Radio, Activity, UserCheck, KeyRound } from 'lucide-react';
+import { Shield, Radio, Activity, UserCheck, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export const Header: React.FC = () => {
-  const { operatorName, operatorRole, isAuthenticated, openLoginModal } = useAuthStore();
+  const { operatorName, operatorRole, logout } = useAuthStore();
   const [timeStr, setTimeStr] = useState<string>('');
 
   useEffect(() => {
@@ -66,30 +66,32 @@ export const Header: React.FC = () => {
           <span>{timeStr || 'Memuat waktu...'}</span>
         </div>
 
-        {/* Interactive Operator Auth Badge */}
-        <button
-          type="button"
-          onClick={openLoginModal}
-          className="flex items-center gap-2.5 bg-[#1E293B]/70 hover:bg-[#1E293B] border border-[#1E293B] hover:border-sky-500/40 px-3 py-1.5 rounded transition-all text-left cursor-pointer group"
-          title="Klik untuk membuka autentikasi / ganti akun operator"
-        >
-          <div className="w-6 h-6 rounded-full bg-sky-950/80 flex items-center justify-center text-sky-300 text-xs font-semibold border border-sky-500/30 group-hover:border-sky-400">
-            {isAuthenticated ? <UserCheck className="w-3.5 h-3.5" /> : <KeyRound className="w-3.5 h-3.5" />}
-          </div>
-          <div className="text-left">
-            <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
-              <span>{operatorName || 'Guest'}</span>
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isAuthenticated ? 'bg-emerald-400' : 'bg-amber-400'
-                }`}
-              ></span>
+        {/* Operator Session Info & Dedicated Logout Button */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 bg-[#1E293B]/70 border border-[#1E293B] px-3 py-1.5 rounded">
+            <div className="w-6 h-6 rounded-full bg-sky-950/80 flex items-center justify-center text-sky-300 text-xs font-semibold border border-sky-500/30">
+              <UserCheck className="w-3.5 h-3.5" />
             </div>
-            <div className="text-[10px] text-sky-400 font-mono tracking-tight uppercase">
-              ROLE: {operatorRole || 'USER'}
+            <div className="text-left">
+              <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
+                <span>{operatorName || 'Operator'}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              </div>
+              <div className="text-[10px] text-sky-400 font-mono tracking-tight uppercase">
+                ROLE: {operatorRole || 'USER'}
+              </div>
             </div>
           </div>
-        </button>
+
+          <button
+            type="button"
+            onClick={logout}
+            className="p-2 bg-[#1E293B]/50 hover:bg-rose-500/20 border border-[#1E293B] hover:border-rose-500/40 text-slate-400 hover:text-rose-400 rounded transition-colors cursor-pointer"
+            title="Keluar dari Sesi (Logout ke Halaman Utama)"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </header>
   );

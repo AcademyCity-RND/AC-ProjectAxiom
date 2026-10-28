@@ -17,7 +17,7 @@ import { EntropyGauge } from './components/visualization/EntropyGauge';
 import { NarrativeDriftChart } from './components/visualization/NarrativeDriftChart';
 import { DualTierLedgerTable } from './components/reports/DualTierLedgerTable';
 import { ExportActionPanel } from './components/reports/ExportActionPanel';
-import { LoginModal } from './components/auth/LoginModal';
+import { LoginPage } from './components/auth/LoginPage';
 import { useAuthStore } from './store/useAuthStore';
 import {
   Plus,
@@ -54,7 +54,7 @@ export const App: React.FC = () => {
     startEventInvestigation,
     loadCaseDetails,
   } = useCaseStore();
-  const { initAuth } = useAuthStore();
+  const { isAuthenticated, isInitialized, initAuth } = useAuthStore();
 
   useEffect(() => {
     // Inisialisasi autentikasi JWT & Health check ke backend FastAPI
@@ -144,6 +144,25 @@ export const App: React.FC = () => {
   const currentCaseId = activeCase?.case_id || 'case-sample-20261102';
   const currentTarget = activeCase?.target || '@cyber_agitator_id';
   const currentPlatform = activeCase?.platform || 'x';
+
+  // Layar loading verifikasi sesi inisial
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-[#090D16] flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border-2 border-sky-400 border-t-transparent animate-spin mx-auto"></div>
+          <div className="text-xs font-mono text-slate-400 uppercase tracking-widest">
+            Memverifikasi Otoritas Sesi PUSSIBERAD...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Jika belum login / sesi tidak ada -> Tampilkan Landing & Login Page PUSSIBERAD
+  if (!isAuthenticated) {
+    return <LoginPage backendStatus={backendStatus} />;
+  }
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
@@ -619,9 +638,6 @@ export const App: React.FC = () => {
         onClose={handleCloseInspector}
         data={selectedItem}
       />
-
-      {/* Operator Authentication Modal (RBAC JWT) */}
-      <LoginModal />
     </Layout>
   );
 };
