@@ -28,125 +28,27 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'cib' | 'interaction'>('all');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  // Fallback demo graph elements if no live graph data is loaded
-  const defaultNodes: CytoscapeNode[] = useMemo(
-    () => [
-      {
-        data: {
-          id: 'target',
-          label: graphData?.target || '@cyber_agitator_id',
-          type: 'target',
-          category: 'BUZZER',
-          confidence: 0.94,
-        },
-      },
-      {
-        data: {
-          id: 'member_1',
-          label: '@buzzer_amplif_01',
-          type: 'cluster_member',
-          category: 'BUZZER',
-          confidence: 0.92,
-        },
-      },
-      {
-        data: {
-          id: 'member_2',
-          label: '@buzzer_amplif_02',
-          type: 'cluster_member',
-          category: 'BUZZER',
-          confidence: 0.89,
-        },
-      },
-      {
-        data: {
-          id: 'bot_1',
-          label: '@auto_stream_x99',
-          type: 'cluster_member',
-          category: 'BOT',
-          confidence: 0.98,
-        },
-      },
-      {
-        data: {
-          id: 'bot_2',
-          label: '@bot_repost_army',
-          type: 'cluster_member',
-          category: 'BOT',
-          confidence: 0.96,
-        },
-      },
-      {
-        data: {
-          id: 'organic_1',
-          label: '@warga_kritis_ri',
-          type: 'cluster_member',
-          category: 'HUMAN',
-          confidence: 0.88,
-        },
-      },
-    ],
-    [graphData?.target]
-  );
+  // Jika belum ada data graf jejaring -> Tactical Empty State
+  if (!graphData || !graphData.elements?.nodes?.length) {
+    return (
+      <div className="cyber-card p-16 flex flex-col items-center justify-center text-center space-y-4 bg-[#090D16]/60 border border-[#1E293B]">
+        <div className="w-12 h-12 rounded-lg bg-sky-950/40 border border-sky-500/30 flex items-center justify-center text-sky-400">
+          <Share2 className="w-6 h-6" />
+        </div>
+        <div className="max-w-md space-y-1.5">
+          <h3 className="text-sm font-semibold tracking-[-0.01em] text-white uppercase font-mono">
+            GRAF JEJARING BELUM TERPILIH
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Pilih kasus investigasi dari menu Beranda atau Direktori Target untuk merender visualisasi Social Network Analysis (SNA), pemetaan akun sentral, dan klaster copypasta CIB.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const defaultEdges: CytoscapeEdge[] = useMemo(
-    () => [
-      {
-        data: {
-          id: 'e1',
-          source: 'target',
-          target: 'member_1',
-          weight: 0.92,
-          label: 'Cosine 0.92',
-          link_type: 'semantic_cib',
-        },
-      },
-      {
-        data: {
-          id: 'e2',
-          source: 'target',
-          target: 'member_2',
-          weight: 0.89,
-          label: 'Cosine 0.89',
-          link_type: 'semantic_cib',
-        },
-      },
-      {
-        data: {
-          id: 'e3',
-          source: 'target',
-          target: 'bot_1',
-          weight: 0.95,
-          label: 'Temporal Retweet',
-          link_type: 'temporal_coordination',
-        },
-      },
-      {
-        data: {
-          id: 'e4',
-          source: 'target',
-          target: 'bot_2',
-          weight: 0.91,
-          label: 'Burst Repost',
-          link_type: 'temporal_coordination',
-        },
-      },
-      {
-        data: {
-          id: 'e5',
-          source: 'target',
-          target: 'organic_1',
-          weight: 0.45,
-          label: 'Reply Disagreement',
-          link_type: 'reply',
-        },
-      },
-    ],
-    []
-  );
-
-  const rawNodes = graphData?.elements?.nodes?.length ? graphData.elements.nodes : defaultNodes;
-  const rawEdges = graphData?.elements?.edges?.length ? graphData.elements.edges : defaultEdges;
+  const rawNodes = graphData.elements.nodes;
+  const rawEdges = graphData.elements.edges || [];
 
   // Filter edges based on selector
   const filteredRawEdges = useMemo(() => {

@@ -7,38 +7,40 @@ interface EntropyGaugeProps {
 }
 
 export const EntropyGauge: React.FC<EntropyGaugeProps> = ({ data }) => {
-  // Fallback demo data if no live data yet
-  const fallbackData: PostingEntropyData = useMemo(
-    () => ({
-      total_intervals: 124,
-      entropy: 0.65,
-      normalized_entropy: 0.22, // Highly rigid scheduled
-      mean_interval_sec: 142.5,
-      median_interval_sec: 120.0,
-      std_interval_sec: 45.2,
-      bins_distribution: {
-        '< 1m': 14,
-        '1-5m': 78,
-        '5-15m': 22,
-        '15-60m': 6,
-        '1-4h': 2,
-        '4-12h': 1,
-        '12-24h': 1,
-        '> 24h': 0,
-      },
-      classification: 'HIGHLY_RIGID_SCHEDULED',
-      explanation:
-        'Entropi interval posting sangat rendah (H_norm = 0.22 < 0.35) dengan 74.2% interval posting berkerumun ketat pada rentang 1-5 menit. Pola ini membuktikan otomasi skrip tanpa jeda manusiawi.',
-    }),
-    []
-  );
+  // Jika belum ada data kasus yang dimuat -> Tactical Empty State
+  if (!data) {
+    return (
+      <div className="cyber-card p-12 flex flex-col items-center justify-center text-center space-y-4 bg-[#090D16]/60 border border-[#1E293B]">
+        <div className="w-12 h-12 rounded-lg bg-sky-950/40 border border-sky-500/30 flex items-center justify-center text-sky-400">
+          <Gauge className="w-6 h-6" />
+        </div>
+        <div className="max-w-md space-y-1.5">
+          <h3 className="text-sm font-semibold tracking-[-0.01em] text-white uppercase font-mono">
+            PENGUKUR ENTROPI PENJADWALAN BELUM TERPILIH
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Pilih kasus investigasi untuk menghitung Shannon Posting Entropy (H_norm) dan memeriksa variabilitas jeda waktu interval postingan target.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const activeData = data || fallbackData;
-  const hNorm = activeData.normalized_entropy ?? 0.22;
+  const hNorm = data.normalized_entropy ?? 0.0;
   const percentage = Math.round(hNorm * 100);
 
   // Status configuration
   const config = useMemo(() => {
+    if (data.classification === 'INSUFFICIENT_DATA') {
+      return {
+        label: 'SAMPEL INTERVAL TERBATAS',
+        color: 'text-slate-300',
+        bg: 'bg-slate-800',
+        border: 'border-slate-700',
+        barColor: 'bg-slate-500',
+        dotColor: 'bg-slate-400',
+      };
+    }
     if (hNorm < 0.35) {
       return {
         label: 'OTOMASI TERJADWAL KETAT (BOT)',
@@ -67,119 +69,129 @@ export const EntropyGauge: React.FC<EntropyGaugeProps> = ({ data }) => {
       barColor: 'bg-emerald-500',
       dotColor: 'bg-emerald-400',
     };
-  }, [hNorm]);
+  }, [hNorm, data.classification]);
 
-  const bins = activeData.bins_distribution || {};
+  const bins = data.bins_distribution || {};
   const maxBinVal = Math.max(...Object.values(bins), 1);
 
   return (
     <div className="cyber-card p-4 space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1E293B]">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-              BEHAVIORAL SHANNON ENTROPY (H_norm)
-            </span>
-            <span className="text-xs text-slate-400 font-mono">
-              &bull; Total Interval: {activeData.total_intervals}
-            </span>
+      {/* Header Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E293B] pb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded bg-sky-500/10 border border-sky-500/30 text-sky-400">
+            <Gauge className="w-4 h-4" />
           </div>
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Gauge className="w-4 h-4 text-sky-400" />
-            Pengukur Keteraturan Interval Posting (0.00 = Skrip, 1.00 = Alami)
-          </h2>
+          <div>
+            <h2 className="text-sm font-semibold tracking-[-0.01em] text-white">
+              Shannon Posting Entropy (Pengukur Kekakuan Waktu)
+            </h2>
+            <p className="text-[11px] text-[#94A3B8]">
+              Tingkat keacakan jeda waktu postingan &bull; Rentang [0.00 = Sangat Kaku, 1.00 = Sangat Acak]
+            </p>
+          </div>
         </div>
 
-        {/* Classification Badge */}
+        {/* Current Classification Badge */}
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${config.bg} ${config.color} border ${config.border} font-mono`}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-semibold font-mono uppercase ${config.bg} ${config.color} border ${config.border}`}
         >
-          <span className={`w-2 h-2 rounded-full ${config.dotColor}`}></span>
+          <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor} animate-pulse`}></span>
           {config.label}
         </span>
       </div>
 
-      {/* Main Entropy Gauge Bar */}
-      <div className="space-y-2 bg-[#090D16] border border-[#1E293B] p-4 rounded">
-        <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-slate-400">Skor Entropi Ternormalisasi:</span>
-          <span className={`text-base font-bold tabular-nums ${config.color}`}>
-            H_norm = {hNorm.toFixed(2)} ({percentage}%)
-          </span>
-        </div>
-
-        {/* Track Bar with Threshold Bands */}
-        <div className="relative h-4 bg-slate-900 rounded overflow-hidden border border-slate-800">
-          {/* Threshold background zones */}
-          <div className="absolute inset-0 flex">
-            <div className="w-[35%] bg-rose-950/40 border-r border-rose-500/20" title="Zona Bot (< 0.35)"></div>
-            <div className="w-[35%] bg-amber-950/40 border-r border-amber-500/20" title="Zona Buzzer (0.35 - 0.70)"></div>
-            <div className="w-[30%] bg-emerald-950/40" title="Zona Organik (> 0.70)"></div>
+      {/* Linear Meter Gauge */}
+      <div className="space-y-2 pt-1">
+        <div className="flex items-baseline justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-[#64748B] font-semibold text-[11px] uppercase tracking-wider">
+              SKOR NORMALISASI (H_norm):
+            </span>
+            <span className={`text-xl font-bold font-mono tabular-nums ${config.color}`}>
+              {hNorm.toFixed(2)}
+            </span>
+            <span className="text-slate-400 font-mono text-[11px]">({percentage}%)</span>
           </div>
 
-          {/* Active Progress Fill */}
+          <div className="text-[11px] text-slate-400 font-mono flex items-center gap-3">
+            <span>&lt; 0.35 Bot</span>
+            <span>0.35 - 0.70 Buzzer</span>
+            <span>&ge; 0.70 Organik</span>
+          </div>
+        </div>
+
+        {/* Progress Bar with Zone Markers */}
+        <div className="relative w-full h-3 bg-[#090D16] border border-[#1E293B] rounded-full overflow-hidden">
+          {/* Threshold Zones Background */}
+          <div className="absolute inset-0 flex opacity-20">
+            <div className="w-[35%] bg-rose-500 border-r border-rose-300"></div>
+            <div className="w-[35%] bg-amber-500 border-r border-amber-300"></div>
+            <div className="w-[30%] bg-emerald-500"></div>
+          </div>
+
+          {/* Active Value Fill */}
           <div
-            className={`h-full ${config.barColor} transition-all duration-700 relative`}
-            style={{ width: `${Math.min(percentage, 100)}%` }}
-          >
-            {/* Pointer Indicator */}
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-white shadow-md"></div>
-          </div>
-        </div>
-
-        {/* Threshold Labels */}
-        <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-1">
-          <span className="text-rose-400">0.00 (Skrip/Otomasi)</span>
-          <span className="text-amber-400">0.35 (Batas Buzzer)</span>
-          <span className="text-emerald-400">0.70 (Batas Alami)</span>
-          <span className="text-slate-400">1.00 (Acak Penuh)</span>
+            className={`h-full ${config.barColor} transition-all duration-300 relative z-10`}
+            style={{ width: `${Math.min(Math.max(percentage, 2), 100)}%` }}
+          ></div>
         </div>
       </div>
 
-      {/* 8-Bin Interval Distribution Bar Chart */}
-      <div className="space-y-2">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B] flex items-center justify-between">
-          <span>Distribusi Interval Waktu (8-Bin Klastering)</span>
-          <span className="text-xs font-mono text-slate-400 tabular-nums">
-            Median: {(activeData.median_interval_sec / 60).toFixed(1)} Menit
+      {/* Interval Bins Histogram (8-bin distribution) */}
+      <div className="space-y-2 pt-2 border-t border-[#1E293B]">
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="text-[#64748B] font-semibold uppercase tracking-wider">
+            DISTRIBUSI JEDA WAKTU POSTINGAN ({data.total_intervals} INTERVAL TERCATAT):
+          </span>
+          <span className="font-mono text-slate-400 text-[10px]">
+            Median Interval:{' '}
+            <strong className="text-white">
+              {data.median_interval_sec < 60
+                ? `${Math.round(data.median_interval_sec)} dtk`
+                : `${Math.round(data.median_interval_sec / 60)} mnt`}
+            </strong>
           </span>
         </div>
 
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-          {Object.entries(bins).map(([binKey, count]) => {
-            const heightPercent = Math.max(Math.round((count / maxBinVal) * 100), 6);
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+          {Object.entries(bins).map(([binLabel, count]) => {
+            const heightPct = Math.round((count / maxBinVal) * 100);
             return (
               <div
-                key={binKey}
-                className="bg-[#090D16] border border-[#1E293B] p-2 rounded flex flex-col justify-between items-center h-24 text-center group hover:border-sky-400 transition-colors"
+                key={binLabel}
+                className="bg-[#090D16] border border-[#1E293B] p-2 rounded flex flex-col justify-between items-center text-center space-y-1.5"
               >
-                <div className="text-[10px] font-mono tabular-nums text-slate-400 group-hover:text-white">
-                  {count}
-                </div>
-
-                {/* Vertical Bar */}
-                <div className="w-full flex items-end justify-center h-12 bg-slate-900/60 rounded-[2px] p-0.5">
+                <div className="w-full h-12 flex items-end justify-center bg-[#0F172A]/40 rounded pb-0.5">
                   <div
-                    className="w-full bg-sky-500/80 rounded-[1px] transition-all duration-300"
-                    style={{ height: `${heightPercent}%` }}
+                    className={`w-4/5 rounded-t-[2px] ${
+                      binLabel.includes('<') || binLabel.includes('Rapid')
+                        ? 'bg-rose-500/80'
+                        : binLabel.includes('m')
+                        ? 'bg-amber-500/80'
+                        : 'bg-sky-500/80'
+                    }`}
+                    style={{ height: `${Math.max(heightPct, 6)}%` }}
+                    title={`${binLabel}: ${count} interval`}
                   ></div>
                 </div>
-
-                <div className="text-[9px] font-mono text-slate-400 truncate max-w-full">
-                  {binKey}
+                <div className="text-[10px] text-slate-400 font-mono truncate w-full" title={binLabel}>
+                  {binLabel}
                 </div>
+                <div className="text-xs font-mono font-bold text-white tabular-nums">{count}</div>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Forensic Explanation Card */}
-      <div className="p-3 bg-[#131C2E] border border-[#1E293B] rounded text-xs text-slate-300 leading-relaxed flex items-start gap-2">
-        <Info className="w-4 h-4 text-sky-400 mt-0.5 shrink-0" />
-        <p>{activeData.explanation}</p>
-      </div>
+      {/* Forensic Diagnostic Explanation */}
+      {data.explanation && (
+        <div className="p-3 bg-[#131C2E] border border-[#1E293B] rounded text-xs text-slate-300 leading-relaxed flex items-start gap-2">
+          <Info className="w-4 h-4 text-sky-400 mt-0.5 shrink-0" />
+          <p>{data.explanation}</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,47 +9,34 @@ interface CircadianHeatmapProps {
 export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
   const [hoveredCell, setHoveredCell] = useState<{ day: string; hour: number; count: number } | null>(null);
 
-  // Fallback demo matrix (Simulating structured office hours buzzer wave)
-  const fallbackData: CircadianHeatmapData = useMemo(() => {
-    // 7 rows (Senin..Minggu) x 24 columns
-    const matrix: number[][] = Array.from({ length: 7 }, (_, dayIdx) =>
-      Array.from({ length: 24 }, (_, hour) => {
-        // Monday (0) to Friday (4), hours 9 to 17 have heavy buzzer activity
-        if (dayIdx < 5 && hour >= 9 && hour <= 17) {
-          return Math.floor(12 + Math.sin(hour) * 6 + (dayIdx % 2) * 4);
-        }
-        // Sporadic night/weekend activity
-        if (dayIdx >= 5 && hour >= 10 && hour <= 14) {
-          return 2;
-        }
-        return Math.random() > 0.8 ? 1 : 0;
-      })
+  // Jika belum ada data kasus yang dimuat -> Tactical Empty State
+  if (!data) {
+    return (
+      <div className="cyber-card p-12 flex flex-col items-center justify-center text-center space-y-4 bg-[#090D16]/60 border border-[#1E293B]">
+        <div className="w-12 h-12 rounded-lg bg-sky-950/40 border border-sky-500/30 flex items-center justify-center text-sky-400">
+          <Calendar className="w-6 h-6" />
+        </div>
+        <div className="max-w-md space-y-1.5">
+          <h3 className="text-sm font-semibold tracking-[-0.01em] text-white uppercase font-mono">
+            MATRIKS SIRKADIAN BELUM TERPILIH
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Pilih kasus dari riwayat beranda atau mulai investigasi target baru untuk memetakan matriks aktivitas 24x7 dan deteksi anomali jam kerja sindikat buzzer (09:00 - 17:00).
+          </p>
+        </div>
+      </div>
     );
+  }
 
-    return {
-      total_posts: 148,
-      matrix_7x24: matrix,
-      matrix_24x7: [],
-      normalized_matrix: [],
-      days: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
-      hours: Array.from({ length: 24 }, (_, i) => i),
-      peak_day: 'Rabu',
-      peak_hour: 11,
-      working_hours_ratio: 0.86,
-      night_hours_ratio: 0.04,
-      chi2_statistic: 42.6,
-      chi2_p_value: 0.0001,
-      pattern_type: 'STRUCTURED_OFFICE_HOURS',
-      explanation:
-        'Aktivitas posting terfokus 86.0% pada hari kerja jam 09:00 - 17:00 (Uji Chi-Square p < 0.001), mengindikasikan pola operator buzzer bayaran terstruktur.',
-    };
-  }, []);
+  const matrix = data.matrix_7x24 && data.matrix_7x24.length === 7
+    ? data.matrix_7x24
+    : Array.from({ length: 7 }, () => Array(24).fill(0));
 
-  const activeData = data || fallbackData;
-  const matrix = activeData.matrix_7x24 || fallbackData.matrix_7x24;
-  const days = activeData.days?.length === 7 ? activeData.days : ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+  const days = data.days && data.days.length === 7
+    ? data.days
+    : ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
-  // Calculate max count for color scaling
+  // Hitung nilai maksimum postingan per sel untuk skala intensitas warna
   const maxVal = useMemo(() => {
     let m = 1;
     matrix.forEach((row) => {
@@ -60,15 +47,15 @@ export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
     return m;
   }, [matrix]);
 
-  // Color generator: smooth slate-900 to Tactical Cyan / Amber
+  // Pewarnaan sel dinamis
   const getCellColor = (count: number, isWorkingHour: boolean) => {
     if (count === 0) return 'bg-[#090D16] border-[#1E293B]/40';
     const intensity = Math.min(count / maxVal, 1);
 
-    if (activeData.pattern_type === 'STRUCTURED_OFFICE_HOURS' && isWorkingHour) {
+    if (data.pattern_type === 'STRUCTURED_OFFICE_HOURS' && isWorkingHour) {
       if (intensity > 0.7) return 'bg-amber-400 text-slate-950 font-bold border-amber-300';
       if (intensity > 0.4) return 'bg-amber-500/80 text-white font-semibold border-amber-500';
-      return 'bg-amber-500/30 text-amber-200 border-amber-500/40';
+      return 'bg-amber-500/40 text-amber-200 border-amber-500/50';
     }
 
     if (intensity > 0.7) return 'bg-sky-400 text-slate-950 font-bold border-sky-300';
@@ -76,85 +63,96 @@ export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
     return 'bg-sky-500/30 text-sky-200 border-sky-500/40';
   };
 
+  const isInsufficient = data.pattern_type === 'INSUFFICIENT_DATA';
+
   return (
     <div className="cyber-card p-4 space-y-4">
-      {/* Heatmap Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1E293B]">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-              CIRCADIAN 24X7 TEMPORAL ANALYSIS
-            </span>
-            <span className="text-xs text-slate-400 font-mono">
-              &bull; Chi-Square p = {activeData.chi2_p_value < 0.001 ? '< 0.001' : activeData.chi2_p_value.toFixed(3)}
-            </span>
+      {/* Header Info Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E293B] pb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded bg-sky-500/10 border border-sky-500/30 text-sky-400">
+            <Clock className="w-4 h-4" />
           </div>
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-sky-400" />
-            Matriks Distribusi Waktu Postingan (24 Jam &times; 7 Hari)
-          </h2>
+          <div>
+            <h2 className="text-sm font-semibold tracking-[-0.01em] text-white">
+              Distribusi Temporal Sirkadian (24 Jam &times; 7 Hari)
+            </h2>
+            <p className="text-[11px] text-[#94A3B8]">
+              Volume aktivitas postingan berdasarkan hari dan jam ({data.total_posts} total aktivitas)
+            </p>
+          </div>
         </div>
 
-        {/* Pattern Classification Badge */}
-        <div>
-          {activeData.pattern_type === 'STRUCTURED_OFFICE_HOURS' ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-amber-500/10 text-[#FBBF24] border border-amber-500/30 font-mono">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              POLA JAM KERJA TERSTRUKTUR (BUZZER)
+        {/* Pattern Badge */}
+        <div className="flex items-center gap-1.5">
+          {data.pattern_type === 'STRUCTURED_OFFICE_HOURS' ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+              <AlertTriangle className="w-3 h-3" />
+              SINDINIKAT OPERATOR BUZZER (JAM KERJA)
             </span>
-          ) : activeData.pattern_type === 'CONTINUOUS_24_7_AUTOMATION' ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-rose-500/10 text-[#F87171] border border-rose-500/30 font-mono">
-              <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
-              OTOMASI 24/7 NON-STOP (BOT)
+          ) : data.pattern_type === 'CONTINUOUS_24_7_AUTOMATION' ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+              <Activity className="w-3 h-3" />
+              OTOMASI BOT 24/7 NON-STOP
+            </span>
+          ) : isInsufficient ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+              <Info className="w-3 h-3" />
+              SAMPEL DATA TERBATAS
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-emerald-500/10 text-[#34D399] border border-emerald-500/30 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              DISTRIBUSI ORGANIK MANUSIAWI
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              <CheckCircle className="w-3 h-3" />
+              VARIABILITAS ORGANIK ALAMI
             </span>
           )}
         </div>
       </div>
 
-      {/* Heatmap Grid Visualizer */}
-      <div className="overflow-x-auto pb-2">
-        <div className="min-w-[620px] space-y-1.5 select-none font-mono">
-          {/* Hour Labels Header (00:00 to 23:00) */}
-          <div className="flex items-center text-[10px] text-[#64748B] pl-14">
+      {/* Insufficient Data Alert if posts < 10 */}
+      {isInsufficient && (
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-300 flex items-start gap-2">
+          <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <span>
+            {data.explanation || 'Sampel aktivitas target terbatas. Pola sirkadian memerlukan minimal 10-15 data aktivitas untuk konfirmasi statistik chi-square.'}
+          </span>
+        </div>
+      )}
+
+      {/* Heatmap Grid */}
+      <div className="overflow-x-auto">
+        <div className="min-w-[640px] space-y-1">
+          {/* Hour Labels Header (0 - 23) */}
+          <div className="grid grid-cols-[60px_repeat(24,1fr)] gap-1 text-[10px] text-slate-500 font-mono text-center pb-1">
+            <div></div>
             {Array.from({ length: 24 }, (_, i) => (
-              <div key={i} className="flex-1 text-center truncate">
-                {i % 3 === 0 ? `${i.toString().padStart(2, '0')}` : ''}
-              </div>
+              <div key={i}>{i}</div>
             ))}
           </div>
 
-          {/* 7 Days Rows */}
-          {days.map((dayName, dayIdx) => (
-            <div key={dayIdx} className="flex items-center gap-1.5">
-              {/* Day Label */}
-              <div className="w-12 text-[11px] font-medium text-slate-300 text-right pr-2 shrink-0">
-                {dayName.slice(0, 3)}
+          {/* 7 Day Rows */}
+          {matrix.map((row, dayIdx) => (
+            <div key={dayIdx} className="grid grid-cols-[60px_repeat(24,1fr)] gap-1 items-center">
+              <div className="text-[11px] font-mono text-slate-400 truncate pr-1">
+                {days[dayIdx]}
               </div>
 
-              {/* 24 Hour Cells */}
-              <div className="flex-1 grid grid-cols-24 gap-1 relative">
-                {matrix[dayIdx]?.map((count, hour) => {
-                  const isWorkingHour = dayIdx < 5 && hour >= 9 && hour <= 17;
-                  const cellColor = getCellColor(count, isWorkingHour);
+              {row.map((count, hour) => {
+                const isWorkingHour = dayIdx < 5 && hour >= 9 && hour <= 17;
+                const cellColor = getCellColor(count, isWorkingHour);
 
-                  return (
-                    <div
-                      key={hour}
-                      onMouseEnter={() => setHoveredCell({ day: dayName, hour, count })}
-                      onMouseLeave={() => setHoveredCell(null)}
-                      className={`h-6 rounded-[2px] border text-[9px] tabular-nums flex items-center justify-center cursor-pointer transition-colors duration-100 ${cellColor}`}
-                      title={`${dayName} ${hour.toString().padStart(2, '0')}:00 - ${count} postingan`}
-                    >
-                      {count > 0 && count > maxVal * 0.5 ? count : ''}
-                    </div>
-                  );
-                })}
-              </div>
+                return (
+                  <div
+                    key={hour}
+                    onMouseEnter={() => setHoveredCell({ day: days[dayIdx], hour, count })}
+                    onMouseLeave={() => setHoveredCell(null)}
+                    className={`h-6 rounded-[2px] border text-[9px] tabular-nums flex items-center justify-center cursor-pointer transition-colors duration-100 ${cellColor}`}
+                    title={`${days[dayIdx]} ${hour.toString().padStart(2, '0')}:00 - ${count} postingan`}
+                  >
+                    {count > 0 && count >= maxVal * 0.5 ? count : ''}
+                  </div>
+                );
+              })}
             </div>
           ))}
 
@@ -186,7 +184,7 @@ export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
             Rasio Jam Kerja (09:00-17:00)
           </div>
           <div className="text-sm font-mono font-semibold tabular-nums text-amber-400 mt-0.5">
-            {Math.round(activeData.working_hours_ratio * 100)}% dari Total Aktivitas
+            {Math.round(data.working_hours_ratio * 100)}% dari Total Aktivitas
           </div>
         </div>
 
@@ -195,7 +193,7 @@ export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
             Uji Chi-Square Goodness-of-Fit
           </div>
           <div className="text-sm font-mono font-semibold tabular-nums text-sky-400 mt-0.5">
-            &chi;&sup2; = {activeData.chi2_statistic.toFixed(1)} (p &lt; 0.001)
+            &chi;&sup2; = {data.chi2_statistic.toFixed(1)} (p = {data.chi2_p_value < 0.001 ? '< 0.001' : data.chi2_p_value.toFixed(3)})
           </div>
         </div>
 
@@ -204,16 +202,18 @@ export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
             Jam Puncak Aktivitas
           </div>
           <div className="text-sm font-mono font-semibold tabular-nums text-slate-200 mt-0.5">
-            {activeData.peak_day}, {activeData.peak_hour}:00 WIB
+            {data.peak_day || 'N/A'}, {data.peak_hour}:00 WIB
           </div>
         </div>
       </div>
 
       {/* Forensic Insight Explanation */}
-      <div className="p-3 bg-[#131C2E] border border-[#1E293B] rounded text-xs text-slate-300 leading-relaxed flex items-start gap-2">
-        <Info className="w-4 h-4 text-sky-400 mt-0.5 shrink-0" />
-        <p>{activeData.explanation}</p>
-      </div>
+      {!isInsufficient && data.explanation && (
+        <div className="p-3 bg-[#131C2E] border border-[#1E293B] rounded text-xs text-slate-300 leading-relaxed flex items-start gap-2">
+          <Info className="w-4 h-4 text-sky-400 mt-0.5 shrink-0" />
+          <p>{data.explanation}</p>
+        </div>
+      )}
     </div>
   );
 };

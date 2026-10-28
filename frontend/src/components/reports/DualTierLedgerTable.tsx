@@ -35,113 +35,8 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [classFilter, setClassFilter] = useState<'ALL' | 'BOT' | 'BUZZER' | 'ORGANIC'>('ALL');
 
-  // Fallback demo sample data if case has no comments yet
-  const defaultTop10: TopAttacker[] = useMemo(
-    () => [
-      {
-        username: '@provokator_alpha',
-        comment_count: 24,
-        cluster_connections: 18,
-        posted_in_burst_window: true,
-        risk_score: 96.5,
-        estimated_category: 'BUZZER',
-      },
-      {
-        username: '@bot_retweet_army_1',
-        comment_count: 38,
-        cluster_connections: 14,
-        posted_in_burst_window: true,
-        risk_score: 94.2,
-        estimated_category: 'BOT',
-      },
-      {
-        username: '@buzzer_amplif_indo',
-        comment_count: 19,
-        cluster_connections: 12,
-        posted_in_burst_window: false,
-        risk_score: 88.0,
-        estimated_category: 'BUZZER',
-      },
-      {
-        username: '@warga_biasa_01',
-        comment_count: 3,
-        cluster_connections: 0,
-        posted_in_burst_window: false,
-        risk_score: 12.0,
-        estimated_category: 'ORGANIC',
-      },
-    ],
-    []
-  );
-
-  const defaultFullLedger: LedgerItem[] = useMemo(
-    () => [
-      {
-        index: 1,
-        username: '@provokator_alpha',
-        platform: 'X',
-        post_id: 'post_1001',
-        published_at: '2026-11-02 09:14:22',
-        content: 'Kebijakan pertahanan ini harus ditolak keras! Rakyat dirugikan! #TolakAnggaran',
-        likes: 142,
-        replies: 28,
-        in_cib_cluster: true,
-        cluster_similarity: 0.92,
-        in_burst_window: true,
-        estimated_class: 'BUZZER',
-        risk_score: 96.5,
-      },
-      {
-        index: 2,
-        username: '@bot_retweet_army_1',
-        platform: 'X',
-        post_id: 'post_1002',
-        published_at: '2026-11-02 09:15:01',
-        content: 'RT @provokator_alpha: Kebijakan pertahanan ini harus ditolak keras! Rakyat dirugikan! #TolakAnggaran',
-        likes: 12,
-        replies: 0,
-        in_cib_cluster: true,
-        cluster_similarity: 0.98,
-        in_burst_window: true,
-        estimated_class: 'BOT',
-        risk_score: 94.2,
-      },
-      {
-        index: 3,
-        username: '@buzzer_amplif_indo',
-        platform: 'X',
-        post_id: 'post_1003',
-        published_at: '2026-11-02 09:16:45',
-        content: 'Betul sekali, transparansi alutsista tidak jelas sama sekali! Viralkan kawan-kawan!',
-        likes: 85,
-        replies: 9,
-        in_cib_cluster: true,
-        cluster_similarity: 0.88,
-        in_burst_window: false,
-        estimated_class: 'BUZZER',
-        risk_score: 88.0,
-      },
-      {
-        index: 4,
-        username: '@warga_biasa_01',
-        platform: 'X',
-        post_id: 'post_1004',
-        published_at: '2026-11-02 10:22:10',
-        content: 'Saya kira perlu dikaji ulang secara obyektif datanya sebelum saling serang opini.',
-        likes: 4,
-        replies: 1,
-        in_cib_cluster: false,
-        cluster_similarity: 0.24,
-        in_burst_window: false,
-        estimated_class: 'ORGANIC',
-        risk_score: 12.0,
-      },
-    ],
-    []
-  );
-
-  const attackers = topAttackers.length > 0 ? topAttackers : defaultTop10;
-  const ledger = fullLedger.length > 0 ? fullLedger : defaultFullLedger;
+  const attackers = topAttackers;
+  const ledger = fullLedger;
 
   // Filter Full Ledger
   const filteredLedger = useMemo(() => {
@@ -246,62 +141,70 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                {attackers.map((atk, idx) => (
-                  <tr
-                    key={idx}
-                    onClick={() =>
-                      onInspectRow({
-                        title: atk.username,
-                        subtitle: `Top Attacker #${idx + 1} - Skor Risiko ${atk.risk_score}`,
-                        threatClass: atk.estimated_category,
-                        threatLevel: atk.risk_score >= 80 ? 'CRITICAL' : atk.risk_score >= 50 ? 'HIGH' : 'LOW',
-                        indicators: [
-                          { label: 'Jumlah Komentar/Post', value: atk.comment_count, mono: true },
-                          { label: 'Koneksi Klaster CIB', value: `${atk.cluster_connections} Akun`, mono: true },
-                          { label: 'Masuk Jendela Lonjakan (Burst)', value: atk.posted_in_burst_window ? 'Ya' : 'Tidak' },
-                          { label: 'Skor Risiko Terhitung', value: `${atk.risk_score} / 100`, mono: true },
-                        ],
-                      })
-                    }
-                    className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                  >
-                    <td className="py-2.5 px-3 font-mono font-medium text-sky-400">
-                      <span className="text-slate-500 mr-2 text-xs">#{idx + 1}</span>
-                      {atk.username}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <ThreatBadge type="class" value={atk.estimated_category} />
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-mono tabular-nums text-xs text-slate-200">
-                      {atk.comment_count}
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-mono tabular-nums text-xs">
-                      {atk.cluster_connections > 0 ? (
-                        <span className="text-amber-400 font-semibold">{atk.cluster_connections} Akun</span>
-                      ) : (
-                        <span className="text-slate-500">0</span>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      {atk.posted_in_burst_window ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-400">
-                          <Flame className="w-3 h-3 text-rose-400" />
-                          Burst Active
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-slate-500 font-mono">Reguler</span>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold tabular-nums text-xs text-rose-400">
-                      {atk.risk_score.toFixed(1)}
-                    </td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                        Inspeksi <ChevronRight className="w-3.5 h-3.5" />
-                      </span>
+                {attackers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-slate-500 font-mono text-xs">
+                      Belum ada catatan aktivitas penyerang / amplifikator inti untuk kasus ini. Jalankan investigasi atau pilih kasus dari direktori.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  attackers.map((atk, idx) => (
+                    <tr
+                      key={idx}
+                      onClick={() =>
+                        onInspectRow({
+                          title: atk.username,
+                          subtitle: `Top Attacker #${idx + 1} - Skor Risiko ${atk.risk_score}`,
+                          threatClass: atk.estimated_category,
+                          threatLevel: atk.risk_score >= 80 ? 'CRITICAL' : atk.risk_score >= 50 ? 'HIGH' : 'LOW',
+                          indicators: [
+                            { label: 'Jumlah Komentar/Post', value: atk.comment_count, mono: true },
+                            { label: 'Koneksi Klaster CIB', value: `${atk.cluster_connections} Akun`, mono: true },
+                            { label: 'Masuk Jendela Lonjakan (Burst)', value: atk.posted_in_burst_window ? 'Ya' : 'Tidak' },
+                            { label: 'Skor Risiko Terhitung', value: `${atk.risk_score} / 100`, mono: true },
+                          ],
+                        })
+                      }
+                      className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
+                    >
+                      <td className="py-2.5 px-3 font-mono font-medium text-sky-400">
+                        <span className="text-slate-500 mr-2 text-xs">#{idx + 1}</span>
+                        {atk.username}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <ThreatBadge type="class" value={atk.estimated_category} />
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono tabular-nums text-xs text-slate-200">
+                        {atk.comment_count}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono tabular-nums text-xs">
+                        {atk.cluster_connections > 0 ? (
+                          <span className="text-amber-400 font-semibold">{atk.cluster_connections} Akun</span>
+                        ) : (
+                          <span className="text-slate-500">0</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        {atk.posted_in_burst_window ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-400">
+                            <Flame className="w-3 h-3 text-rose-400" />
+                            Burst Active
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-500 font-mono">Reguler</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold tabular-nums text-xs text-rose-400">
+                        {atk.risk_score.toFixed(1)}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
+                          Inspeksi <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -382,46 +285,56 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
-                {filteredLedger.map((item) => (
-                  <tr
-                    key={item.index}
-                    onClick={() =>
-                      onInspectRow({
-                        title: item.username,
-                        subtitle: `${item.platform} &bull; Diposting pada: ${item.published_at}`,
-                        threatClass: item.estimated_class,
-                        threatLevel: item.risk_score >= 80 ? 'CRITICAL' : item.risk_score >= 50 ? 'HIGH' : 'LOW',
-                        textSnippet: item.content,
-                        indicators: [
-                          { label: 'Kesamaan Klaster CIB', value: item.cluster_similarity ? item.cluster_similarity.toFixed(3) : '0.00', mono: true },
-                          { label: 'Terpaut Klaster CIB', value: item.in_cib_cluster ? 'Ya' : 'Tidak' },
-                          { label: 'Terdeteksi Jendela Burst', value: item.in_burst_window ? 'Ya' : 'Tidak' },
-                          { label: 'Jumlah Like & Reply', value: `${item.likes} Likes / ${item.replies} Replies`, mono: true },
-                        ],
-                        rawMetadata: item,
-                      })
-                    }
-                    className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                  >
-                    <td className="py-2.5 px-3 font-mono font-medium text-sky-400 truncate max-w-[150px]">
-                      {item.username}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <ThreatBadge type="class" value={item.estimated_class} />
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-300 text-xs truncate max-w-[280px]">
-                      {item.content}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-xs font-semibold text-rose-400">
-                      {item.risk_score.toFixed(1)}
-                    </td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                        Inspeksi <ChevronRight className="w-3.5 h-3.5" />
-                      </span>
+                {filteredLedger.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-500 font-mono text-xs">
+                      {ledger.length === 0
+                        ? "Belum ada catatan buku besar (full ledger) untuk kasus ini. Jalankan investigasi atau pilih kasus dari direktori."
+                        : "Tidak ada komentar/post yang cocok dengan filter pencarian saat ini."}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredLedger.map((item) => (
+                    <tr
+                      key={item.index}
+                      onClick={() =>
+                        onInspectRow({
+                          title: item.username,
+                          subtitle: `${item.platform} &bull; Diposting pada: ${item.published_at}`,
+                          threatClass: item.estimated_class,
+                          threatLevel: item.risk_score >= 80 ? 'CRITICAL' : item.risk_score >= 50 ? 'HIGH' : 'LOW',
+                          textSnippet: item.content,
+                          indicators: [
+                            { label: 'Kesamaan Klaster CIB', value: item.cluster_similarity ? item.cluster_similarity.toFixed(3) : '0.00', mono: true },
+                            { label: 'Terpaut Klaster CIB', value: item.in_cib_cluster ? 'Ya' : 'Tidak' },
+                            { label: 'Terdeteksi Jendela Burst', value: item.in_burst_window ? 'Ya' : 'Tidak' },
+                            { label: 'Jumlah Like & Reply', value: `${item.likes} Likes / ${item.replies} Replies`, mono: true },
+                          ],
+                          rawMetadata: item,
+                        })
+                      }
+                      className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
+                    >
+                      <td className="py-2.5 px-3 font-mono font-medium text-sky-400 truncate max-w-[150px]">
+                        {item.username}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <ThreatBadge type="class" value={item.estimated_class} />
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-300 text-xs truncate max-w-[280px]">
+                        {item.content}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono tabular-nums text-xs font-semibold text-rose-400">
+                        {item.risk_score.toFixed(1)}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
+                          Inspeksi <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
