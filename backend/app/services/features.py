@@ -95,8 +95,14 @@ def extract_actor_features(
 
     # Cek default avatar
     profile_meta = actor_profile.get("profile_metadata") or {}
+    avatar_url = str(profile_meta.get("profile_image_url") or actor_profile.get("profile_image_url") or "").lower()
     has_default_avatar = 0.0
-    if profile_meta.get("default_profile_image") or profile_meta.get("has_default_avatar"):
+    if (
+        profile_meta.get("default_profile_image") or
+        profile_meta.get("has_default_avatar") or
+        "default_profile" in avatar_url or
+        "default_avatar" in avatar_url
+    ):
         has_default_avatar = 1.0
 
     # ---------------------------------------------------------
@@ -165,19 +171,28 @@ def extract_actor_features(
         metrics = act.get("metrics") or {}
 
         # Retweet detection
-        if act_type == "retweet" or content.startswith("RT @"):
+        if act_type == "retweet" or content.startswith("RT @") or act.get("is_retweet"):
             retweet_count += 1
 
         # Reply detection
-        if act_type == "reply" or act.get("in_reply_to_user") is not None:
+        if act_type == "reply" or act.get("in_reply_to_user") is not None or act.get("is_reply"):
             reply_count += 1
 
-        # URL detection
-        if url_regex.search(content) or (isinstance(metrics.get("urls"), list) and len(metrics.get("urls")) > 0):
+        # URL detection (cek root act, metrics, dan regex content)
+        urls = act.get("urls") if isinstance(act.get("urls"), list) else None
+        if urls is None and isinstance(metrics.get("urls"), list):
+            urls = metrics.get("urls")
+        if (urls and len(urls) > 0) or url_regex.search(content):
             url_count += 1
 
-        # Media detection
-        if metrics.get("has_media") or (isinstance(metrics.get("media_urls"), list) and len(metrics.get("media_urls")) > 0):
+        # Media detection (cek root act dan metrics)
+        has_media = bool(
+            act.get("has_media") or
+            metrics.get("has_media") or
+            (isinstance(act.get("media_urls"), list) and len(act.get("media_urls")) > 0) or
+            (isinstance(metrics.get("media_urls"), list) and len(metrics.get("media_urls")) > 0)
+        )
+        if has_media:
             media_count += 1
 
         # Panjang teks
@@ -187,15 +202,17 @@ def extract_actor_features(
         words = word_regex.findall(content.lower())
         all_words.extend(words)
 
-        # Hashtag count
-        if isinstance(metrics.get("hashtags"), list):
-            total_hashtags += len(metrics.get("hashtags"))
+        # Hashtag count (prioritas list terstruktur di act/metrics, fallback regex/count)
+        hashtags = act.get("hashtags") if isinstance(act.get("hashtags"), list) else metrics.get("hashtags")
+        if isinstance(hashtags, list):
+            total_hashtags += len(hashtags)
         else:
             total_hashtags += content.count("#")
 
-        # Mention count
-        if isinstance(metrics.get("mentions"), list):
-            total_mentions += len(metrics.get("mentions"))
+        # Mention count (prioritas list terstruktur di act/metrics, fallback regex/count)
+        mentions = act.get("mentions") if isinstance(act.get("mentions"), list) else metrics.get("mentions")
+        if isinstance(mentions, list):
+            total_mentions += len(mentions)
         else:
             total_mentions += content.count("@")
 

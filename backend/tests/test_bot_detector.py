@@ -204,3 +204,31 @@ def test_heuristic_fallback_when_model_unloaded():
     label, conf, probs, exp = clf.predict(human_feats)
     assert label == "HUMAN"
     assert conf >= 0.85
+
+
+def test_feature_extraction_from_scraped_payload():
+    """Menguji kesesuaian payload riil scraper X dengan mesin ekstraksi 21 fitur."""
+    from app.services.scraper.mock_data import get_mock_data
+    mock = get_mock_data("infiltrator_01")
+    profile = mock["profile"]
+    tweets = mock["tweets"]
+
+    cluster_info = {
+        "max_semantic_similarity": 0.88,
+        "cluster_size": 8.0
+    }
+
+    features = extract_actor_features(profile, tweets, cluster_info)
+
+    assert len(features) == 21
+    assert features["followers_count"] == 84.0
+    assert features["following_count"] == 1420.0
+    # Cek has_default_avatar dari profile_metadata (default_avatar.png)
+    assert features["has_default_avatar"] == 1.0
+    # Cek reply ratio dan retweet ratio
+    assert features["reply_ratio"] > 0.0
+    # Cek hashtag dan mention density
+    assert features["hashtag_density"] >= 0.0
+    # Cek cluster metrics CIB
+    assert features["max_semantic_similarity"] == 0.88
+    assert features["cluster_size"] == 8.0

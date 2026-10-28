@@ -2,7 +2,7 @@ import re
 from enum import Enum
 from urllib.parse import urlparse
 import ipaddress
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, AliasChoices
 
 
 class PlatformEnum(str, Enum):
@@ -118,15 +118,25 @@ EVENT_ALLOWED_DOMAINS = {
     "youtu.be",
     "instagram.com",
     "www.instagram.com",
+    "x.com",
+    "www.x.com",
+    "twitter.com",
+    "www.twitter.com",
 }
 
 
 class EventInvestigationRequest(BaseModel):
     """
-    Request model untuk audit komentar massal berbasis URL postingan / video (YouTube / Instagram).
+    Request model untuk audit komentar massal berbasis URL postingan / video (YouTube / Instagram / X).
     Dilengkapi Anti-SSRF dan auto-resolver platform.
     """
-    url: str = Field(..., min_length=5, max_length=500, description="URL publik video YouTube atau postingan/reel Instagram")
+    url: str = Field(
+        ...,
+        validation_alias=AliasChoices("url", "event_url"),
+        min_length=5,
+        max_length=500,
+        description="URL publik video YouTube, postingan/reel Instagram, atau cuitan X"
+    )
     max_comments: int = Field(default=200, ge=10, le=500, description="Batas penarikan komentar (10 - 500)")
     depth_level: int = Field(default=1, ge=1, le=3, description="Kedalaman audit")
 
@@ -147,7 +157,7 @@ class EventInvestigationRequest(BaseModel):
             raise ValueError("Akses ke alamat internal / privat diblokir oleh sistem keamanan (Anti-SSRF).")
 
         if hostname not in EVENT_ALLOWED_DOMAINS:
-            raise ValueError(f"Domain '{hostname}' tidak didukung untuk audit event. Gunakan URL YouTube atau Instagram resmi.")
+            raise ValueError(f"Domain '{hostname}' tidak didukung untuk audit event. Gunakan URL YouTube, Instagram, atau X (Twitter) resmi.")
 
         return cleaned
 
@@ -158,4 +168,6 @@ class EventInvestigationRequest(BaseModel):
             return PlatformEnum.YOUTUBE
         elif "instagram" in hostname:
             return PlatformEnum.INSTAGRAM
+        elif "x.com" in hostname or "twitter.com" in hostname:
+            return PlatformEnum.X
         return PlatformEnum.X

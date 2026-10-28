@@ -83,17 +83,17 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
   const activeIndex = getActiveStepIndex();
 
   return (
-    <div className="cyber-card p-4 space-y-4">
+    <div className="cyber-card p-4 space-y-4 bg-slate-900 border border-slate-800/80 shadow-xs">
       {/* Stepper Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#1E293B]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
               STATUS PIPELINE FORENSIK
             </span>
-            <span className="text-xs font-mono text-slate-400">&bull; ID: {caseId}</span>
+            <span className="text-xs font-mono text-slate-500">&bull; ID: {caseId}</span>
           </div>
-          <div className="text-sm font-semibold text-white flex items-center gap-2">
+          <div className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
             Target: <span className="font-mono text-sky-400">{target}</span>
             <span className="text-xs uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">
               {platform}
@@ -103,19 +103,19 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
 
         {/* Status Badge & Elapsed Timer */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono tabular-nums bg-[#090D16] border border-[#1E293B] px-2.5 py-1 rounded">
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono tabular-nums bg-slate-950 border border-slate-800 px-2.5 py-1 rounded">
             <Clock className="w-3.5 h-3.5 text-sky-400" />
             <span>{elapsed}s</span>
           </div>
 
           <div>
             {status === 'completed' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-emerald-500/10 text-[#34D399] border border-emerald-500/30 font-mono">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-mono">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                 SELESAI (COMPLETED)
               </span>
             ) : status === 'failed' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-rose-500/10 text-[#F87171] border border-rose-500/30 font-mono">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 font-mono">
                 <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
                 GAGAL (FAILED)
               </span>
@@ -142,10 +142,10 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
               key={step.id}
               className={`p-3 rounded border transition-all duration-150 ${
                 isDone
-                  ? 'bg-[#131C2E] border-emerald-500/30 text-slate-200'
+                  ? 'bg-slate-950/70 border-emerald-500/30 text-slate-200'
                   : isCurrent
-                  ? 'bg-[#1E293B] border-sky-400 text-white shadow-sm ring-1 ring-sky-400/20'
-                  : 'bg-[#090D16] border-[#1E293B] text-slate-500 opacity-60'
+                  ? 'bg-slate-800 border-sky-400 text-white shadow-sm ring-1 ring-sky-400/20'
+                  : 'bg-slate-950/40 border-slate-800 text-slate-500 opacity-60'
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">

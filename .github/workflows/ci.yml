@@ -3,7 +3,8 @@ name: Axiom CI Pipeline
 on:
   push:
     branches:
-      - "**"
+      - dev
+      - main
   pull_request:
     branches:
       - dev
@@ -59,6 +60,19 @@ jobs:
       - name: Install Backend Dependencies
         run: |
           pip install -r backend/requirements.txt --prefer-binary
+
+      - name: Wait for ChromaDB to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:8000/api/v1/heartbeat; then
+              echo "ChromaDB is online and healthy!"
+              exit 0
+            fi
+            echo "Waiting for ChromaDB startup ($i/30)..."
+            sleep 2
+          done
+          echo "ChromaDB failed to start within timeout"
+          exit 1
 
       - name: Run Alembic Migrations
         env:

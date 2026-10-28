@@ -7,6 +7,10 @@ import type {
   PlatformType,
   TopAttacker,
   LedgerItem,
+  CaseSummary,
+  SystemStats,
+  WatchlistItem,
+  WatchlistCreatePayload,
 } from '../types';
 
 interface CaseState {
@@ -17,6 +21,9 @@ interface CaseState {
     top_10_attackers: TopAttacker[];
     full_ledger: LedgerItem[];
   } | null;
+  cases: CaseSummary[];
+  stats: SystemStats | null;
+  watchlist: WatchlistItem[];
   recentCases: Array<{
     case_id: string;
     target: string;
@@ -27,9 +34,17 @@ interface CaseState {
   }>;
   isAnalyzing: boolean;
   isPolling: boolean;
+  isLoadingCases: boolean;
+  isLoadingStats: boolean;
+  isLoadingWatchlist: boolean;
   error: string | null;
 
   setActiveCase: (c: InvestigationCase | null) => void;
+  loadCases: (limit?: number, offset?: number) => Promise<void>;
+  loadStats: () => Promise<void>;
+  loadWatchlist: (tag?: string) => Promise<void>;
+  addToWatchlist: (payload: WatchlistCreatePayload) => Promise<void>;
+  deleteFromWatchlist: (id: number) => Promise<void>;
   startActorInvestigation: (target: string, platform?: PlatformType, maxCount?: number) => Promise<string>;
   startEventInvestigation: (url: string, maxCount?: number) => Promise<string>;
   loadCaseDetails: (caseId: string) => Promise<void>;
@@ -38,7 +53,7 @@ interface CaseState {
 }
 
 export const useCaseStore = create<CaseState>((set, get) => {
-  // Load riwayat kasus dari localStorage jika ada
+  // Load riwayat kasus lokal sebagai fallback awal
   const savedHistory = localStorage.getItem('axiom_recent_cases');
   const initialRecent = savedHistory ? JSON.parse(savedHistory) : [];
 
@@ -47,13 +62,73 @@ export const useCaseStore = create<CaseState>((set, get) => {
     activeGraph: null,
     activeAnalytics: null,
     activeLedger: null,
+    cases: [],
+    stats: null,
+    watchlist: [],
     recentCases: initialRecent,
     isAnalyzing: false,
     isPolling: false,
+    isLoadingCases: false,
+    isLoadingStats: false,
+    isLoadingWatchlist: false,
     error: null,
 
     setActiveCase: (c) => set({ activeCase: c }),
     clearError: () => set({ error: null }),
+
+    // Mengambil daftar riwayat kasus resmi dari PostgreSQL
+    loadCases: async (limit = 50, offset = 0) => {
+      set({ isLoadingCases: true });
+      try {
+        const res = await api.getCases(limit, offset);
+        set({ cases: res.cases, isLoadingCases: false });
+      } catch (err: any) {
+        console.warn('[loadCases error]:', err.message);
+        set({ isLoadingCases: false });
+      }
+    },
+
+    // Mengambil metrik statistik sistem riil dari PostgreSQL
+    loadStats: async () => {
+      set({ isLoadingStats: true });
+      try {
+        const res = await api.getStats();
+        set({ stats: res, isLoadingStats: false });
+      } catch (err: any) {
+        console.warn('[loadStats error]:', err.message);
+        set({ isLoadingStats: false });
+      }
+    },
+
+    // Mengambil daftar target Watchlist resmi dari database
+    loadWatchlist: async (tag?: string) => {
+      set({ isLoadingWatchlist: true });
+      try {
+        const items = await api.getWatchlist(tag);
+        set({ watchlist: items, isLoadingWatchlist: false });
+      } catch (err: any) {
+        console.warn('[loadWatchlist error]:', err.message);
+        set({ isLoadingWatchlist: false });
+      }
+    },
+
+    addToWatchlist: async (payload: WatchlistCreatePayload) => {
+      try {
+        const newItem = await api.addToWatchlist(payload);
+        set((state) => ({ watchlist: [newItem, ...state.watchlist] }));
+      } catch (err: any) {
+        throw new Error(err.message || 'Gagal menambahkan target ke watchlist');
+      }
+    },
+
+    deleteFromWatchlist: async (id: number) => {
+      try {
+        await api.deleteFromWatchlist(id);
+        set((state) => ({ watchlist: state.watchlist.filter((w) => w.id !== id) }));
+      } catch (err: any) {
+        throw new Error(err.message || 'Gagal menghapus target dari watchlist');
+      }
+    },
 
     // Memulai investigasi akun target (@handle)
     startActorInvestigation: async (target, platform = 'x', maxCount = 150) => {
@@ -62,7 +137,6 @@ export const useCaseStore = create<CaseState>((set, get) => {
         const res = await api.startActorInvestigation(target, platform, maxCount);
         const caseId = res.case_id;
 
-        // Tambahkan ke riwayat lokal
         const newEntry = {
           case_id: caseId,
           target,
@@ -74,7 +148,6 @@ export const useCaseStore = create<CaseState>((set, get) => {
         localStorage.setItem('axiom_recent_cases', JSON.stringify(updatedRecent));
         set({ recentCases: updatedRecent });
 
-        // Mulai polling otomatis
         get().pollCaseStatus(caseId);
         return caseId;
       } catch (err: any) {
@@ -145,7 +218,11 @@ export const useCaseStore = create<CaseState>((set, get) => {
               console.warn('[Auxiliary data fetch error]:', auxErr);
             }
 
-            // Update status di recentCases
+            // Segarkan list kasus dan statistik dari database PostgreSQL
+            get().loadCases();
+            get().loadStats();
+
+            // Update status di recentCases lokal
             const updated = get().recentCases.map((rc) =>
               rc.case_id === caseId
                 ? {
@@ -164,6 +241,8 @@ export const useCaseStore = create<CaseState>((set, get) => {
               isAnalyzing: false,
               error: caseData.status === 'failed' ? 'Proses investigasi gagal.' : 'Waktu analisis melebihi batas.',
             });
+            get().loadCases();
+            get().loadStats();
           }
         } catch (err: any) {
           console.warn('[Polling check issue]:', err.message);

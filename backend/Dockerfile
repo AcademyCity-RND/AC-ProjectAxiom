@@ -21,8 +21,15 @@ import fastapi, pydantic, sqlalchemy, alembic, chromadb, \
        sklearn, scipy, numpy, pandas, twscrape, groq; \
 print('✅ [Axiom Build Test] All backend dependencies successfully verified!')"
 
-# 5. Copy backend source code
+# 5. Copy backend source code & create non-root appuser
 COPY . .
+
+RUN groupadd -g 1000 appuser && \
+    useradd -u 1000 -g appuser -s /bin/bash -m appuser && \
+    mkdir -p /app/data /app/reports && \
+    chown -R appuser:appuser /app
+
+USER appuser
 
 # 6. Expose port & default command
 EXPOSE 8000

@@ -28,125 +28,27 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'cib' | 'interaction'>('all');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  // Fallback demo graph elements if no live graph data is loaded
-  const defaultNodes: CytoscapeNode[] = useMemo(
-    () => [
-      {
-        data: {
-          id: 'target',
-          label: graphData?.target || '@cyber_agitator_id',
-          type: 'target',
-          category: 'BUZZER',
-          confidence: 0.94,
-        },
-      },
-      {
-        data: {
-          id: 'member_1',
-          label: '@buzzer_amplif_01',
-          type: 'cluster_member',
-          category: 'BUZZER',
-          confidence: 0.92,
-        },
-      },
-      {
-        data: {
-          id: 'member_2',
-          label: '@buzzer_amplif_02',
-          type: 'cluster_member',
-          category: 'BUZZER',
-          confidence: 0.89,
-        },
-      },
-      {
-        data: {
-          id: 'bot_1',
-          label: '@auto_stream_x99',
-          type: 'cluster_member',
-          category: 'BOT',
-          confidence: 0.98,
-        },
-      },
-      {
-        data: {
-          id: 'bot_2',
-          label: '@bot_repost_army',
-          type: 'cluster_member',
-          category: 'BOT',
-          confidence: 0.96,
-        },
-      },
-      {
-        data: {
-          id: 'organic_1',
-          label: '@warga_kritis_ri',
-          type: 'cluster_member',
-          category: 'HUMAN',
-          confidence: 0.88,
-        },
-      },
-    ],
-    [graphData?.target]
-  );
+  // Jika belum ada data graf jejaring -> Tactical Empty State
+  if (!graphData || !graphData.elements?.nodes?.length) {
+    return (
+      <div className="cyber-card p-14 flex flex-col items-center justify-center text-center space-y-4 bg-slate-900 border border-slate-800/80 shadow-xs">
+        <div className="w-10 h-10 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400">
+          <Share2 className="w-5 h-5" />
+        </div>
+        <div className="max-w-md space-y-1.5">
+          <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+            GRAF JEJARING BELUM TERPILIH
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Pilih kasus investigasi dari menu Beranda atau Direktori Target untuk merender visualisasi Social Network Analysis (SNA), pemetaan akun sentral, dan klaster copypasta CIB.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const defaultEdges: CytoscapeEdge[] = useMemo(
-    () => [
-      {
-        data: {
-          id: 'e1',
-          source: 'target',
-          target: 'member_1',
-          weight: 0.92,
-          label: 'Cosine 0.92',
-          link_type: 'semantic_cib',
-        },
-      },
-      {
-        data: {
-          id: 'e2',
-          source: 'target',
-          target: 'member_2',
-          weight: 0.89,
-          label: 'Cosine 0.89',
-          link_type: 'semantic_cib',
-        },
-      },
-      {
-        data: {
-          id: 'e3',
-          source: 'target',
-          target: 'bot_1',
-          weight: 0.95,
-          label: 'Temporal Retweet',
-          link_type: 'temporal_coordination',
-        },
-      },
-      {
-        data: {
-          id: 'e4',
-          source: 'target',
-          target: 'bot_2',
-          weight: 0.91,
-          label: 'Burst Repost',
-          link_type: 'temporal_coordination',
-        },
-      },
-      {
-        data: {
-          id: 'e5',
-          source: 'target',
-          target: 'organic_1',
-          weight: 0.45,
-          label: 'Reply Disagreement',
-          link_type: 'reply',
-        },
-      },
-    ],
-    []
-  );
-
-  const rawNodes = graphData?.elements?.nodes?.length ? graphData.elements.nodes : defaultNodes;
-  const rawEdges = graphData?.elements?.edges?.length ? graphData.elements.edges : defaultEdges;
+  const rawNodes = graphData.elements.nodes;
+  const rawEdges = graphData.elements.edges || [];
 
   // Filter edges based on selector
   const filteredRawEdges = useMemo(() => {
@@ -318,19 +220,19 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   };
 
   return (
-    <div className="cyber-card p-4 space-y-3 flex flex-col h-[560px]">
+    <div className="cyber-card p-5 space-y-3 flex flex-col h-[560px] bg-slate-900 border border-slate-800/80 shadow-xs">
       {/* Graph Toolbar Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1E293B] shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800 shrink-0">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
               SOCIAL NETWORK ANALYSIS (SNA)
             </span>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-slate-500 font-mono">
               &bull; Cosine Similarity &ge; 0.85
             </span>
           </div>
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <h2 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
             <Share2 className="w-4 h-4 text-sky-400" />
             Topologi Klaster Sindikat CIB (Coordinated Inauthentic Behavior)
           </h2>
@@ -339,12 +241,12 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         {/* Filter Controls & Stats */}
         <div className="flex items-center gap-2">
           {/* Edge Filter Dropdown */}
-          <div className="flex items-center p-0.5 bg-[#090D16] border border-[#1E293B] rounded text-xs">
+          <div className="flex items-center p-0.5 bg-slate-950 border border-slate-800 rounded text-xs">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
                 filterType === 'all'
-                  ? 'bg-[#1E293B] text-sky-400 font-medium'
+                  ? 'bg-slate-800 text-sky-400 font-semibold shadow-xs'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -352,9 +254,9 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             </button>
             <button
               onClick={() => setFilterType('cib')}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
                 filterType === 'cib'
-                  ? 'bg-[#1E293B] text-amber-400 font-medium'
+                  ? 'bg-amber-950/40 text-amber-400 font-semibold border border-amber-500/30'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >

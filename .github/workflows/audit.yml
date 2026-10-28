@@ -1,0 +1,35 @@
+name: Security Audit
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+    branches:
+      - dev
+      - main
+  schedule:
+    - cron: '0 0 * * 1' # Jalankan otomatis tiap Senin pukul 00:00 UTC
+
+jobs:
+  security-audit:
+    name: Backend Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Audit Tool (pip-audit)
+        run: pip install pip-audit
+
+      - name: Run Vulnerability Scan on Backend
+        continue-on-error: true
+        run: |
+          cd backend
+          pip-audit -r requirements.txt --desc auto

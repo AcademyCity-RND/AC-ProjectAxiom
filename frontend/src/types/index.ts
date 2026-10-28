@@ -177,3 +177,45 @@ export interface CytoscapeGraphData {
     edges: CytoscapeEdge[];
   };
 }
+
+export interface CaseSummary {
+  case_id: string;
+  target: string;
+  platform: PlatformType;
+  status: string;
+  verdict?: string;
+  confidence?: number | null;
+  display_name?: string | null;
+  created_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface SystemStats {
+  total_cases: number;
+  completed_cases: number;
+  total_actors: number;
+  bot_count: number;
+  buzzer_count: number;
+  human_count: number;
+  avg_confidence: number;
+  model_accuracy: number;
+  system_status: string;
+}
+
+export interface WatchlistItem {
+  id: number;
+  username: string;
+  platform: string;
+  tag: string;
+  notes?: string | null;
+  added_by?: string | null;
+  added_at: string;
+  last_checked_at?: string | null;
+}
+
+export interface WatchlistCreatePayload {
+  username: string;
+  platform?: string;
+  tag?: string;
+  notes?: string;
+}

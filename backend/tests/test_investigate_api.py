@@ -269,3 +269,30 @@ def test_get_nonexistent_case(auth_headers):
 
     res_graph = client.get(f"/api/v1/network/graph/{random_id}", headers=auth_headers)
     assert res_graph.status_code == 404
+
+
+def test_get_investigation_stats(auth_headers):
+    """Menguji endpoint statistik agregat sistem /api/v1/investigate/stats."""
+    res = client.get("/api/v1/investigate/stats", headers=auth_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "total_cases" in data
+    assert "completed_cases" in data
+    assert "total_actors" in data
+    assert "bot_count" in data
+    assert "buzzer_count" in data
+    assert "human_count" in data
+    assert "avg_confidence" in data
+    assert "model_accuracy" in data
+    assert data["system_status"] == "ONLINE"
+
+
+def test_list_investigation_cases(auth_headers):
+    """Menguji endpoint daftar riwayat kasus riil /api/v1/investigate/cases."""
+    res = client.get("/api/v1/investigate/cases?limit=10&offset=0", headers=auth_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "total" in data
+    assert "cases" in data
+    assert isinstance(data["cases"], list)
+

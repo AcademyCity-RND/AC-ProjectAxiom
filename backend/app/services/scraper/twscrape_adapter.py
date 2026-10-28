@@ -93,6 +93,12 @@ class TwscrapeService:
             if getattr(user, "protected", False):
                 raise PrivateAccountException(clean_username)
 
+            img_url = getattr(user, "profileImageUrl", "") or ""
+            is_default_avatar = bool(
+                getattr(user, "defaultProfileImage", False) or
+                "default_profile" in img_url or
+                "default_avatar" in img_url
+            )
             return {
                 "username": user.username,
                 "platform": "x",
@@ -105,8 +111,10 @@ class TwscrapeService:
                 "profile_metadata": {
                     "statuses_count": getattr(user, "statusesCount", 0) or 0,
                     "media_count": getattr(user, "mediaCount", 0) or 0,
-                    "profile_image_url": getattr(user, "profileImageUrl", ""),
+                    "profile_image_url": img_url,
                     "location": getattr(user, "location", ""),
+                    "default_profile_image": is_default_avatar,
+                    "has_default_avatar": is_default_avatar,
                 }
             }
         except (TargetNotFoundException, PrivateAccountException):
@@ -141,7 +149,9 @@ class TwscrapeService:
             results = []
             for tw in raw_tweets:
                 content = getattr(tw, "rawContent", None) or getattr(tw, "content", "")
+                is_retweet = getattr(tw, "retweetedTweet", None) is not None or content.startswith("RT @")
                 is_reply = getattr(tw, "inReplyToUser", None) is not None
+                act_type = "retweet" if is_retweet else ("reply" if is_reply else "tweet")
                 in_reply_user = tw.inReplyToUser.username if tw.inReplyToUser else None
 
                 # Ekstraksi entitas mikro terstruktur (Hashtags, Mentions, URLs, Media)
@@ -156,7 +166,7 @@ class TwscrapeService:
 
                 results.append({
                     "platform_post_id": str(tw.id),
-                    "activity_type": "reply" if is_reply else "tweet",
+                    "activity_type": act_type,
                     "content": content,
                     "posted_at": parse_datetime(tw.date),
                     "in_reply_to_user": in_reply_user,
@@ -171,6 +181,10 @@ class TwscrapeService:
                         "retweets": getattr(tw, "retweetCount", 0) or 0,
                         "replies": getattr(tw, "replyCount", 0) or 0,
                         "views": getattr(tw, "viewCount", 0) or 0,
+                        "has_media": has_media,
+                        "hashtags": hashtags,
+                        "mentions": mentions,
+                        "urls": urls,
                     }
                 })
             return results
