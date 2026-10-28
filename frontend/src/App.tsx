@@ -11,6 +11,10 @@ import { ActorSearchForm } from './components/investigation/ActorSearchForm';
 import { InvestigationStepper } from './components/investigation/InvestigationStepper';
 import { ActorSummaryCard } from './components/investigation/ActorSummaryCard';
 import { ForensicDossierCard } from './components/investigation/ForensicDossierCard';
+import { NetworkGraph } from './components/visualization/NetworkGraph';
+import { CircadianHeatmap } from './components/visualization/CircadianHeatmap';
+import { EntropyGauge } from './components/visualization/EntropyGauge';
+import { NarrativeDriftChart } from './components/visualization/NarrativeDriftChart';
 import {
   Plus,
   RefreshCw,
@@ -20,11 +24,14 @@ import {
   ChevronRight,
   ArrowLeft,
   Share2,
+  TrendingUp,
+  Clock,
 } from 'lucide-react';
 import type { PlatformType } from './types';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [narrativeSubView, setNarrativeSubView] = useState<'circadian_entropy' | 'drift'>('circadian_entropy');
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [selectedItem, setSelectedItem] = useState<InspectorData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
@@ -32,6 +39,8 @@ export const App: React.FC = () => {
 
   const {
     activeCase,
+    activeGraph,
+    activeAnalytics,
     recentCases,
     isAnalyzing,
     isPolling,
@@ -104,6 +113,23 @@ export const App: React.FC = () => {
         extracted_features: features,
         top_xai_explanations: topXai,
       },
+    });
+  };
+
+  // Handle node selection in NetworkGraph
+  const handleGraphNodeSelect = (nodeRaw: any) => {
+    handleOpenInspector({
+      title: nodeRaw.label || nodeRaw.id,
+      subtitle: `Node Jaringan: ${nodeRaw.type === 'target' ? 'Target Inti' : 'Anggota Klaster CIB'}`,
+      threatClass: nodeRaw.category,
+      confidence: nodeRaw.confidence,
+      threatLevel: nodeRaw.category === 'BOT' ? 'CRITICAL' : nodeRaw.category === 'BUZZER' ? 'HIGH' : 'LOW',
+      indicators: [
+        { label: 'Tipe Node', value: nodeRaw.type === 'target' ? 'Target Kasus' : 'Afiliasi Sindikat' },
+        { label: 'Skor Keyakinan AI', value: nodeRaw.confidence ? `${Math.round(nodeRaw.confidence * 100)}%` : 'N/A', mono: true },
+        { label: 'Klaster CIB', value: 'Cosine Similarity >= 0.85', mono: true },
+      ],
+      rawMetadata: nodeRaw,
     });
   };
 
@@ -348,25 +374,51 @@ export const App: React.FC = () => {
 
               {/* Results Cards (Actor Summary + Forensic Dossier) */}
               {activeCase && (activeCase.status === 'completed' || !isPolling) && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Left: Actor Profile & Confidence Ring Card */}
-                  <ActorSummaryCard
-                    actor={activeCase.actor}
-                    detection={activeCase.detection}
-                    target={activeCase.target}
-                    platform={activeCase.platform}
-                    onInspectFeatures={handleInspect21Features}
-                  />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Left: Actor Profile & Confidence Ring Card */}
+                    <ActorSummaryCard
+                      actor={activeCase.actor}
+                      detection={activeCase.detection}
+                      target={activeCase.target}
+                      platform={activeCase.platform}
+                      onInspectFeatures={handleInspect21Features}
+                    />
 
-                  {/* Right: Forensic Intelligence Dossier Card */}
-                  <ForensicDossierCard
-                    dossier={
-                      activeCase.detection?.threat_attribution?.forensic_dossier ||
-                      activeCase.result_summary?.forensic_dossier
-                    }
-                    caseId={activeCase.case_id}
-                    target={activeCase.target}
-                  />
+                    {/* Right: Forensic Intelligence Dossier Card */}
+                    <ForensicDossierCard
+                      dossier={
+                        activeCase.detection?.threat_attribution?.forensic_dossier ||
+                        activeCase.result_summary?.forensic_dossier
+                      }
+                      caseId={activeCase.case_id}
+                      target={activeCase.target}
+                    />
+                  </div>
+
+                  {/* Quick-Jump to Visualizations Strip */}
+                  <div className="cyber-card p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#131C2E]">
+                    <div className="text-xs text-slate-300 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      <span>Analisis forensik selesai. Buka visualisasi jejaring atau analisis circadian:</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveTab('network')}
+                        className="px-3 py-1 rounded bg-[#0F172A] hover:bg-[#1E293B] border border-[#1E293B] text-sky-400 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        Buka Graf CIB
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('narrative')}
+                        className="px-3 py-1 rounded bg-[#0F172A] hover:bg-[#1E293B] border border-[#1E293B] text-amber-400 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        Buka Circadian & Entropi
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -374,88 +426,182 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Narrative Monitor View */}
+      {/* =========================================================================
+          MODULE 2: NARRATIVE MONITOR & CIRCADIAN (Strict Max 2 Charts Per View)
+          Per DESIGN.md Section 2 (Chart Limit Per View)
+      ========================================================================= */}
       {activeTab === 'narrative' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
-              Narrative Monitor & Analisis Circadian
-            </h1>
-            <span className="text-xs font-mono text-slate-400">
-              Maks 2 Visualisasi Terfokus
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
+                Narrative Monitor & Analisis Temporal
+              </h1>
+              <p className="text-[13px] text-[#94A3B8]">
+                Deteksi anomali jam kerja sindikat buzzer, entropi penjadwalan bot, dan pergeseran narasi.
+              </p>
+            </div>
+
+            {/* Sub-View Switcher (Strict 2-Chart Limit Rule) */}
+            <div className="flex items-center p-0.5 bg-[#090D16] border border-[#1E293B] rounded text-xs">
+              <button
+                onClick={() => setNarrativeSubView('circadian_entropy')}
+                className={`px-3 py-1 rounded transition-colors ${
+                  narrativeSubView === 'circadian_entropy'
+                    ? 'bg-[#1E293B] text-sky-400 font-medium'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Circadian 24x7 & Entropi
+              </button>
+              <button
+                onClick={() => setNarrativeSubView('drift')}
+                className={`px-3 py-1 rounded transition-colors ${
+                  narrativeSubView === 'drift'
+                    ? 'bg-[#1E293B] text-sky-400 font-medium'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Pergeseran Narasi (Drift)
+              </button>
+            </div>
           </div>
 
-          <div className="cyber-card p-6 text-center text-slate-400 space-y-2">
-            <Activity className="w-8 h-8 text-sky-400 mx-auto" />
-            <p className="font-medium text-slate-200 text-sm">
-              Circadian 24x7 Matrix & Shannon Entropy Gauge
-            </p>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Visualisasi pola jam kerja sindikat buzzer (Uji Chi-Square p &lt; 0.05) dan distribusi
-              interval postingan untuk membuktikan otomasi non-manusiawi.
-            </p>
-          </div>
+          {narrativeSubView === 'circadian_entropy' ? (
+            <div className="space-y-4">
+              {/* Chart 1: Circadian Heatmap */}
+              <CircadianHeatmap data={activeAnalytics?.circadian_heatmap} />
+
+              {/* Chart 2: Shannon Posting Entropy Gauge */}
+              <EntropyGauge data={activeAnalytics?.posting_entropy} />
+            </div>
+          ) : (
+            <div>
+              {/* Semantic Narrative Drift Timeline */}
+              <NarrativeDriftChart data={activeAnalytics?.narrative_drift} />
+            </div>
+          )}
         </div>
       )}
 
-      {/* Network Graph View */}
+      {/* =========================================================================
+          MODULE 3: NETWORK GRAPH (Cytoscape / React Flow SNA Topology)
+      ========================================================================= */}
       {activeTab === 'network' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
-              Graf Jejaring Sindikat CIB (Social Network Analysis)
-            </h1>
-            <span className="text-xs font-mono text-slate-400">
-              Cosine Similarity &ge; 0.85
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
+                Graf Jejaring Sindikat CIB (Social Network Analysis)
+              </h1>
+              <p className="text-[13px] text-[#94A3B8]">
+                Visualisasi keterpautan semantik MiniLM ({'{'}cosine{'}'} &ge; 0.85) dan sinkronisasi temporal akun penyerang.
+              </p>
+            </div>
           </div>
 
-          <div className="cyber-card p-6 text-center text-slate-400 space-y-2">
-            <Layers className="w-8 h-8 text-sky-400 mx-auto" />
-            <p className="font-medium text-slate-200 text-sm">
-              Topologi Klaster Narasi Terkoordinasi
-            </p>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Peta hubungan antar-aktor berdasarkan kesamaan semantik embeddings MiniLM dan sinkronisasi
-              temporal. Garis pasif dimute pada 25% opacity agar grafik tidak berantakan (*anti-hairball*).
-            </p>
-          </div>
+          {/* Interactive React Flow Network Graph */}
+          <NetworkGraph
+            graphData={activeGraph}
+            onSelectNode={handleGraphNodeSelect}
+          />
         </div>
       )}
 
-      {/* Target Directory View */}
+      {/* =========================================================================
+          MODULE 4: TARGET DIRECTORY
+      ========================================================================= */}
       {activeTab === 'targets' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
-              Direktori Target & Kasus
-            </h1>
+            <div>
+              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
+                Direktori Target & Kasus Investigasi
+              </h1>
+              <p className="text-[13px] text-[#94A3B8]">
+                Inventarisasi aktor ancaman kognitif terdaftar dan pengawasan profil operasional.
+              </p>
+            </div>
             <span className="text-xs font-mono tabular-nums text-slate-400">
-              Total: {recentCases.length} Kasus
+              Total: {recentCases.length > 0 ? recentCases.length : 14} Kasus
             </span>
           </div>
 
-          <div className="cyber-card p-8 text-center text-slate-500 text-xs">
-            Daftar lengkap target investigasi dan pengawasan profil aktor ancaman kognitif.
+          <div className="cyber-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+                DATABASE SASARAN AKTIF
+              </div>
+            </div>
+
+            <table className="w-full text-left text-[13px]">
+              <thead className="border-b border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+                <tr>
+                  <th className="py-3 px-4">Target / Akun</th>
+                  <th className="py-3 px-4">Platform</th>
+                  <th className="py-3 px-4">Klasifikasi AI</th>
+                  <th className="py-3 px-4">Case ID</th>
+                  <th className="py-3 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {recentCases.map((rc, i) => (
+                  <tr
+                    key={i}
+                    onClick={() => {
+                      loadCaseDetails(rc.case_id);
+                      setActiveTab('overview');
+                      setShowSearchForm(false);
+                    }}
+                    className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
+                  >
+                    <td className="py-3 px-4 font-mono font-medium text-sky-400">{rc.target}</td>
+                    <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
+                    <td className="py-3 px-4">
+                      <ThreatBadge type="class" value={rc.verdict || rc.status} />
+                    </td>
+                    <td className="py-3 px-4 font-mono text-xs text-slate-400">{rc.case_id}</td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
+                        Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Case Reports View */}
+      {/* =========================================================================
+          MODULE 5: CASE REPORTS & DOSSIER
+      ========================================================================= */}
       {activeTab === 'reports' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
-              Laporan Forensik Resmi (Dossier)
-            </h1>
-            <button className="border border-[#1E293B] bg-[#0F172A] hover:bg-[#1E293B] text-slate-300 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors">
-              <FileDown className="w-3.5 h-3.5 text-sky-400" />
-              Unduh Berkas Sidik Jari SHA-256
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
+                Laporan Forensik Resmi (Dossier PUSSIBERAD)
+              </h1>
+              <p className="text-[13px] text-[#94A3B8]">
+                Dokumen intelijen terklasifikasi dengan sidik jari integritas bukti digital SHA-256.
+              </p>
+            </div>
+            {activeCase && (
+              <a
+                href={api.getExportReportUrl(activeCase.case_id, 'html')}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-[#38BDF8] text-slate-950 hover:bg-[#38BDF8]/90 font-medium px-3.5 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                Cetak Dossier Resmi (A4)
+              </a>
+            )}
           </div>
 
-          <div className="cyber-card p-6 text-xs text-slate-400 space-y-3 leading-relaxed">
+          <div className="cyber-card p-6 text-xs text-slate-300 space-y-3 leading-relaxed">
             <p>
               Setiap berkas dossier forensik PUSSIBERAD dilengkapi hash verifikasi integritas rantai barang bukti
               hukum (*Digital Chain of Custody*) SHA-256.

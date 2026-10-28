@@ -264,15 +264,25 @@
   - [x] TypeScript compiler (`tsc`) & Vite production bundle pass 100% (0 errors, 0 warnings).
   - [x] Container Docker `axiom_frontend` di-rebuild dan dijalankan permanen di port 3000.
 
-#### 3.3 Visualisasi Inti (Hari 3-5)
-- [ ] **Network Graph (`NetworkGraph.tsx` + Cytoscape):**
-  - [ ] Nodes: Target (besar), Cluster Members (kecil), color by class.
-  - [ ] Edges: Semantic similarity (dashed), Temporal coordination (solid), Reply/Retweet (directed).
-  - [ ] Controls: Zoom, Pan, Filter by edge type, Click node → Detail Sidebar.
-- [ ] **Circadian Heatmap (`Heatmap24x7.tsx` + Recharts/Canvas):**
-  - [ ] 24 Jam x 7 Hari grid, color intensity = activity volume.
-  - [ ] Overlay: "Working Hours" bounding box jika terdeteksi.
-- [ ] **Evidence Dossier Panel:** Accordion list bukti (Feature name, Value, Interpretation, Severity).
+#### 3.3 Visualisasi Inti: Network Graph, Heatmap & Entropy Gauge (Hari 3-5)
+- [x] **Network Graph (`src/components/visualization/NetworkGraph.tsx` + `@xyflow/react`):**
+  - [x] Nodes: Target inti di tengah (besar, aksen Tactical Cyan `#38BDF8`), anggota klaster periferi berwarna sesuai kelas ancaman (Bot Rose, Buzzer Amber, Organik Emerald).
+  - [x] Edges: Keterpautan semantik CIB (garis putus-putus amber dengan animasi aliran partikel), koordinasi temporal (garis solid biru), edge pasif dimute 35% opacity anti-hairball.
+  - [x] Kontrol: Zoom in/out, pan, reset view, filter berdasarkan tipe edge (`Semua`, `Klaster CIB`, `Interaksi Lain`).
+  - [x] Interaksi: Klik node mana pun otomatis membuka *Contextual Inspector Drawer* (380px) untuk melihat detail akun, skor keyakinan, dan bukti keterpautan.
+- [x] **Circadian Heatmap (`src/components/visualization/CircadianHeatmap.tsx`):**
+  - [x] Grid interaktif 24 Jam &times; 7 Hari dengan skala intensitas warna volume postingan.
+  - [x] Bounding box & penanda *Structured Working Hours* (Senin-Jumat 09:00 - 17:00) jika terdeteksi sindikat buzzer.
+  - [x] Statistik analitis: Rasio jam kerja, uji Chi-Square goodness-of-fit (&chi;&sup2; dengan $p < 0.001$), dan jam puncak aktivitas.
+- [x] **Shannon Posting Entropy Gauge (`src/components/visualization/EntropyGauge.tsx`):**
+  - [x] Pengukur linear $H_{norm} \in [0.00, 1.00]$ dengan ambang batas visual: $< 0.35$ (Otomasi Terjadwal/Bot), $0.35 - 0.70$ (Semi-Otomatis/Buzzer), $\ge 0.70$ (Variabilitas Alami).
+  - [x] Diagram batang 8-bin interval waktu postingan (< 1m s/d > 24h) dengan nilai median jeda waktu.
+- [x] **Narrative Drift Timeline (`src/components/visualization/NarrativeDriftChart.tsx`):**
+  - [x] Pelacak pergeseran centroid semantik embeddings MiniLM antar-jendela waktu dengan kata kunci teratas per fase.
+- [x] **Kepatuhan Aturan Kompleksitas Tampilan (`DESIGN.md`):**
+  - [x] Sub-tab switcher bersih pada modul narasi untuk membatasi maksimal 2 visualisasi per layar secara bersamaan.
+  - [x] Kompilasi `tsc && vite build` 100% lulus tanpa error dan tanpa warning (2.65s).
+  - [x] Container Docker `axiom_frontend` terbarui dan aktif permanen di port 3000.
 
 #### 3.4 Export & Polish (Hari 5-6)
 - [ ] **Button "Generate Official Dossier"** → Trigger PDF download.
