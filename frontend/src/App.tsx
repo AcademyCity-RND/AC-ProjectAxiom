@@ -193,14 +193,14 @@ export const App: React.FC = () => {
           GROUP 1: TOP KPI SUMMARY STRIP (Max 4 Cards, 2 Data Points Each, No Mini-Charts)
           Per DESIGN.md Section 2 (Screen Complexity Caps) - Dinamis dari PostgreSQL
       ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* KPI 1 */}
-        <div className="cyber-card p-4 flex flex-col justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-            Kasus Investigasi
+        <div className="cyber-card p-4 sm:p-5 flex flex-col justify-between">
+          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
+            KASUS INVESTIGASI
           </div>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-semibold tabular-nums text-white">
+          <div className="flex items-baseline justify-between mt-3">
+            <span className="text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums text-white">
               {stats?.total_cases ?? (cases.length > 0 ? cases.length : 0)}
             </span>
             <span className="text-xs text-slate-400 font-mono">
@@ -210,27 +210,27 @@ export const App: React.FC = () => {
         </div>
 
         {/* KPI 2 */}
-        <div className="cyber-card p-4 flex flex-col justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-            Aktor Teridentifikasi
+        <div className="cyber-card p-4 sm:p-5 flex flex-col justify-between">
+          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
+            AKTOR TERIDENTIFIKASI
           </div>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-semibold tabular-nums text-white">
+          <div className="flex items-baseline justify-between mt-3">
+            <span className="text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums text-white">
               {stats?.total_actors ?? (cases.length > 0 ? cases.length : 0)}
             </span>
-            <span className="text-xs text-rose-400 font-mono">
+            <span className="text-xs text-rose-400 font-mono font-medium">
               {stats ? `${stats.bot_count} Bot / ${stats.buzzer_count} Buzzer` : '0 Bot / 0 Buzzer'}
             </span>
           </div>
         </div>
 
         {/* KPI 3 */}
-        <div className="cyber-card p-4 flex flex-col justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-            Akurasi Tri-Class XGBoost
+        <div className="cyber-card p-4 sm:p-5 flex flex-col justify-between">
+          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
+            AKURASI MODEL XGBOOST
           </div>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-semibold tabular-nums text-emerald-400">
+          <div className="flex items-baseline justify-between mt-3">
+            <span className="text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums text-emerald-400">
               {stats ? `${Math.round(stats.model_accuracy * 100)}%` : '100%'}
             </span>
             <span className="text-xs text-slate-400 font-mono">
@@ -240,11 +240,11 @@ export const App: React.FC = () => {
         </div>
 
         {/* KPI 4 */}
-        <div className="cyber-card p-4 flex flex-col justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-            Status Engine FastAPI
+        <div className="cyber-card p-4 sm:p-5 flex flex-col justify-between">
+          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
+            STATUS ENGINE FASTAPI
           </div>
-          <div className="flex items-baseline justify-between mt-2">
+          <div className="flex items-baseline justify-between mt-3">
             <span
               className={`text-sm font-semibold font-mono tabular-nums ${
                 backendStatus === 'online'
@@ -260,7 +260,7 @@ export const App: React.FC = () => {
                 ? 'CONNECTING...'
                 : 'STANDALONE'}
             </span>
-            <span className="text-xs text-slate-400 font-mono">64/64 Passed</span>
+            <span className="text-xs text-slate-400 font-mono">70/70 Passed</span>
           </div>
         </div>
       </div>
@@ -271,12 +271,12 @@ export const App: React.FC = () => {
       {activeTab === 'overview' && (
         <div className="space-y-4">
           {/* Header Controls: Single Primary Action CTA + Secondary Outline Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
+              <h1 className="text-lg font-semibold tracking-tight text-white">
                 Workspace Investigasi Ancaman Kognitif
               </h1>
-              <p className="text-[13px] text-[#94A3B8]">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Audit aktor astroturfing, klaster CIB terkoordinasi, dan otomasi bot media sosial.
               </p>
             </div>
@@ -286,7 +286,7 @@ export const App: React.FC = () => {
               {!showSearchForm && (
                 <button
                   onClick={() => setShowSearchForm(true)}
-                  className="bg-[#38BDF8] text-slate-950 hover:bg-[#38BDF8]/90 font-medium px-3.5 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
+                  className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-4 py-2 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 shadow-sm cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Investigasi Target Baru
@@ -295,7 +295,7 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => window.location.reload()}
-                className="border border-[#1E293B] bg-[#0F172A] hover:bg-[#1E293B] text-slate-300 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
+                className="border border-slate-800 hover:border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-2 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 shadow-sm cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
                 Segarkan
@@ -305,14 +305,14 @@ export const App: React.FC = () => {
 
           {/* Error Alert Notification Banner */}
           {error && (
-            <div className="bg-rose-950/70 border border-rose-500/50 p-3 rounded text-xs text-rose-300 flex items-center justify-between animate-in fade-in">
-              <div className="flex items-center gap-2">
+            <div className="bg-rose-950/60 border border-rose-500/30 p-3.5 rounded-md text-xs text-rose-300 flex items-center justify-between animate-in fade-in shadow-sm">
+              <div className="flex items-center gap-2.5">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{error}</span>
               </div>
               <button
                 onClick={clearError}
-                className="text-rose-400 hover:text-rose-200 text-xs px-2 py-0.5 rounded border border-rose-800/40 hover:bg-rose-900/30 transition-colors"
+                className="text-rose-400 hover:text-rose-200 text-xs px-2.5 py-1 rounded border border-rose-800/40 hover:bg-rose-900/40 transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -330,8 +330,8 @@ export const App: React.FC = () => {
 
               {/* Table of Past Cases (Strictly Capped at 5 Columns) - Dinamis dari PostgreSQL */}
               <div className="cyber-card overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+                <div className="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/70">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
                     DAFTAR KASUS TERAKHIR DIPERIKSA (POSTGRESQL)
                   </div>
                   <span className="text-xs text-slate-400 font-mono tabular-nums">
@@ -339,60 +339,62 @@ export const App: React.FC = () => {
                   </span>
                 </div>
 
-                <table className="w-full text-left text-[13px]">
-                  <thead className="border-b border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-                    <tr>
-                      <th className="py-3 px-4">Target / Akun</th>
-                      <th className="py-3 px-4">Platform</th>
-                      <th className="py-3 px-4">Klasifikasi AI</th>
-                      <th className="py-3 px-4">Waktu</th>
-                      <th className="py-3 px-4 text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/50">
-                    {displayCases.length > 0 ? (
-                      displayCases.slice(0, 8).map((rc, i) => (
-                        <tr
-                          key={i}
-                          onClick={() => {
-                            loadCaseDetails(rc.case_id);
-                            setShowSearchForm(false);
-                          }}
-                          className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                        >
-                          <td className="py-3 px-4 font-mono font-medium text-sky-400">
-                            {rc.target}
-                          </td>
-                          <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">
-                            {rc.platform}
-                          </td>
-                          <td className="py-3 px-4">
-                            <ThreatBadge type="class" value={rc.verdict || rc.status} />
-                          </td>
-                          <td className="py-3 px-4 font-mono tabular-nums text-xs text-slate-300">
-                            {(rc as any).created_at
-                              ? new Date((rc as any).created_at).toLocaleTimeString('id-ID', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
-                              : (rc as any).date || '-'}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                              Buka <ChevronRight className="w-3.5 h-3.5" />
-                            </span>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-[13px]">
+                    <thead className="border-b border-slate-800/80 text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 bg-slate-950/40">
+                      <tr>
+                        <th className="py-3 px-5">Target / Akun</th>
+                        <th className="py-3 px-5">Platform</th>
+                        <th className="py-3 px-5">Klasifikasi AI</th>
+                        <th className="py-3 px-5">Waktu</th>
+                        <th className="py-3 px-5 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50">
+                      {displayCases.length > 0 ? (
+                        displayCases.slice(0, 8).map((rc, i) => (
+                          <tr
+                            key={i}
+                            onClick={() => {
+                              loadCaseDetails(rc.case_id);
+                              setShowSearchForm(false);
+                            }}
+                            className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
+                          >
+                            <td className="py-3.5 px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
+                              {rc.target}
+                            </td>
+                            <td className="py-3.5 px-5 font-mono text-xs uppercase text-slate-300">
+                              {rc.platform}
+                            </td>
+                            <td className="py-3.5 px-5">
+                              <ThreatBadge type="class" value={rc.verdict || rc.status} />
+                            </td>
+                            <td className="py-3.5 px-5 font-mono tabular-nums text-xs text-slate-400">
+                              {(rc as any).created_at
+                                ? new Date((rc as any).created_at).toLocaleTimeString('id-ID', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
+                                : (rc as any).date || '-'}
+                            </td>
+                            <td className="py-3.5 px-5 text-right">
+                              <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
+                                Buka <ChevronRight className="w-3.5 h-3.5" />
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-12 text-center text-xs text-slate-500 font-mono">
+                            Belum ada kasus investigasi tercatat di database.
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="py-6 text-center text-xs text-slate-500 font-mono">
-                          Belum ada kasus investigasi tercatat di database.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           ) : (
@@ -402,7 +404,7 @@ export const App: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowSearchForm(true)}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer py-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Kembali ke Form Pencarian Target
@@ -441,25 +443,25 @@ export const App: React.FC = () => {
                   </div>
 
                   {/* Quick-Jump to Visualizations Strip */}
-                  <div className="cyber-card p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#131C2E]">
+                  <div className="cyber-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 shadow-sm">
                     <div className="text-xs text-slate-300 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
                       <span>Analisis forensik selesai. Buka visualisasi jejaring atau analisis circadian:</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setActiveTab('network')}
-                        className="px-3 py-1 rounded bg-[#0F172A] hover:bg-[#1E293B] border border-[#1E293B] text-sky-400 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                        className="px-3.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-sky-400 hover:text-sky-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
                       >
                         <Share2 className="w-3.5 h-3.5" />
                         Buka Graf CIB
                       </button>
                       <button
                         onClick={() => setActiveTab('narrative')}
-                        className="px-3 py-1 rounded bg-[#0F172A] hover:bg-[#1E293B] border border-[#1E293B] text-amber-400 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                        className="px-3.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
                       >
                         <Clock className="w-3.5 h-3.5" />
-                        Buka Circadian & Entropi
+                        Buka Circadian &amp; Entropi
                       </button>
                     </div>
                   </div>
@@ -476,34 +478,34 @@ export const App: React.FC = () => {
       ========================================================================= */}
       {activeTab === 'narrative' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
-                Narrative Monitor & Analisis Temporal
+              <h1 className="text-lg font-semibold tracking-tight text-white">
+                Narrative Monitor &amp; Analisis Temporal
               </h1>
-              <p className="text-[13px] text-[#94A3B8]">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Deteksi anomali jam kerja sindikat buzzer, entropi penjadwalan bot, dan pergeseran narasi.
               </p>
             </div>
 
-            {/* Sub-View Switcher (Strict 2-Chart Limit Rule) */}
-            <div className="flex items-center p-0.5 bg-[#090D16] border border-[#1E293B] rounded text-xs">
+            {/* Sub-View Switcher (Segmented Control) */}
+            <div className="flex items-center p-1 bg-slate-950 border border-slate-800/80 rounded-md text-xs shadow-inner">
               <button
                 onClick={() => setNarrativeSubView('circadian_entropy')}
-                className={`px-3 py-1 rounded transition-colors ${
+                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
                   narrativeSubView === 'circadian_entropy'
-                    ? 'bg-[#1E293B] text-sky-400 font-medium'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
-                Circadian 24x7 & Entropi
+                Circadian 24x7 &amp; Entropi
               </button>
               <button
                 onClick={() => setNarrativeSubView('drift')}
-                className={`px-3 py-1 rounded transition-colors ${
+                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
                   narrativeSubView === 'drift'
-                    ? 'bg-[#1E293B] text-sky-400 font-medium'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
                 Pergeseran Narasi (Drift)
@@ -533,12 +535,12 @@ export const App: React.FC = () => {
       ========================================================================= */}
       {activeTab === 'network' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
+              <h1 className="text-lg font-semibold tracking-tight text-white">
                 Graf Jejaring Sindikat CIB (Social Network Analysis)
               </h1>
-              <p className="text-[13px] text-[#94A3B8]">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Visualisasi keterpautan semantik MiniLM ({'{'}cosine{'}'} &ge; 0.85) dan sinkronisasi temporal akun penyerang.
               </p>
             </div>
@@ -557,34 +559,34 @@ export const App: React.FC = () => {
       ========================================================================= */}
       {activeTab === 'targets' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">
-                Direktori Target & Manajemen Sasaran
+              <h1 className="text-lg font-semibold tracking-tight text-white">
+                Direktori Target &amp; Manajemen Sasaran
               </h1>
-              <p className="text-[13px] text-[#94A3B8]">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Inventarisasi aktor ancaman kognitif terdaftar dan pengawasan profil operasional resmi dari PostgreSQL.
               </p>
             </div>
 
             {/* Sub-View Switcher: Cases vs Watchlist */}
-            <div className="flex items-center p-0.5 bg-[#090D16] border border-[#1E293B] rounded text-xs self-start sm:self-auto">
+            <div className="flex items-center p-1 bg-slate-950 border border-slate-800/80 rounded-md text-xs shadow-inner self-start sm:self-auto">
               <button
                 onClick={() => setTargetsSubView('cases')}
-                className={`px-3 py-1 rounded transition-colors ${
+                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
                   targetsSubView === 'cases'
-                    ? 'bg-[#1E293B] text-sky-400 font-medium'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
                 Kasus Terdaftar ({displayCases.length})
               </button>
               <button
                 onClick={() => setTargetsSubView('watchlist')}
-                className={`px-3 py-1 rounded transition-colors ${
+                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
                   targetsSubView === 'watchlist'
-                    ? 'bg-[#1E293B] text-sky-400 font-medium'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
                 Watchlist Persisten
@@ -602,8 +604,8 @@ export const App: React.FC = () => {
             />
           ) : (
             <div className="cyber-card overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+              <div className="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/70">
+                <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
                   DATABASE SASARAN AKTIF (POSTGRESQL)
                 </div>
                 <span className="text-xs font-mono tabular-nums text-slate-400">
@@ -611,57 +613,59 @@ export const App: React.FC = () => {
                 </span>
               </div>
 
-              <table className="w-full text-left text-[13px]">
-                <thead className="border-b border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-                  <tr>
-                    <th className="py-3 px-4">Target / Akun</th>
-                    <th className="py-3 px-4">Platform</th>
-                    <th className="py-3 px-4">Klasifikasi AI</th>
-                    <th className="py-3 px-4">Case ID</th>
-                    <th className="py-3 px-4 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/50">
-                  {displayCases.length > 0 ? (
-                    displayCases.map((rc, i) => (
-                      <tr
-                        key={i}
-                        onClick={() => {
-                          loadCaseDetails(rc.case_id);
-                          setActiveTab('overview');
-                          setShowSearchForm(false);
-                        }}
-                        className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-120 group"
-                      >
-                        <td className="py-3 px-4 font-mono font-medium text-sky-400">
-                          {rc.target}
-                          {(rc as any).display_name && (
-                            <span className="block text-[11px] text-slate-400 font-sans">
-                              {(rc as any).display_name}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[13px]">
+                  <thead className="border-b border-slate-800/80 text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 bg-slate-950/40">
+                    <tr>
+                      <th className="py-3 px-5">Target / Akun</th>
+                      <th className="py-3 px-5">Platform</th>
+                      <th className="py-3 px-5">Klasifikasi AI</th>
+                      <th className="py-3 px-5">Case ID</th>
+                      <th className="py-3 px-5 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/50">
+                    {displayCases.length > 0 ? (
+                      displayCases.map((rc, i) => (
+                        <tr
+                          key={i}
+                          onClick={() => {
+                            loadCaseDetails(rc.case_id);
+                            setActiveTab('overview');
+                            setShowSearchForm(false);
+                          }}
+                          className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
+                        >
+                          <td className="py-3.5 px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
+                            {rc.target}
+                            {(rc as any).display_name && (
+                              <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5">
+                                {(rc as any).display_name}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-5 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
+                          <td className="py-3.5 px-5">
+                            <ThreatBadge type="class" value={rc.verdict || rc.status} />
+                          </td>
+                          <td className="py-3.5 px-5 font-mono text-xs text-slate-400">{rc.case_id}</td>
+                          <td className="py-3.5 px-5 text-right">
+                            <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
+                              Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
                             </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
-                        <td className="py-3 px-4">
-                          <ThreatBadge type="class" value={rc.verdict || rc.status} />
-                        </td>
-                        <td className="py-3 px-4 font-mono text-xs text-slate-400">{rc.case_id}</td>
-                        <td className="py-3 px-4 text-right">
-                          <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1">
-                            Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
-                          </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-xs text-slate-500 font-mono">
+                          Belum ada target atau kasus terdaftar di database PostgreSQL.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-xs text-slate-500 font-mono">
-                        Belum ada target atau kasus terdaftar di database PostgreSQL.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

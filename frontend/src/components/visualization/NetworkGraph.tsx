@@ -31,12 +31,12 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   // Jika belum ada data graf jejaring -> Tactical Empty State
   if (!graphData || !graphData.elements?.nodes?.length) {
     return (
-      <div className="cyber-card p-16 flex flex-col items-center justify-center text-center space-y-4 bg-[#090D16]/60 border border-[#1E293B]">
-        <div className="w-12 h-12 rounded-lg bg-sky-950/40 border border-sky-500/30 flex items-center justify-center text-sky-400">
-          <Share2 className="w-6 h-6" />
+      <div className="cyber-card p-14 flex flex-col items-center justify-center text-center space-y-4 bg-slate-900 border border-slate-800/80 shadow-xs">
+        <div className="w-10 h-10 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400">
+          <Share2 className="w-5 h-5" />
         </div>
         <div className="max-w-md space-y-1.5">
-          <h3 className="text-sm font-semibold tracking-[-0.01em] text-white uppercase font-mono">
+          <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
             GRAF JEJARING BELUM TERPILIH
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
@@ -220,19 +220,19 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   };
 
   return (
-    <div className="cyber-card p-4 space-y-3 flex flex-col h-[560px]">
+    <div className="cyber-card p-5 space-y-3 flex flex-col h-[560px] bg-slate-900 border border-slate-800/80 shadow-xs">
       {/* Graph Toolbar Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1E293B] shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800 shrink-0">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
               SOCIAL NETWORK ANALYSIS (SNA)
             </span>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-slate-500 font-mono">
               &bull; Cosine Similarity &ge; 0.85
             </span>
           </div>
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <h2 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
             <Share2 className="w-4 h-4 text-sky-400" />
             Topologi Klaster Sindikat CIB (Coordinated Inauthentic Behavior)
           </h2>
@@ -241,12 +241,12 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         {/* Filter Controls & Stats */}
         <div className="flex items-center gap-2">
           {/* Edge Filter Dropdown */}
-          <div className="flex items-center p-0.5 bg-[#090D16] border border-[#1E293B] rounded text-xs">
+          <div className="flex items-center p-0.5 bg-slate-950 border border-slate-800 rounded text-xs">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
                 filterType === 'all'
-                  ? 'bg-[#1E293B] text-sky-400 font-medium'
+                  ? 'bg-slate-800 text-sky-400 font-semibold shadow-xs'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -254,9 +254,9 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
             </button>
             <button
               onClick={() => setFilterType('cib')}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
                 filterType === 'cib'
-                  ? 'bg-[#1E293B] text-amber-400 font-medium'
+                  ? 'bg-amber-950/40 text-amber-400 font-semibold border border-amber-500/30'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >

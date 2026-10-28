@@ -69,28 +69,28 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
   };
 
   return (
-    <div className="cyber-card p-4 space-y-4">
+    <div className="cyber-card p-5 space-y-4">
       {/* Top Header: Title & Mode Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1E293B]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
         <div>
-          <h2 className="text-sm font-medium text-white flex items-center gap-2">
+          <h2 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
             <Search className="w-4 h-4 text-sky-400" />
             Parameter Investigasi Target
           </h2>
-          <p className="text-xs text-slate-400">
-            Pilih mode analisis aktor individu atau audit narasi massal pada postingan.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Pilih mode analisis profil aktor individu (@handle) atau audit masal komentar postingan media sosial.
           </p>
         </div>
 
         {/* Mode Selector (Clean Tactical Toggle) */}
-        <div className="flex items-center p-0.5 bg-[#090D16] border border-[#1E293B] rounded">
+        <div className="flex items-center p-1 bg-slate-950 border border-slate-800/80 rounded-md shadow-inner">
           <button
             type="button"
             onClick={() => handleModeChange('actor')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors duration-120 ${
+            className={`px-3 py-1 text-xs font-medium rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
               mode === 'actor'
-                ? 'bg-[#1E293B] text-sky-400 border border-sky-500/20'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-slate-800 text-sky-400 border border-slate-700/80 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 border border-transparent'
             }`}
           >
             Aktor (@Username)
@@ -98,20 +98,20 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
           <button
             type="button"
             onClick={() => handleModeChange('event')}
-            className={`px-3 py-1 text-xs font-medium rounded transition-colors duration-120 ${
+            className={`px-3 py-1 text-xs font-medium rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
               mode === 'event'
-                ? 'bg-[#1E293B] text-sky-400 border border-sky-500/20'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-slate-800 text-sky-400 border border-slate-700/80 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 border border-transparent'
             }`}
           >
-            Event URL (YouTube / IG)
+            Event URL (YouTube / IG / X)
           </button>
         </div>
       </div>
 
       {/* Form Input Body */}
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="flex flex-col md:flex-row items-stretch gap-3">
+      <form onSubmit={handleSubmit} className="space-y-3.5">
+        <div className="flex flex-col md:flex-row items-stretch gap-2.5">
           {/* Main Input Field */}
           <div className="flex-1 relative">
             <input
@@ -121,10 +121,10 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
               disabled={isLoading}
               placeholder={
                 mode === 'actor'
-                  ? 'Contoh: @cyber_agitator atau nama akun'
+                  ? 'Contoh: @cyber_agitator atau nama target'
                   : 'Contoh: URL video YouTube, postingan IG, atau cuitan X (status)'
               }
-              className="w-full h-10 px-3.5 bg-[#090D16] border border-[#1E293B] rounded text-xs font-forensic text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-400 transition-colors"
+              className="w-full h-10 px-3.5 bg-slate-950 border border-slate-800 rounded-md text-xs font-forensic text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all shadow-inner"
             />
             {mode === 'actor' && (
               <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono select-none">
@@ -135,14 +135,14 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
 
           {/* Platform Selector */}
           {mode === 'actor' ? (
-            <div className="flex items-center gap-1 bg-[#090D16] border border-[#1E293B] rounded p-1 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-md p-1 shrink-0">
               <button
                 type="button"
                 onClick={() => setPlatform('x')}
-                className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                   platform === 'x'
-                    ? 'bg-[#1E293B] text-sky-400'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-slate-800 text-sky-400 border border-slate-700/80 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
                 <Radio className="w-3.5 h-3.5" />
@@ -150,14 +150,14 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1 bg-[#090D16] border border-[#1E293B] rounded p-1 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-md p-1 shrink-0">
               <button
                 type="button"
                 onClick={() => setPlatform('youtube')}
-                className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                   platform === 'youtube'
-                    ? 'bg-[#1E293B] text-rose-400'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-slate-800 text-rose-400 border border-slate-700/80 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
                 <Video className="w-3.5 h-3.5" />
@@ -166,10 +166,10 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
               <button
                 type="button"
                 onClick={() => setPlatform('instagram')}
-                className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                   platform === 'instagram'
-                    ? 'bg-[#1E293B] text-amber-400'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-slate-800 text-amber-400 border border-slate-700/80 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
                 <Camera className="w-3.5 h-3.5" />
@@ -178,10 +178,10 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
               <button
                 type="button"
                 onClick={() => setPlatform('x')}
-                className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                   platform === 'x'
-                    ? 'bg-[#1E293B] text-sky-400'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-slate-800 text-sky-400 border border-slate-700/80 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
                 <Radio className="w-3.5 h-3.5" />
@@ -195,7 +195,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
             value={maxCount}
             onChange={(e) => setMaxCount(Number(e.target.value))}
             disabled={isLoading}
-            className="h-10 px-3 bg-[#090D16] border border-[#1E293B] rounded text-xs text-slate-300 font-mono tabular-nums focus:outline-none focus:border-sky-400 shrink-0"
+            className="h-10 px-3 bg-slate-950 border border-slate-800 rounded-md text-xs text-slate-300 font-mono tabular-nums focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 shrink-0 cursor-pointer shadow-inner"
           >
             <option value={100}>100 Sampel</option>
             <option value={150}>150 Sampel (Standar)</option>
@@ -206,7 +206,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
           <button
             type="submit"
             disabled={isLoading}
-            className="h-10 px-5 bg-[#38BDF8] text-slate-950 hover:bg-[#38BDF8]/90 font-medium rounded text-xs flex items-center justify-center gap-2 transition-colors duration-120 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-10 px-5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold rounded-md text-xs flex items-center justify-center gap-2 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
           >
             {isLoading ? (
               <>
@@ -222,17 +222,17 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
           </button>
         </div>
 
-        {/* Error Notification */}
+        {/* Inline Error Notification */}
         {errorMsg && (
-          <div className="flex items-center gap-2 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 rounded">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <div className="flex items-center gap-2 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/25 px-3 py-2 rounded-md animate-in fade-in">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {/* Quick Preset Chips for Live Testing */}
-        <div className="flex items-center gap-2 pt-1 text-xs text-slate-500">
-          <span className="text-[11px] uppercase tracking-wider font-mono">Preset Demo:</span>
+        <div className="flex items-center gap-2 pt-1 text-xs text-slate-400">
+          <span className="text-[10px] uppercase tracking-wider font-mono text-slate-500 shrink-0">Preset Demo:</span>
           <div className="flex items-center gap-1.5 flex-wrap">
             {presets.map((p, idx) => (
               <button
@@ -245,7 +245,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
                   setInputVal(p.label);
                   setErrorMsg(null);
                 }}
-                className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#131C2E] hover:bg-[#1E293B] text-slate-300 border border-[#1E293B] transition-colors"
+                className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm truncate max-w-xs"
               >
                 {p.label}
               </button>

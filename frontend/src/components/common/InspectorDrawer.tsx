@@ -56,22 +56,22 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
 
   return (
     <aside
-      className="fixed inset-y-0 right-0 w-[380px] bg-[#0F172A] border-l border-[#1E293B] shadow-2xl z-50 flex flex-col justify-between transition-transform duration-150 ease-out"
+      className="fixed inset-y-0 right-0 w-[400px] max-w-full bg-slate-900 border-l border-slate-800 shadow-2xl z-50 flex flex-col justify-between transition-transform duration-200 ease-out"
       aria-label="Contextual Inspector Drawer"
     >
       {/* Drawer Header */}
-      <div className="p-4 border-b border-[#1E293B] flex items-center justify-between bg-[#131C2E]">
-        <div className="space-y-0.5">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+      <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
+        <div className="space-y-0.5 min-w-0">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
             FORENSIC INSPECTOR
           </div>
-          <h2 className="text-sm font-semibold text-white truncate max-w-[280px]">
+          <h2 className="text-sm font-semibold tracking-tight text-white truncate max-w-[280px]">
             {data.title}
           </h2>
         </div>
         <button
           onClick={onClose}
-          className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
           title="Tutup Panel (Esc)"
         >
           <X className="w-4 h-4" />
@@ -82,8 +82,8 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Attribution Badge */}
         {(data.threatClass || data.threatLevel) && (
-          <div className="bg-[#131C2E] border border-[#1E293B] rounded p-3 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+          <div className="bg-slate-950/60 border border-slate-800/80 rounded p-3 flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
               Klasifikasi
             </span>
             <div className="flex items-center gap-2">
@@ -104,10 +104,10 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         {/* Narrative / Content Snippet */}
         {data.textSnippet && (
           <div className="space-y-1.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+            <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
               Sampel Narasi / Konten
             </div>
-            <div className="p-3 bg-[#090D16] border border-[#1E293B] rounded text-xs text-slate-300 leading-relaxed font-sans">
+            <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded text-xs text-slate-300 leading-relaxed font-sans shadow-xs">
               "{data.textSnippet}"
             </div>
           </div>
@@ -116,14 +116,14 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         {/* Forensic Indicators (Max 3-4 visible by default) */}
         {data.indicators && data.indicators.length > 0 && (
           <div className="space-y-2">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
+            <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
               Indikator Forensik
             </div>
-            <div className="divide-y divide-slate-800/60 bg-[#090D16] border border-[#1E293B] rounded">
+            <div className="divide-y divide-slate-800/60 bg-slate-950/80 border border-slate-800/80 rounded shadow-xs overflow-hidden">
               {data.indicators.map((ind, i) => (
                 <div
                   key={i}
-                  className="px-3 py-2.5 flex items-center justify-between text-xs"
+                  className="px-3.5 py-2.5 flex items-center justify-between text-xs"
                 >
                   <span className="text-slate-400">{ind.label}</span>
                   <span
@@ -144,13 +144,13 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         {/* Raw Metadata (Progressive Disclosure) */}
         {data.rawMetadata && (
           <details className="group space-y-1.5">
-            <summary className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B] cursor-pointer hover:text-slate-300 flex items-center justify-between py-1 select-none">
+            <summary className="text-[11px] font-mono uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-200 flex items-center justify-between py-1 select-none transition-colors">
               <span>Raw JSON / Telemetri</span>
               <span className="text-[10px] text-sky-400 group-open:rotate-90 transition-transform">
                 ▶
               </span>
             </summary>
-            <pre className="p-2.5 bg-[#090D16] border border-[#1E293B] rounded font-mono text-[11px] text-slate-400 overflow-x-auto max-h-48">
+            <pre className="p-3 bg-slate-950 border border-slate-800/80 rounded font-mono text-[11px] text-slate-300 overflow-x-auto max-h-48 leading-snug">
               {JSON.stringify(data.rawMetadata, null, 2)}
             </pre>
           </details>
@@ -158,15 +158,15 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
       </div>
 
       {/* Drawer Footer Actions */}
-      <div className="p-3 border-t border-[#1E293B] bg-[#131C2E] flex items-center justify-between gap-2">
+      <div className="p-3.5 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between gap-2">
         {isAccount ? (
           <button
             onClick={handleAddToWatchlist}
             disabled={isAdded || isAdding}
-            className={`px-2.5 py-1.5 rounded text-xs inline-flex items-center gap-1.5 transition-colors border ${
+            className={`px-3 py-1.5 rounded text-xs inline-flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] border font-medium ${
               isAdded
-                ? 'border-emerald-600 bg-emerald-950/40 text-emerald-400'
-                : 'border-sky-800/40 bg-sky-950/30 text-sky-300 hover:bg-sky-900/40'
+                ? 'border-emerald-500/50 bg-emerald-950/40 text-emerald-300'
+                : 'border-sky-500/40 bg-sky-950/30 text-sky-300 hover:bg-sky-900/40 hover:text-sky-200'
             }`}
           >
             {isAdded ? (
@@ -182,11 +182,11 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
             )}
           </button>
         ) : (
-          <span className="text-[10px] text-slate-500 font-mono">PUSSIBERAD FORENSIC</span>
+          <span className="text-[10px] text-slate-500 font-mono tracking-wider">PUSSIBERAD FORENSIC</span>
         )}
         <button
           onClick={onClose}
-          className="px-3 py-1.5 rounded text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+          className="px-3.5 py-1.5 rounded text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-all duration-150 ease-out active:scale-[0.98]"
         >
           Tutup
         </button>

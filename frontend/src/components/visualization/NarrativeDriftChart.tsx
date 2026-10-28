@@ -10,12 +10,12 @@ export const NarrativeDriftChart: React.FC<NarrativeDriftChartProps> = ({ data }
   // Jika belum ada data kasus yang dimuat -> Tactical Empty State
   if (!data || !data.windows || data.windows.length === 0) {
     return (
-      <div className="cyber-card p-12 flex flex-col items-center justify-center text-center space-y-4 bg-[#090D16]/60 border border-[#1E293B]">
-        <div className="w-12 h-12 rounded-lg bg-sky-950/40 border border-sky-500/30 flex items-center justify-center text-sky-400">
-          <TrendingUp className="w-6 h-6" />
+      <div className="cyber-card p-12 flex flex-col items-center justify-center text-center space-y-4 bg-slate-900 border border-slate-800/80 shadow-xs">
+        <div className="w-10 h-10 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400">
+          <TrendingUp className="w-5 h-5" />
         </div>
         <div className="max-w-md space-y-1.5">
-          <h3 className="text-sm font-semibold tracking-[-0.01em] text-white uppercase font-mono">
+          <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
             PELACAK PERGESERAN NARASI BELUM TERPILIH
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
@@ -31,18 +31,18 @@ export const NarrativeDriftChart: React.FC<NarrativeDriftChartProps> = ({ data }
   const meanDrift = data.mean_drift ?? 0.0;
 
   return (
-    <div className="cyber-card p-4 space-y-4">
+    <div className="cyber-card p-5 space-y-4 bg-slate-900 border border-slate-800/80 shadow-xs">
       {/* Header Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E293B] pb-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2.5">
           <div className="p-1.5 rounded bg-sky-500/10 border border-sky-500/30 text-sky-400">
             <Compass className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold tracking-[-0.01em] text-white">
+            <h2 className="text-sm font-semibold tracking-tight text-white">
               Pelacak Pergeseran Semantik Narasi (Narrative Drift)
             </h2>
-            <p className="text-[11px] text-[#94A3B8]">
+            <p className="text-[11px] text-slate-400">
               Jarak kosinus centroid embeddings MiniLM antar-jendela waktu ({windows.length} fase dianalisis)
             </p>
           </div>

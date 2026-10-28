@@ -1,42 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  /* Surface & Structural Hierarchy (Palantir/Linear Clean Tactical) */
-  --bg-canvas: #090D16;
+  /* Surface & Structural Hierarchy (Linear / Vercel Production Tactical) */
+  --bg-canvas: #0A0E17;
   --bg-surface: #0F172A;
+  --bg-surface-hover: #162036;
   --bg-elevated: #1E293B;
-  --bg-subtle: #131C2E;
-  --border-primary: #1E293B;
-  --border-subtle: rgba(30, 41, 59, 0.5);
+  --bg-subtle: #111A2E;
+  --bg-inset: #070B14;
 
-  /* Tactical Accents */
+  --border-primary: rgba(51, 65, 85, 0.7);
+  --border-subtle: rgba(51, 65, 85, 0.4);
+  --border-highlight: rgba(56, 189, 248, 0.3);
+
+  /* Primary Functional Accent */
   --accent-cyan: #38BDF8;
   --accent-blue: #3B82F6;
 
-  /* Typography */
+  /* Typography Contrast Hierarchy */
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;
 
-  /* Semantic Threat Badges */
+  /* Semantic Status Indicators */
   --status-human-text: #34D399;
-  --status-human-bg: rgba(16, 185, 129, 0.1);
-  --status-human-border: rgba(16, 185, 129, 0.3);
+  --status-human-bg: rgba(16, 185, 129, 0.08);
+  --status-human-border: rgba(16, 185, 129, 0.25);
 
   --status-buzzer-text: #FBBF24;
-  --status-buzzer-bg: rgba(245, 158, 11, 0.1);
-  --status-buzzer-border: rgba(245, 158, 11, 0.3);
+  --status-buzzer-bg: rgba(245, 158, 11, 0.08);
+  --status-buzzer-border: rgba(245, 158, 11, 0.25);
 
   --status-bot-text: #F87171;
-  --status-bot-bg: rgba(239, 68, 68, 0.1);
-  --status-bot-border: rgba(239, 68, 68, 0.3);
+  --status-bot-bg: rgba(239, 68, 68, 0.08);
+  --status-bot-border: rgba(239, 68, 68, 0.25);
 
   --status-critical-bg: #DC2626;
   --status-critical-text: #FFFFFF;
 }
 
 body {
-  background-color: #090D16;
+  background-color: #0A0E17;
   color: #F8FAFC;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
@@ -57,42 +61,51 @@ table,
 /* Forensic Monospace strictly for identifiers, hashes, and timestamps */
 .font-forensic {
   font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
-/* Clean Tactical Surfaces & Panels (Sharp 6px radius, zero drop shadows) */
+/* Clean Tactical Surfaces & Panels (Crisp 6px radius, subtle micro-shadow, 1px boundary) */
 .cyber-card,
 .cyber-panel {
   background-color: #0F172A;
-  border: 1px solid #1E293B;
+  border: 1px solid rgba(51, 65, 85, 0.7);
   border-radius: 6px;
-  box-shadow: none;
-  transition: border-color 120ms ease-out, background-color 120ms ease-out;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  transition: border-color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.cyber-card:hover {
+  border-color: rgba(71, 85, 105, 0.9);
 }
 
 .cyber-card-elevated {
-  background-color: #1E293B;
-  border: 1px solid #334155;
+  background-color: #162036;
+  border: 1px solid rgba(71, 85, 105, 0.8);
   border-radius: 6px;
-  box-shadow: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
 }
 
 .cyber-surface-subtle {
-  background-color: #131C2E;
+  background-color: #111A2E;
 }
 
-/* Clean Button & Input standard (4px radius) */
+/* Clean Button & Input Standards */
 .cyber-btn {
-  border-radius: 4px;
-  transition: all 120ms ease-out;
+  border-radius: 5px;
+  font-weight: 500;
+  transition: all 150ms ease-out;
+}
+
+.cyber-btn:active {
+  transform: scale(0.99);
 }
 
 .cyber-input {
-  background-color: #0F172A;
-  border: 1px solid #1E293B;
-  border-radius: 4px;
+  background-color: #070B14;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-radius: 5px;
   color: #F8FAFC;
-  transition: border-color 120ms ease-out, ring 120ms ease-out;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
 
 .cyber-input:focus {
@@ -101,25 +114,25 @@ table,
   box-shadow: 0 0 0 1px #38BDF8;
 }
 
-/* Threat Attribution Badges (Subtle 10% bg, 30% border, 4px radius) */
+/* Threat Attribution Badges (Subtle 8% tint, 25% border, 4px radius) */
 .badge-threat-human {
   color: #34D399;
-  background-color: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   border-radius: 4px;
 }
 
 .badge-threat-buzzer {
   color: #FBBF24;
-  background-color: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background-color: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 4px;
 }
 
 .badge-threat-bot {
   color: #F87171;
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
   border-radius: 4px;
 }
 
@@ -130,13 +143,13 @@ table,
   border-radius: 4px;
 }
 
-/* Minimalist Scrollbars */
+/* Minimalist Production Scrollbars */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #090D16;
+  background: #0A0E17;
 }
 ::-webkit-scrollbar-thumb {
   background: #1E293B;

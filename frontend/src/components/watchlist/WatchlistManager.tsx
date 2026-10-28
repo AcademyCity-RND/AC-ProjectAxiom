@@ -115,18 +115,18 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-sky-400" />
+          <h2 className="text-base font-semibold tracking-tight text-slate-100 flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-sky-400 shrink-0" />
             Daftar Sasaran Pantauan Khusus (Persistent Watchlist)
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 mt-0.5">
             Pengawasan persisten terhadap aktor ancaman siber kognitif, koordinator buzzer, dan operator botnet.
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="bg-[#38BDF8] text-slate-950 hover:bg-[#38BDF8]/90 font-medium px-3.5 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120 self-start sm:self-auto"
+          className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-3.5 py-1.5 rounded text-xs shadow-sm inline-flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5" />
           Tambah Target Pantauan
@@ -134,58 +134,58 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="cyber-card p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="cyber-card p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800/80 shadow-xs">
         <div className="relative flex-1 max-w-sm">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari target atau catatan intelijen..."
-            className="w-full h-8 pl-8 pr-3 bg-[#090D16] border border-[#1E293B] rounded text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
+            className="w-full h-8 pl-8 pr-3 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150"
           />
-          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5 pointer-events-none" />
         </div>
 
-        <div className="flex items-center gap-1 text-xs">
+        <div className="flex items-center gap-1.5 text-xs flex-wrap">
           <span className="text-[11px] text-slate-500 mr-1 flex items-center gap-1">
             <Filter className="w-3 h-3" /> Tag:
           </span>
           <button
             onClick={() => setSelectedTag('ALL')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
               selectedTag === 'ALL'
-                ? 'bg-[#1E293B] text-sky-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-slate-800 text-sky-400 font-semibold border border-slate-700/80 shadow-xs'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
             }`}
           >
             Semua ({watchlist.length})
           </button>
           <button
             onClick={() => setSelectedTag('suspicious_cib')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
               selectedTag === 'suspicious_cib'
                 ? 'bg-amber-950/40 text-amber-400 font-semibold border border-amber-500/30'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
             }`}
           >
             Suspicious CIB
           </button>
           <button
             onClick={() => setSelectedTag('propaganda_botnet')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
               selectedTag === 'propaganda_botnet'
                 ? 'bg-rose-950/40 text-rose-400 font-semibold border border-rose-500/30'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
             }`}
           >
             Botnet
           </button>
           <button
             onClick={() => setSelectedTag('buzzer_coordinator')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
               selectedTag === 'buzzer_coordinator'
                 ? 'bg-purple-950/40 text-purple-400 font-semibold border border-purple-500/30'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
             }`}
           >
             Koordinator
@@ -194,113 +194,122 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
       </div>
 
       {/* Watchlist Table */}
-      <div className="cyber-card overflow-hidden">
-        <table className="w-full text-left text-[13px]">
-          <thead className="bg-[#131C2E] border-b border-[#1E293B] text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-            <tr>
-              <th className="py-2.5 px-3">Target / Akun</th>
-              <th className="py-2.5 px-3">Platform</th>
-              <th className="py-2.5 px-3">Tag Klaster</th>
-              <th className="py-2.5 px-3">Catatan Taktis</th>
-              <th className="py-2.5 px-3">Ditambahkan Oleh</th>
-              <th className="py-2.5 px-3">Waktu Terdaftar</th>
-              <th className="py-2.5 px-3 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {isLoadingWatchlist ? (
+      <div className="cyber-card overflow-hidden bg-slate-900 border border-slate-800/80 shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[13px]">
+            <thead className="bg-slate-950/70 border-b border-slate-800 text-[11px] font-mono uppercase tracking-wider text-slate-400">
               <tr>
-                <td colSpan={7} className="py-8 text-center text-xs text-slate-500 font-mono">
-                  Memuat daftar sasaran Watchlist dari PostgreSQL...
-                </td>
+                <th className="py-3 px-4">Target / Akun</th>
+                <th className="py-3 px-4">Platform</th>
+                <th className="py-3 px-4">Tag Klaster</th>
+                <th className="py-3 px-4">Catatan Taktis</th>
+                <th className="py-3 px-4">Ditambahkan Oleh</th>
+                <th className="py-3 px-4">Waktu Terdaftar</th>
+                <th className="py-3 px-4 text-right">Aksi</th>
               </tr>
-            ) : filteredWatchlist.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-12 text-center">
-                  <div className="max-w-md mx-auto space-y-3">
-                    <ShieldAlert className="w-8 h-8 text-slate-600 mx-auto" />
-                    <div className="text-sm font-semibold text-slate-300">
-                      Belum Ada Sasaran di Watchlist
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {isLoadingWatchlist ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-xs text-slate-500 font-mono">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Memuat daftar sasaran Watchlist dari PostgreSQL...</span>
                     </div>
-                    <p className="text-xs text-slate-500 font-mono">
-                      Sasaran yang mencurigakan dapat dimasukkan ke daftar pantauan untuk audit berkala dan pengawasan persisten.
-                    </p>
-                    <button
-                      onClick={() => setShowAddModal(true)}
-                      className="border border-[#1E293B] bg-[#0F172A] hover:bg-[#1E293B] text-sky-400 text-xs px-3 py-1.5 rounded transition-colors inline-flex items-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Daftarkan Sasaran Pertama
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredWatchlist.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="py-2.5 px-3 font-mono font-medium text-sky-400">
-                    {item.username}
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-xs uppercase text-slate-300">
-                    {item.platform}
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-sky-950/50 text-sky-400 border border-sky-800/40">
-                      {item.tag}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-xs text-slate-300 truncate max-w-[200px]" title={item.notes || ''}>
-                    {item.notes || '-'}
-                  </td>
-                  <td className="py-2.5 px-3 text-xs font-mono text-slate-400">
-                    {item.added_by || 'system'}
-                  </td>
-                  <td className="py-2.5 px-3 text-xs font-mono text-slate-500">
-                    {new Date(item.added_at).toLocaleString('id-ID', {
-                      dateStyle: 'short',
-                      timeStyle: 'short',
-                    })}
-                  </td>
-                  <td className="py-2.5 px-3 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+                </tr>
+              ) : filteredWatchlist.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-14 text-center">
+                    <div className="max-w-md mx-auto space-y-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center mx-auto text-slate-400">
+                        <ShieldAlert className="w-5 h-5" />
+                      </div>
+                      <div className="text-sm font-semibold text-slate-200">
+                        Belum Ada Sasaran di Watchlist
+                      </div>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Sasaran yang mencurigakan dapat dimasukkan ke daftar pantauan untuk audit berkala dan pengawasan persisten.
+                      </p>
                       <button
-                        onClick={() => onStartInvestigate(item.username, item.platform as PlatformType)}
-                        title="Jalankan Investigasi Ulang Terhadap Target Ini"
-                        className="p-1.5 rounded text-sky-400 hover:bg-sky-950/40 border border-sky-800/30 text-xs inline-flex items-center gap-1 transition-colors"
+                        onClick={() => setShowAddModal(true)}
+                        className="bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700/80 text-xs px-3.5 py-1.5 rounded shadow-xs transition-all duration-150 ease-out active:scale-[0.98] inline-flex items-center gap-1.5 font-medium"
                       >
-                        <Play className="w-3 h-3" />
-                        <span className="hidden sm:inline">Investigasi</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id, item.username)}
-                        title="Hapus dari Watchlist"
-                        className="p-1.5 rounded text-rose-400 hover:bg-rose-950/40 border border-rose-800/30 transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5" />
+                        Daftarkan Sasaran Pertama
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredWatchlist.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-800/40 transition-colors duration-150">
+                    <td className="py-3.5 px-4 font-mono font-medium text-sky-400">
+                      {item.username}
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-xs uppercase text-slate-300">
+                      {item.platform}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-sky-950/50 text-sky-400 border border-sky-800/40">
+                        {item.tag}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-xs text-slate-300 truncate max-w-[220px]" title={item.notes || ''}>
+                      {item.notes || '-'}
+                    </td>
+                    <td className="py-3.5 px-4 text-xs font-mono text-slate-400">
+                      {item.added_by || 'system'}
+                    </td>
+                    <td className="py-3.5 px-4 text-xs font-mono tabular-nums text-slate-400">
+                      {new Date(item.added_at).toLocaleString('id-ID', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => onStartInvestigate(item.username, item.platform as PlatformType)}
+                          title="Jalankan Investigasi Ulang Terhadap Target Ini"
+                          className="px-2.5 py-1 rounded text-sky-400 hover:text-sky-300 bg-sky-950/30 hover:bg-sky-900/40 border border-sky-800/40 text-xs inline-flex items-center gap-1 transition-all duration-150 active:scale-[0.98]"
+                        >
+                          <Play className="w-3 h-3 fill-sky-400/20" />
+                          <span className="hidden sm:inline font-medium">Investigasi</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id, item.username)}
+                          title="Hapus dari Watchlist"
+                          className="p-1.5 rounded text-rose-400 hover:text-rose-300 bg-rose-950/20 hover:bg-rose-900/30 border border-rose-800/30 transition-all duration-150 active:scale-[0.98]"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal Tambah Sasaran Pantauan */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="cyber-card p-6 w-full max-w-md space-y-4 border border-[#1E293B] shadow-2xl bg-[#0F172A] animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-[#1E293B]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="p-6 w-full max-w-md space-y-4 rounded-lg border border-slate-800/80 shadow-2xl bg-slate-900 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-sky-400" />
-                <h3 className="text-sm font-semibold text-white">
+                <div className="p-1 rounded bg-sky-950/60 border border-sky-500/30 text-sky-400">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-semibold tracking-tight text-white">
                   Tambah Sasaran ke Watchlist
                 </h3>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-white"
+                className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -313,9 +322,9 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
               </div>
             )}
 
-            <form onSubmit={handleAddSubmit} className="space-y-3.5">
+            <form onSubmit={handleAddSubmit} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B] mb-1">
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
                   Username Sasaran
                 </label>
                 <input
@@ -324,19 +333,19 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
                   placeholder="@cyber_target atau username"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
-                  className="w-full h-9 px-3 bg-[#090D16] border border-[#1E293B] rounded text-xs font-mono text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-sky-400"
+                  className="w-full h-9 px-3 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B] mb-1">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
                     Platform
                   </label>
                   <select
                     value={newPlatform}
                     onChange={(e) => setNewPlatform(e.target.value as PlatformType)}
-                    className="w-full h-9 px-2 bg-[#090D16] border border-[#1E293B] rounded text-xs text-slate-200 focus:outline-none focus:border-sky-400"
+                    className="w-full h-9 px-2.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150 cursor-pointer"
                   >
                     <option value="x">X (Twitter)</option>
                     <option value="youtube">YouTube</option>
@@ -345,13 +354,13 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B] mb-1">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
                     Tag Klaster
                   </label>
                   <select
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
-                    className="w-full h-9 px-2 bg-[#090D16] border border-[#1E293B] rounded text-xs text-slate-200 focus:outline-none focus:border-sky-400"
+                    className="w-full h-9 px-2.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150 cursor-pointer"
                   >
                     <option value="suspicious_cib">Suspicious CIB</option>
                     <option value="propaganda_botnet">Propaganda Botnet</option>
@@ -362,7 +371,7 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B] mb-1">
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
                   Catatan Intelijen Taktis (Opsional)
                 </label>
                 <textarea
@@ -370,11 +379,11 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
                   placeholder="Catatan latar belakang, relasi sindikat, atau observasi awal..."
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}
-                  className="w-full p-2.5 bg-[#090D16] border border-[#1E293B] rounded text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-sky-400 resize-none"
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150 resize-none leading-relaxed"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
+              <div className="pt-2 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -385,9 +394,16 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-[#38BDF8] text-slate-950 hover:bg-[#38BDF8]/90 font-medium px-4 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-4 py-1.5 rounded text-xs shadow-sm inline-flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Target'}
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    'Simpan Target'
+                  )}
                 </button>
               </div>
             </form>

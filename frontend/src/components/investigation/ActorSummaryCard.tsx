@@ -69,26 +69,28 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   };
 
   return (
-    <div className="cyber-card p-4 space-y-4">
+    <div className="cyber-card p-5 space-y-4">
       {/* Card Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#1E293B]">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#64748B]">
-          PROFIL & IDENTITAS AKTOR TARGET
+      <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+        <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
+          PROFIL &amp; IDENTITAS AKTOR TARGET
         </div>
-        <span className="text-xs font-mono text-slate-400 uppercase">{platform}</span>
+        <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+          {platform}
+        </span>
       </div>
 
       {/* Profile & Confidence Ring Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Profile Info */}
-        <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded bg-[#131C2E] border border-[#1E293B] flex items-center justify-center text-slate-300 shrink-0">
+        <div className="flex items-start gap-3.5">
+          <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner">
             <User className="w-6 h-6 text-slate-400" />
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-white font-mono">
+              <h3 className="text-base font-semibold text-white font-mono tracking-tight">
                 {target.startsWith('@') ? target : `@${target}`}
               </h3>
               {actor?.is_verified && (
@@ -109,7 +111,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
         </div>
 
         {/* Confidence Ring Indicator (SVG) */}
-        <div className="flex items-center gap-3 bg-[#090D16] border border-[#1E293B] p-2.5 rounded shrink-0">
+        <div className="flex items-center gap-3 bg-slate-950 border border-slate-800/90 p-3 rounded-lg shrink-0 shadow-inner">
           <div className="relative w-18 h-18 flex items-center justify-center">
             <svg className="w-18 h-18 -rotate-90" viewBox="0 0 80 80">
               {/* Background circle */}
@@ -146,7 +148,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
           </div>
 
           <div className="space-y-1">
-            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold font-mono">
               HASIL DETEKSI
             </div>
             <ThreatBadge type="class" value={predictedClass} />
@@ -158,39 +160,39 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
       </div>
 
       {/* Structural & Behavioral Signals Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#1E293B]">
-        <div className="bg-[#090D16] border border-[#1E293B] p-2.5 rounded">
-          <div className="text-[10px] uppercase font-semibold text-[#64748B] tracking-wider">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
+        <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+          <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
             Pengikut / Mengikuti
           </div>
-          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-0.5">
+          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
             {actor?.followers_count ?? 120} / {actor?.following_count ?? 850}
           </div>
         </div>
 
-        <div className="bg-[#090D16] border border-[#1E293B] p-2.5 rounded">
-          <div className="text-[10px] uppercase font-semibold text-[#64748B] tracking-wider">
+        <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+          <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
             Frekuensi Postingan
           </div>
-          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-0.5">
+          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
             {postsPerDay} / hari
           </div>
         </div>
 
-        <div className="bg-[#090D16] border border-[#1E293B] p-2.5 rounded">
-          <div className="text-[10px] uppercase font-semibold text-[#64748B] tracking-wider">
+        <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+          <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
             Burstiness Parameter
           </div>
-          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-0.5">
+          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
             B = {burstiness}
           </div>
         </div>
 
-        <div className="bg-[#090D16] border border-[#1E293B] p-2.5 rounded">
-          <div className="text-[10px] uppercase font-semibold text-[#64748B] tracking-wider">
+        <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+          <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
             Entropi Temporal
           </div>
-          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-0.5">
+          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
             H = {temporalEntropy}
           </div>
         </div>
@@ -198,8 +200,8 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
       {/* Footer Action: Trigger Inspector Drawer & Watchlist */}
       <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
-          <Info className="w-3.5 h-3.5" />
+        <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+          <Info className="w-3.5 h-3.5 text-slate-400" />
           Ekstraksi 21 fitur lengkap tersedia
         </span>
         <div className="flex items-center gap-2">
@@ -207,10 +209,10 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
             type="button"
             onClick={handleAddToWatchlist}
             disabled={isAddedToWatchlist || isAdding}
-            className={`border px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120 ${
+            className={`border px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer shadow-sm ${
               isAddedToWatchlist
-                ? 'border-emerald-600 bg-emerald-950/40 text-emerald-400'
-                : 'border-[#1E293B] bg-[#0F172A] hover:bg-[#1E293B] text-slate-300 hover:text-white'
+                ? 'border-emerald-500/50 bg-emerald-950/40 text-emerald-400'
+                : 'border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white'
             }`}
           >
             {isAddedToWatchlist ? (
@@ -228,7 +230,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
           <button
             type="button"
             onClick={onInspectFeatures}
-            className="border border-[#1E293B] bg-[#0F172A] hover:bg-[#1E293B] text-slate-300 hover:text-white px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors duration-120"
+            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
           >
             <span>Inspeksi 21 Fitur XAI</span>
             <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
