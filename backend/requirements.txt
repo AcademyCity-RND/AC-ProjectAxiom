@@ -15,7 +15,7 @@ asyncpg==0.30.0
 psycopg2-binary==2.9.10
 
 # Vector DB & Embeddings (torch CPU is installed in Dockerfile layer)
-chromadb-client>=1.5.9
+chromadb-client==0.5.20
 sentence-transformers>=5.6.0
 transformers>=5.10.0
 
