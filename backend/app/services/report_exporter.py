@@ -306,17 +306,22 @@ def generate_csv_ledger(dossier_data: Dict[str, Any]) -> str:
 def get_dual_tier_ledger(case_id: str, db: Session) -> Dict[str, Any]:
     """
     Menyediakan data JSON dual-tier terstruktur untuk konsumsi tabel interaktif Frontend:
-    - Tier 1: Top 10 Core Attackers
+    - Tier 1: Top 10 Core Attackers (dengan rank 1-10)
     - Tier 2: Full Comprehensive Commenter Audit Ledger (100% Commenters)
     - Metadata & SHA-256 Fingerprint
     """
     dossier = build_case_dossier_data(case_id, db)
+    top_attackers = dossier.get("top_10_attackers", [])
+    for idx, att in enumerate(top_attackers, 1):
+        if "rank" not in att:
+            att["rank"] = idx
+
     return {
         "case_id": dossier["case"]["id"],
         "target": dossier["case"]["target"],
         "platform": dossier["case"]["platform"],
         "cryptographic_hash": dossier["cryptographic_hash"],
         "total_records": dossier["ledger_total_count"],
-        "top_10_attackers": dossier["top_10_attackers"],
+        "top_10_attackers": top_attackers,
         "full_ledger": dossier["full_ledger"]
     }

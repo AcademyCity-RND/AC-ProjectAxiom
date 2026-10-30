@@ -239,6 +239,24 @@ def list_investigation_cases(
         verdict = detection.predicted_class if detection else (c.status.upper() if c.status != "completed" else "SELESAI")
         confidence = detection.confidence if detection else None
 
+        is_event = (
+            c.target.startswith("http://")
+            or c.target.startswith("https://")
+            or c.platform in ("youtube", "instagram")
+        )
+        if is_event and c.result_summary:
+            host_meta = c.result_summary.get("host_metadata", {})
+            creator = host_meta.get("creator", {})
+            creator_name = (
+                creator.get("username_or_channel")
+                or creator.get("channel_title")
+                or creator.get("display_name")
+            )
+            title = host_meta.get("title")
+            display_name = creator_name or (title[:40] if title else f"{c.platform.upper()} Content Event")
+        else:
+            display_name = actor.display_name if actor else None
+
         result.append({
             "case_id": c.id,
             "target": c.target,
@@ -246,7 +264,7 @@ def list_investigation_cases(
             "status": c.status,
             "verdict": verdict,
             "confidence": confidence,
-            "display_name": actor.display_name if actor else None,
+            "display_name": display_name,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "completed_at": c.completed_at.isoformat() if c.completed_at else None,
         })
@@ -290,10 +308,21 @@ def get_investigation_case(
         summary = case.result_summary or {}
         tot_c = summary.get("total_comments", 0)
         uniq_c = summary.get("unique_commenters", 0)
+        host_meta = summary.get("host_metadata", {})
+        creator = host_meta.get("creator", {})
+        creator_name = (
+            creator.get("username_or_channel")
+            or creator.get("channel_title")
+            or creator.get("display_name")
+        )
+        content_title = host_meta.get("title")
+        display_name = creator_name or f"{case.platform.upper()} Event Content"
+        bio = content_title or f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)"
+
         actor_data = {
-            "username": case.target,
-            "display_name": f"{case.platform.upper()} Event Content",
-            "bio": f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)",
+            "username": creator_name or case.target,
+            "display_name": display_name,
+            "bio": bio,
             "followers_count": uniq_c,
             "following_count": tot_c,
             "is_verified": False,

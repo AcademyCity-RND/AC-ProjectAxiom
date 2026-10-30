@@ -72,6 +72,11 @@ export const App: React.FC = () => {
   } = useCaseStore();
   const { isAuthenticated, isInitialized, initAuth, operatorRole } = useAuthStore();
   const isAdmin = operatorRole?.toLowerCase() === 'admin';
+  const isEventTarget = Boolean(
+    activeCase?.target?.startsWith('http://') ||
+    activeCase?.target?.startsWith('https://') ||
+    (activeCase?.platform && ['youtube', 'instagram'].includes(activeCase.platform))
+  );
 
   useEffect(() => {
     // Guard RBAC: jika operator bukan admin namun berada di tab 'users', kembalikan ke overview
@@ -513,11 +518,24 @@ export const App: React.FC = () => {
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="text-lg font-semibold tracking-tight text-white">
-                Narrative Monitor &amp; Analisis Temporal
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold tracking-tight text-white">
+                  Narrative Monitor &amp; Analisis Temporal
+                </h1>
+                {activeCase && (
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase font-medium ${
+                    isEventTarget
+                      ? 'bg-purple-950/40 text-purple-300 border-purple-500/30'
+                      : 'bg-sky-950/40 text-sky-300 border-sky-500/30'
+                  }`}>
+                    {isEventTarget ? 'Mode: Event / Serbuan Komentar' : 'Mode: Profil Aktor Individu'}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Deteksi anomali jam kerja sindikat buzzer, entropi penjadwalan bot, dan pergeseran narasi.
+                {isEventTarget
+                  ? 'Audit lonjakan komentar massal (burst intervals < 10s), entropi penjadwalan otomasi bot, dan pembelokan kata kunci narasi penyerang.'
+                  : 'Deteksi anomali jam kerja sindikat buzzer (09:00 - 17:00), entropi penjadwalan bot, dan pergeseran narasi profil.'}
               </p>
             </div>
 
@@ -570,11 +588,24 @@ export const App: React.FC = () => {
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="text-lg font-semibold tracking-tight text-white">
-                Graf Jejaring Sindikat CIB (Social Network Analysis)
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold tracking-tight text-white">
+                  Graf Jejaring Sindikat CIB (Social Network Analysis)
+                </h1>
+                {activeCase && (
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase font-medium ${
+                    isEventTarget
+                      ? 'bg-purple-950/40 text-purple-300 border-purple-500/30'
+                      : 'bg-sky-950/40 text-sky-300 border-sky-500/30'
+                  }`}>
+                    {isEventTarget ? 'Topologi: Konten Target & Serbuan Buzzer' : 'Topologi: Aktor & Afiliasi'}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Visualisasi keterpautan semantik MiniLM (Cosine &ge; 0.85) dan sinkronisasi temporal akun penyerang.
+                {isEventTarget
+                  ? 'Pemetaan node konten/kreator target dengan klaster akun penyerang yang terdeteksi melakukan koordinasi copypasta semantik (Cosine ≥ 0.85).'
+                  : 'Visualisasi keterpautan semantik MiniLM (Cosine ≥ 0.85) dan sinkronisasi temporal antar akun penyerang.'}
               </p>
             </div>
           </div>
