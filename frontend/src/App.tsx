@@ -127,8 +127,16 @@ export const App: React.FC = () => {
     const features = activeCase.detection.extracted_features || {};
     const topXai = activeCase.detection.threat_attribution?.top_features || [];
 
+    const isEventCase =
+      activeCase.target.startsWith('http://') ||
+      activeCase.target.startsWith('https://') ||
+      activeCase.platform === 'youtube' ||
+      activeCase.platform === 'instagram';
+
     handleOpenInspector({
-      title: `Analisis 21-Fitur: @${activeCase.target}`,
+      title: isEventCase
+        ? `Audit Indikator Event: ${activeCase.platform.toUpperCase()}`
+        : `Analisis 21-Fitur: @${activeCase.target}`,
       subtitle: `Klasifikasi AI: ${activeCase.detection.predicted_class} (${Math.round(
         activeCase.detection.confidence * 100
       )}%)`,

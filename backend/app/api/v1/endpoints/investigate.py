@@ -279,8 +279,35 @@ def get_investigation_case(
     actor = db.query(ActorProfile).filter(ActorProfile.case_id == case_id).first()
     detection = db.query(DetectionResult).filter(DetectionResult.case_id == case_id).first()
 
+    is_event = (
+        case.target.startswith("http://")
+        or case.target.startswith("https://")
+        or case.platform in ("youtube", "instagram")
+    )
+
     actor_data = None
-    if actor:
+    if is_event:
+        summary = case.result_summary or {}
+        tot_c = summary.get("total_comments", 0)
+        uniq_c = summary.get("unique_commenters", 0)
+        actor_data = {
+            "username": case.target,
+            "display_name": f"{case.platform.upper()} Event Content",
+            "bio": f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)",
+            "followers_count": uniq_c,
+            "following_count": tot_c,
+            "is_verified": False,
+            "profile_metadata": {
+                "is_event": True,
+                "event_url": case.target,
+                "platform": case.platform,
+                "total_comments": tot_c,
+                "unique_commenters": uniq_c,
+                "cib_clusters_count": summary.get("cib_clusters_count", 0),
+                "burst_ratio": summary.get("temporal_anomaly", {}).get("burst_ratio", 0.0),
+            }
+        }
+    elif actor:
         actor_data = {
             "username": actor.username,
             "display_name": actor.display_name,
@@ -336,7 +363,12 @@ def get_case_graph(
     detection = db.query(DetectionResult).filter(DetectionResult.case_id == case_id).first()
     cluster_links = db.query(ClusterLink).filter(ClusterLink.case_id == case_id).all()
 
-    target_username = actor.username if actor else case.target
+    is_event = (
+        case.target.startswith("http://")
+        or case.target.startswith("https://")
+        or case.platform in ("youtube", "instagram")
+    )
+
     predicted_class = detection.predicted_class if detection else "UNKNOWN"
     confidence = detection.confidence if detection else 0.0
 
@@ -344,65 +376,175 @@ def get_case_graph(
     edges: List[Dict[str, Any]] = []
     seen_nodes = set()
 
-    # 1. Node Pusat Target
-    target_node_id = f"actor_{target_username}"
-    nodes.append({
-        "data": {
-            "id": target_node_id,
-            "label": f"@{target_username}",
-            "type": "target",
-            "class_label": predicted_class,
-            "confidence": confidence,
-            "color": "#ef4444" if predicted_class in ("BOT", "BUZZER") else "#10b981",
-            "size": 60
-        }
-    })
-    seen_nodes.add(target_node_id)
+    if is_event:
+        # 1. Node Pusat Konten Event (YouTube / Instagram Post)
+        target_node_id = f"event_{case.id[:8]}"
+        if case.platform == "youtube":
+            short_id = (
+                case.target.split("v=")[-1].split("&")[0][:11]
+                if "v=" in case.target
+                else case.target.split("/")[-1][:11]
+            )
+            event_label = f"YT: {short_id}"
+        elif case.platform == "instagram":
+            clean_parts = [p for p in case.target.strip("/").split("/") if p]
+            shortcode = clean_parts[-1][:12] if clean_parts else "post"
+            event_label = f"IG: {shortcode}"
+        else:
+            event_label = f"{case.platform.upper()} Post"
 
-    # 2. Node & Edges Klaster CIB
-    for link in cluster_links:
-        if link.similarity_score < min_confidence:
-            continue
-
-        partner = link.target_actor
-        partner_id = f"actor_{partner}"
-
-        if partner_id not in seen_nodes:
-            nodes.append({
-                "data": {
-                    "id": partner_id,
-                    "label": f"@{partner}",
-                    "type": "coordinated_account",
-                    "class_label": "BUZZER",
-                    "color": "#f59e0b",
-                    "size": 40
-                }
-            })
-            seen_nodes.add(partner_id)
-
-        edge_id = f"edge_{link.id}"
-        edges.append({
+        nodes.append({
             "data": {
-                "id": edge_id,
-                "source": target_node_id,
-                "target": partner_id,
-                "weight": link.similarity_score,
-                "label": f"{int(link.similarity_score * 100)}% Sim",
-                "link_type": link.link_type,
-                "evidence": link.evidence_snippet
+                "id": target_node_id,
+                "label": event_label,
+                "type": "target",
+                "class_label": predicted_class,
+                "confidence": confidence,
+                "color": "#0284c7",
+                "size": 65
             }
         })
+        seen_nodes.add(target_node_id)
 
-    return {
-        "case_id": case_id,
-        "target": target_username,
-        "total_nodes": len(nodes),
-        "total_edges": len(edges),
-        "elements": {
-            "nodes": nodes,
-            "edges": edges
+        # 2. Ambil Top Attackers & Komentator untuk dihubungkan ke Event Post
+        summary = case.result_summary or {}
+        top_attackers = summary.get("top_10_attackers") or []
+
+        if not top_attackers:
+            actors_list = db.query(ActorProfile).filter(ActorProfile.case_id == case_id).limit(15).all()
+            top_attackers = [
+                {"username": a.username, "comment_count": 1, "estimated_category": "SUSPICIOUS", "risk_score": 0.5}
+                for a in actors_list
+            ]
+
+        for att in top_attackers:
+            att_username = att.get("username") or "anon"
+            att_node_id = f"actor_{att_username}"
+            att_cat = att.get("estimated_category") or "BUZZER"
+            att_color = (
+                "#ef4444"
+                if att_cat == "BOT"
+                else ("#f59e0b" if att_cat == "BUZZER" else "#38bdf8")
+            )
+
+            if att_node_id not in seen_nodes:
+                nodes.append({
+                    "data": {
+                        "id": att_node_id,
+                        "label": att_username if att_username.startswith("@") else f"@{att_username}",
+                        "type": "coordinated_account",
+                        "class_label": att_cat,
+                        "confidence": float(att.get("risk_score", 0.7)),
+                        "color": att_color,
+                        "size": 42
+                    }
+                })
+                seen_nodes.add(att_node_id)
+
+            edges.append({
+                "data": {
+                    "id": f"edge_center_{att_username}",
+                    "source": target_node_id,
+                    "target": att_node_id,
+                    "weight": float(att.get("risk_score", 0.5)),
+                    "label": f"{att.get('comment_count', 1)} Komentar",
+                    "link_type": "event_comment"
+                }
+            })
+
+        # 3. Hubungkan Edge Klaster CIB Copypasta antar Komentator
+        for link in cluster_links:
+            if link.similarity_score < min_confidence:
+                continue
+
+            src_id = f"actor_{link.source_actor}"
+            tgt_id = f"actor_{link.target_actor}"
+
+            if src_id in seen_nodes and tgt_id in seen_nodes:
+                edges.append({
+                    "data": {
+                        "id": f"edge_cluster_{link.id}",
+                        "source": src_id,
+                        "target": tgt_id,
+                        "weight": link.similarity_score,
+                        "label": f"{int(link.similarity_score * 100)}% Copypasta",
+                        "link_type": "semantic_copypasta",
+                        "evidence": link.evidence_snippet
+                    }
+                })
+
+        return {
+            "case_id": case_id,
+            "target": case.target,
+            "total_nodes": len(nodes),
+            "total_edges": len(edges),
+            "elements": {
+                "nodes": nodes,
+                "edges": edges
+            }
         }
-    }
+
+    else:
+        # Logika Kasus Aktor Individu (@username)
+        target_username = actor.username if actor else case.target
+        target_node_id = f"actor_{target_username}"
+        nodes.append({
+            "data": {
+                "id": target_node_id,
+                "label": f"@{target_username}",
+                "type": "target",
+                "class_label": predicted_class,
+                "confidence": confidence,
+                "color": "#ef4444" if predicted_class in ("BOT", "BUZZER") else "#10b981",
+                "size": 60
+            }
+        })
+        seen_nodes.add(target_node_id)
+
+        # 2. Node & Edges Klaster CIB
+        for link in cluster_links:
+            if link.similarity_score < min_confidence:
+                continue
+
+            partner = link.target_actor
+            partner_id = f"actor_{partner}"
+
+            if partner_id not in seen_nodes:
+                nodes.append({
+                    "data": {
+                        "id": partner_id,
+                        "label": f"@{partner}",
+                        "type": "coordinated_account",
+                        "class_label": "BUZZER",
+                        "color": "#f59e0b",
+                        "size": 40
+                    }
+                })
+                seen_nodes.add(partner_id)
+
+            edge_id = f"edge_{link.id}"
+            edges.append({
+                "data": {
+                    "id": edge_id,
+                    "source": target_node_id,
+                    "target": partner_id,
+                    "weight": link.similarity_score,
+                    "label": f"{int(link.similarity_score * 100)}% Sim",
+                    "link_type": link.link_type,
+                    "evidence": link.evidence_snippet
+                }
+            })
+
+        return {
+            "case_id": case_id,
+            "target": target_username,
+            "total_nodes": len(nodes),
+            "total_edges": len(edges),
+            "elements": {
+                "nodes": nodes,
+                "edges": edges
+            }
+        }
 
 
 

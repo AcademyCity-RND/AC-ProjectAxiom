@@ -33,18 +33,28 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
     return () => clearInterval(interval);
   }, [status]);
 
+  const isEvent =
+    target.startsWith('http://') ||
+    target.startsWith('https://') ||
+    platform === 'youtube' ||
+    platform === 'instagram';
+
   // Map high-level status to discrete pipeline steps
   const steps = [
     {
       id: 'ingestion',
       name: 'Ingestion & Scraping',
-      desc: `Pengambilan profil & log riwayat ${platform.toUpperCase()}`,
+      desc: isEvent
+        ? `Pengambilan komentar publik & interaksi ${platform.toUpperCase()}`
+        : `Pengambilan profil & log riwayat ${platform.toUpperCase()}`,
       icon: DownloadCloud,
     },
     {
       id: 'features',
       name: 'Feature Extraction',
-      desc: 'Ekstraksi 21 parameter perilaku & struktur akun',
+      desc: isEvent
+        ? 'Ekstraksi anomali temporal & laju burst komentar'
+        : 'Ekstraksi 21 parameter perilaku & struktur akun',
       icon: Binary,
     },
     {

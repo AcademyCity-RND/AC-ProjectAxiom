@@ -16,11 +16,31 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
 
   // Quick preset targets for 1-click live demo testing
   const presets = [
+    { name: '@Ahsani_fadhli (X)', value: '@Ahsani_fadhli', platform: 'x' as PlatformType, mode: 'actor' as const },
+    { name: 'YouTube Live (HGgCE9a7BjU)', value: 'https://www.youtube.com/watch?v=HGgCE9a7BjU', platform: 'youtube' as PlatformType, mode: 'event' as const },
+    { name: 'Instagram Reel (DfCR3JPlK9F)', value: 'https://www.instagram.com/p/DfCR3JPlK9F/', platform: 'instagram' as PlatformType, mode: 'event' as const },
     { name: '@cyber_agitator (Bot)', value: '@cyber_agitator', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { name: '@bot_amplifier9 (Buzzer)', value: '@bot_amplifier9', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { name: 'Kemhan RI (X Status)', value: 'https://x.com/Kemhan_RI/status/1849372819203819201', platform: 'x' as PlatformType, mode: 'event' as const },
-    { name: 'YouTube Video Demo', value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', platform: 'youtube' as PlatformType, mode: 'event' as const },
   ];
+
+  const detectPlatformFromUrl = (url: string): PlatformType => {
+    const lower = url.toLowerCase();
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
+    if (lower.includes('instagram.com')) return 'instagram';
+    return 'x';
+  };
+
+  const isUrlString = (text: string): boolean => {
+    const trimmed = text.trim().toLowerCase();
+    return (
+      trimmed.startsWith('http://') ||
+      trimmed.startsWith('https://') ||
+      trimmed.includes('youtube.com') ||
+      trimmed.includes('youtu.be') ||
+      trimmed.includes('instagram.com') ||
+      trimmed.includes('x.com/') ||
+      trimmed.includes('twitter.com/')
+    );
+  };
 
   const handleModeChange = (newMode: 'actor' | 'event') => {
     setMode(newMode);
@@ -32,39 +52,42 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
     setInputVal(val);
     setErrorMsg(null);
 
-    // Auto-detect platform from URL in event mode
-    if (mode === 'event') {
-      if (val.includes('youtube.com') || val.includes('youtu.be')) {
-        setPlatform('youtube');
-      } else if (val.includes('instagram.com')) {
-        setPlatform('instagram');
-      } else if (val.includes('x.com') || val.includes('twitter.com')) {
-        setPlatform('x');
-      }
+    // Smart auto-detect: jika input adalah URL, otomatis beralih ke mode event & platform terkait
+    if (isUrlString(val)) {
+      setMode('event');
+      setPlatform(detectPlatformFromUrl(val));
+    } else if (val.trim().startsWith('@') && mode === 'event') {
+      setMode('actor');
+      setPlatform('x');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = inputVal.trim();
+    let trimmed = inputVal.trim();
     if (!trimmed) {
-      setErrorMsg(mode === 'actor' ? 'Masukkan username target (@handle).' : 'Masukkan URL postingan.');
+      setErrorMsg('Masukkan username target (@handle) atau tautan URL postingan.');
       return;
     }
 
-    if (mode === 'actor') {
+    // Auto-detect apakah input merupakan URL walaupun user berada di tab aktor
+    const treatAsEvent = mode === 'event' || isUrlString(trimmed);
+
+    if (treatAsEvent) {
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        trimmed = `https://${trimmed}`;
+      }
+      const targetPlatform = detectPlatformFromUrl(trimmed);
+      setPlatform(targetPlatform);
+      setMode('event');
+      await onSearch(trimmed, targetPlatform, maxCount, true);
+    } else {
       const sanitized = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
       if (!/^[a-zA-Z0-9_]{1,50}$/.test(sanitized)) {
         setErrorMsg('Format username tidak valid. Gunakan huruf, angka, dan underscore.');
         return;
       }
       await onSearch(sanitized, platform, maxCount, false);
-    } else {
-      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-        setErrorMsg('URL harus diawali dengan http:// atau https://');
-        return;
-      }
-      await onSearch(trimmed, platform, maxCount, true);
     }
   };
 
