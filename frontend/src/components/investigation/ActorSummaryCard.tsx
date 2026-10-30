@@ -11,10 +11,23 @@ import {
   Camera,
   Radio,
   ExternalLink,
+  MessageSquare,
+  Eye,
+  ThumbsUp,
+  ThumbsDown,
+  Sparkles,
+  Users,
+  Flame,
 } from 'lucide-react';
 import { ThreatBadge } from '../common/ThreatBadge';
 import { useCaseStore } from '../../store/useCaseStore';
-import type { ActorSummary, DetectionResultData } from '../../types';
+import type {
+  ActorSummary,
+  DetectionResultData,
+  HostMetadata,
+  HarvestSummary,
+  AITrainingFeatures,
+} from '../../types';
 
 interface ActorSummaryCardProps {
   actor?: ActorSummary | null;
@@ -22,6 +35,7 @@ interface ActorSummaryCardProps {
   target: string;
   platform: string;
   onInspectFeatures: () => void;
+  resultSummary?: Record<string, any> | null;
 }
 
 export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
@@ -30,6 +44,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   target,
   platform,
   onInspectFeatures,
+  resultSummary,
 }) => {
   const isEvent =
     target.startsWith('http://') ||
@@ -41,6 +56,18 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   const predictedClass = detection?.predicted_class || 'UNKNOWN';
   const confidence = detection?.confidence || 0;
   const confidencePercent = Math.round(confidence * 100);
+
+  // Extract host metadata & harvest summary if in Event mode
+  const hostMetadata: HostMetadata | undefined =
+    (resultSummary as any)?.host_metadata ||
+    (actor?.profile_metadata as any)?.host_metadata;
+
+  const harvestSummary: HarvestSummary | undefined =
+    (resultSummary as any)?.harvest_summary ||
+    (actor?.profile_metadata as any)?.harvest_summary;
+
+  const aiTrainingFeatures: AITrainingFeatures | undefined =
+    (resultSummary as any)?.ai_training_features;
 
   // SVG circular ring calculations (radius = 32, circumference = 2 * PI * 32 = ~201)
   const radius = 32;
@@ -65,30 +92,58 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   const temporalEntropy = features.temporal_entropy !== undefined ? Number(features.temporal_entropy).toFixed(2) : '0.00';
 
   // Event specific signals
-  const totalComments = features.total_comments ?? actor?.following_count ?? 0;
-  const uniqueCommenters = features.unique_commenters ?? actor?.followers_count ?? 0;
-  const burstRatio = features.burst_ratio ? `${(Number(features.burst_ratio) * 100).toFixed(1)}% Serentak` : 'Normal';
-  const clusterCount = features.cluster_links_count ? `${features.cluster_links_count} Klaster` : '0 Klaster';
+  const totalComments =
+    harvestSummary?.total_comments_extracted ??
+    features.total_comments ??
+    actor?.following_count ??
+    0;
+  const uniqueCommenters =
+    harvestSummary?.unique_commenters_count ??
+    features.unique_commenters ??
+    actor?.followers_count ??
+    0;
+  const burstRatio = features.burst_ratio
+    ? `${(Number(features.burst_ratio) * 100).toFixed(1)}% Serentak`
+    : aiTrainingFeatures?.f_temporal_burst_ratio
+    ? `${(Number(aiTrainingFeatures.f_temporal_burst_ratio) * 100).toFixed(1)}% Serentak`
+    : 'Normal';
+  const clusterCount =
+    features.cluster_links_count ??
+    aiTrainingFeatures?.f_cluster_links_count ??
+    (resultSummary as any)?.cib_clusters_count ??
+    0;
+  const spammerRatio =
+    harvestSummary?.spammer_ratio !== undefined
+      ? `${(harvestSummary.spammer_ratio * 100).toFixed(1)}%`
+      : totalComments > 0
+      ? `${(((totalComments - uniqueCommenters) / totalComments) * 100).toFixed(1)}%`
+      : '0.0%';
 
   const [isAddedToWatchlist, setIsAddedToWatchlist] = useState<boolean>(false);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
 
-  // Helper title for event content
-  const getEventTitle = () => {
-    if (platform === 'youtube') {
-      const vid = target.includes('v=')
-        ? target.split('v=')[1]?.split('&')[0]
-        : target.split('/').pop() || 'Video';
-      return `YouTube Video (${vid.slice(0, 11)})`;
-    }
-    if (platform === 'instagram') {
-      const parts = target.split('/').filter(Boolean);
-      const code = parts[parts.length - 1] || 'Post';
-      return `Instagram Post (${code.slice(0, 12)})`;
-    }
-    return `${platform.toUpperCase()} Event Content`;
+  // Helper title & badges for event content
+  const getEventBadge = () => {
+    const cType = hostMetadata?.content_type?.toLowerCase();
+    if (cType === 'shorts') return { label: 'YOUTUBE SHORTS', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10' };
+    if (cType === 'video') return { label: 'YOUTUBE VIDEO', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10' };
+    if (cType === 'reel') return { label: 'INSTAGRAM REEL', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' };
+    if (cType === 'post') return { label: 'INSTAGRAM POST', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' };
+    if (cType === 'tweet') return { label: 'X TWEET (STATUS)', color: 'text-sky-400 border-sky-500/30 bg-sky-500/10' };
+
+    // Fallback detection from target string
+    const lower = target.toLowerCase();
+    if (lower.includes('/shorts/')) return { label: 'YOUTUBE SHORTS', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10' };
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return { label: 'YOUTUBE VIDEO', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10' };
+    if (lower.includes('/reel/') || lower.includes('/reels/')) return { label: 'INSTAGRAM REEL', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' };
+    if (lower.includes('instagram.com')) return { label: 'INSTAGRAM POST', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' };
+    if (lower.includes('/status/')) return { label: 'X TWEET', color: 'text-sky-400 border-sky-500/30 bg-sky-500/10' };
+
+    return { label: `${platform.toUpperCase()} EVENT`, color: 'text-sky-400 border-slate-700 bg-slate-800' };
   };
+
+  const eventBadge = getEventBadge();
 
   const handleAddToWatchlist = async () => {
     setIsAdding(true);
@@ -119,18 +174,25 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
         <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 flex items-center gap-1.5">
           {isEvent ? 'AUDIT NARASI & KONTEN VIRAL (EVENT AUDIT)' : 'PROFIL & IDENTITAS AKTOR TARGET'}
         </div>
-        <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider bg-slate-950 px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1.5">
-          {platform === 'youtube' && <Video className="w-3 h-3 text-rose-400" />}
-          {platform === 'instagram' && <Camera className="w-3 h-3 text-amber-400" />}
-          {platform === 'x' && <Radio className="w-3 h-3 text-sky-400" />}
-          <span>{platform}</span>
-        </span>
+        <div className="flex items-center gap-2">
+          {isEvent && (
+            <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold ${eventBadge.color}`}>
+              {eventBadge.label}
+            </span>
+          )}
+          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider bg-slate-950 px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1.5">
+            {platform === 'youtube' && <Video className="w-3 h-3 text-rose-400" />}
+            {platform === 'instagram' && <Camera className="w-3 h-3 text-amber-400" />}
+            {platform === 'x' && <Radio className="w-3 h-3 text-sky-400" />}
+            <span>{platform}</span>
+          </span>
+        </div>
       </div>
 
       {/* Profile / Content & Confidence Ring Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Profile / Event Info */}
-        <div className="flex items-start gap-3.5 min-w-0">
+        <div className="flex items-start gap-3.5 min-w-0 flex-1">
           <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner">
             {isEvent ? (
               platform === 'youtube' ? (
@@ -145,27 +207,52 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
             )}
           </div>
 
-          <div className="space-y-1 min-w-0">
+          <div className="space-y-1 min-w-0 flex-1">
             {isEvent ? (
               <>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-semibold text-white font-mono tracking-tight truncate">
-                    {getEventTitle()}
+                {/* Host Creator & Title Header */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-semibold text-white tracking-tight line-clamp-1 font-sans">
+                    {hostMetadata?.title_or_caption || 'Audit Konten & Komentar Media Sosial'}
                   </h3>
                 </div>
+
+                {/* Creator Attribution */}
+                {hostMetadata?.creator ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-300 font-mono flex-wrap">
+                    <span className="text-slate-400">Kreator:</span>
+                    <span className="font-semibold text-sky-400">
+                      {hostMetadata.creator.username_or_channel}
+                    </span>
+                    {hostMetadata.creator.is_verified && (
+                      <span title="Terverifikasi Resmi">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-sky-400 inline" />
+                      </span>
+                    )}
+                    {hostMetadata.creator.subscribers_or_followers !== undefined && (
+                      <span className="text-slate-500 font-sans text-[11px]">
+                        ({hostMetadata.creator.subscribers_or_followers.toLocaleString('id-ID')}{' '}
+                        {platform === 'youtube' ? 'Subscribers' : 'Followers'})
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-400 font-mono truncate max-w-sm">
+                    {target}
+                  </div>
+                )}
+
+                {/* Canonical Target Link */}
                 <a
                   href={target}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-sky-400 hover:text-sky-300 font-mono flex items-center gap-1 truncate max-w-xs sm:max-w-sm transition-colors"
+                  className="text-xs text-sky-400 hover:text-sky-300 font-mono flex items-center gap-1 truncate max-w-xs sm:max-w-md transition-colors"
                   title="Buka konten asli di tab baru"
                 >
                   <span className="truncate">{target}</span>
                   <ExternalLink className="w-3 h-3 shrink-0" />
                 </a>
-                <p className="text-xs text-slate-400 line-clamp-2 max-w-sm leading-relaxed">
-                  Audit interaksi komentar publik untuk mendeteksi astroturfing dan manipulasi opini kognitif.
-                </p>
               </>
             ) : (
               <>
@@ -212,30 +299,33 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
                 r={radius}
                 stroke={ringColor}
                 strokeWidth="6"
+                fill="none"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
-                fill="none"
-                style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
+                className="transition-all duration-500 ease-out"
               />
             </svg>
-            <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-sm font-bold font-mono tabular-nums text-white">
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-sm font-bold font-mono text-white tabular-nums">
                 {confidencePercent}%
               </span>
-              <span className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">
-                CONF
+              <span className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter">
+                KEYAKINAN
               </span>
             </div>
           </div>
 
           <div className="space-y-1">
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold font-mono">
-              HASIL DETEKSI
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
+              KLASIFIKASI MODEL
             </div>
             <ThreatBadge type="class" value={predictedClass} />
-            <div className="text-[10px] text-slate-400 font-mono">
-              {isEvent ? 'Audit Influx & CIB' : 'Model: XGBoost 21-F'}
+            <div className="text-[11px] font-mono text-slate-400">
+              {predictedClass === 'BOT' && 'Otomasi Skrip / Botnet'}
+              {predictedClass === 'BUZZER' && 'Koordinasi Opini Siber'}
+              {predictedClass === 'HUMAN' && 'Perilaku Wajar / Organik'}
+              {predictedClass === 'UNKNOWN' && 'Evaluasi Diperlukan'}
             </div>
           </div>
         </div>
@@ -243,41 +333,99 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
       {/* Structural & Behavioral Signals Strip (Adapted for Event vs Actor) */}
       {isEvent ? (
-        /* Event Metrics Strip */
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
-          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
-            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-              Total Komentar
-            </div>
-            <div className="text-xs font-mono font-semibold tabular-nums text-sky-400 mt-1">
-              {totalComments} Komentar
-            </div>
-          </div>
+        <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
+          {/* Top Row: Host Engagement Stats if available */}
+          {hostMetadata?.engagement && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+                <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider flex items-center gap-1.5">
+                  <Eye className="w-3 h-3 text-sky-400" />
+                  <span>Tayangan (Views)</span>
+                </div>
+                <div className="text-xs font-mono font-semibold tabular-nums text-sky-400 mt-1">
+                  {hostMetadata.engagement.views_count !== undefined
+                    ? hostMetadata.engagement.views_count.toLocaleString('id-ID')
+                    : 'N/A'}
+                </div>
+              </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
-            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-              Komentator Unik
-            </div>
-            <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
-              {uniqueCommenters} Akun
-            </div>
-          </div>
+              <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+                <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider flex items-center gap-1.5">
+                  <ThumbsUp className="w-3 h-3 text-emerald-400" />
+                  <span>Suka / Dislike</span>
+                </div>
+                <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
+                  {hostMetadata.engagement.likes_count !== undefined
+                    ? hostMetadata.engagement.likes_count.toLocaleString('id-ID')
+                    : '0'}
+                  {hostMetadata.engagement.dislikes_count !== undefined && (
+                    <span className="text-slate-500 text-[10px] ml-1">
+                      ({hostMetadata.engagement.dislikes_count} RYD)
+                    </span>
+                  )}
+                </div>
+              </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
-            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-              Puncak Lonjakan (Burst)
-            </div>
-            <div className="text-xs font-mono font-semibold tabular-nums text-amber-400 mt-1">
-              {burstRatio}
-            </div>
-          </div>
+              <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+                <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider flex items-center gap-1.5">
+                  <MessageSquare className="w-3 h-3 text-amber-400" />
+                  <span>Komentar Platform</span>
+                </div>
+                <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
+                  {hostMetadata.engagement.total_comments_on_platform !== undefined
+                    ? hostMetadata.engagement.total_comments_on_platform.toLocaleString('id-ID')
+                    : totalComments}
+                </div>
+              </div>
 
-          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
-            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-              Klaster Sindikat CIB
+              <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+                <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider flex items-center gap-1.5">
+                  <Users className="w-3 h-3 text-rose-400" />
+                  <span>Rasio Berulang (Spam)</span>
+                </div>
+                <div className="text-xs font-mono font-semibold tabular-nums text-rose-400 mt-1">
+                  {spammerRatio}
+                </div>
+              </div>
             </div>
-            <div className="text-xs font-mono font-semibold tabular-nums text-rose-400 mt-1">
-              {clusterCount}
+          )}
+
+          {/* Bottom Row: Forensic Harvest & ML Anomaly Signals */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+              <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+                Panen Forensik
+              </div>
+              <div className="text-xs font-mono font-semibold tabular-nums text-sky-400 mt-1">
+                {totalComments} Komentar
+              </div>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+              <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+                Komentator Unik
+              </div>
+              <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
+                {uniqueCommenters} Akun
+              </div>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+              <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+                Lonjakan (Burst)
+              </div>
+              <div className="text-xs font-mono font-semibold tabular-nums text-amber-400 mt-1">
+                {burstRatio}
+              </div>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+              <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+                Klaster Sindikat CIB
+              </div>
+              <div className="text-xs font-mono font-semibold tabular-nums text-rose-400 mt-1">
+                {clusterCount} Klaster
+              </div>
             </div>
           </div>
         </div>
@@ -334,7 +482,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
           <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
             <Info className="w-3.5 h-3.5 text-slate-400" />
             {isEvent
-              ? 'Data komentar dan klaster CIB terintegrasi'
+              ? 'Data komentar dan indikator kampanye terintegrasi'
               : 'Ekstraksi 21 fitur lengkap tersedia'}
           </span>
           <div className="flex items-center gap-2">
@@ -365,7 +513,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
               onClick={onInspectFeatures}
               className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
             >
-              <span>{isEvent ? 'Inspeksi Indikator Event' : 'Inspeksi 21 Fitur XAI'}</span>
+              <span>{isEvent ? 'Inspeksi Indikator Event & AI' : 'Inspeksi 21 Fitur XAI'}</span>
               <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
             </button>
           </div>

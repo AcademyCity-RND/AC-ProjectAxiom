@@ -125,6 +125,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                   <th className="py-3 px-4">Peringkat &amp; Akun</th>
                   <th className="py-3 px-4">Kategori Ancaman</th>
                   <th className="py-3 px-4 text-center">Volume Post</th>
+                  <th className="py-3 px-4 text-center">Usia Akun</th>
                   <th className="py-3 px-4 text-center">Klaster CIB</th>
                   <th className="py-3 px-4 text-center">Burst Window</th>
                   <th className="py-3 px-4 text-right">Skor Risiko</th>
@@ -134,7 +135,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               <tbody className="divide-y divide-slate-800/50">
                 {attackers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-14 text-center">
+                    <td colSpan={8} className="py-14 text-center">
                       <div className="max-w-sm mx-auto space-y-2">
                         <div className="w-8 h-8 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
                           <ShieldAlert className="w-4 h-4 text-slate-500" />
@@ -157,10 +158,19 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                           threatClass: atk.estimated_category,
                           threatLevel: atk.risk_score >= 80 ? 'CRITICAL' : atk.risk_score >= 50 ? 'HIGH' : 'LOW',
                           indicators: [
-                            { label: 'Jumlah Komentar/Post', value: atk.comment_count, mono: true },
-                            { label: 'Koneksi Klaster CIB', value: `${atk.cluster_connections} Akun`, mono: true },
+                            { label: 'Jumlah Komentar/Post', value: String(atk.comment_count), mono: true },
+                            { label: 'Koneksi Klaster CIB', value: `${atk.cluster_connections || 0} Akun`, mono: true },
                             { label: 'Masuk Jendela Lonjakan (Burst)', value: atk.posted_in_burst_window ? 'Ya' : 'Tidak' },
                             { label: 'Skor Risiko Terhitung', value: `${atk.risk_score} / 100`, mono: true },
+                            ...(atk.account_age_days_at_comment !== undefined
+                              ? [{ label: 'Usia Akun Saat Komentar', value: `${atk.account_age_days_at_comment} hari`, mono: true }]
+                              : []),
+                            ...(atk.account_created_at
+                              ? [{ label: 'Tanggal Registrasi Akun', value: atk.account_created_at, mono: true }]
+                              : []),
+                            ...(atk.signals && atk.signals.length > 0
+                              ? [{ label: 'Sinyal Anomali Forensik', value: atk.signals.join(' • ') }]
+                              : []),
                           ],
                         })
                       }
@@ -177,7 +187,20 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                         {atk.comment_count}
                       </td>
                       <td className="py-3 px-4 text-center font-mono tabular-nums text-xs">
-                        {atk.cluster_connections > 0 ? (
+                        {atk.account_age_days_at_comment !== undefined ? (
+                          atk.account_age_days_at_comment <= 7 ? (
+                            <span className="text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30">
+                              {atk.account_age_days_at_comment} hari (Baru)
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">{atk.account_age_days_at_comment} hari</span>
+                          )
+                        ) : (
+                          <span className="text-slate-500">N/A</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center font-mono tabular-nums text-xs">
+                        {(atk.cluster_connections ?? 0) > 0 ? (
                           <span className="text-amber-400 font-semibold">{atk.cluster_connections} Akun</span>
                         ) : (
                           <span className="text-slate-500">0</span>

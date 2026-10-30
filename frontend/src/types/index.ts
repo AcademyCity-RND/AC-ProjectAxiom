@@ -68,12 +68,70 @@ export interface AnalyticsData {
 }
 
 export interface TopAttacker {
+  rank?: number;
   username: string;
+  author_id?: string;
   comment_count: number;
-  cluster_connections: number;
-  posted_in_burst_window: boolean;
+  cluster_connections?: number;
+  posted_in_burst_window?: boolean;
   risk_score: number;
-  estimated_category: 'BOT' | 'BUZZER' | 'SUSPICIOUS' | 'ORGANIC';
+  estimated_category: 'BOT' | 'BUZZER' | 'SUSPICIOUS' | 'ORGANIC' | 'HUMAN';
+  account_created_at?: string;
+  account_age_days_at_comment?: number;
+  signals?: string[];
+}
+
+export interface HostCreator {
+  username_or_channel: string;
+  channel_or_user_id?: string;
+  subscribers_or_followers?: number;
+  is_verified?: boolean;
+  profile_url?: string;
+}
+
+export interface HostEngagement {
+  views_count?: number;
+  likes_count?: number;
+  dislikes_count?: number;
+  total_comments_on_platform?: number;
+}
+
+export type ContentType = 'user' | 'tweet' | 'video' | 'shorts' | 'post' | 'reel';
+
+export interface HostMetadata {
+  platform: PlatformType;
+  content_id: string;
+  content_url: string;
+  content_type: ContentType;
+  title_or_caption: string;
+  published_at?: string;
+  creator: HostCreator;
+  engagement: HostEngagement;
+}
+
+export interface HarvestSummary {
+  target_quota: number;
+  total_comments_extracted: number;
+  unique_commenters_count: number;
+  spammer_ratio: number;
+  extraction_status: string;
+}
+
+export interface AITrainingFeatures {
+  f_total_comments?: number;
+  f_unique_commenters_ratio?: number;
+  f_temporal_burst_ratio?: number;
+  f_anomaly_score?: number;
+  f_cluster_links_count?: number;
+  f_top_attackers_count?: number;
+  f_mean_comments_per_user?: number;
+  f_max_comments_by_single_user?: number;
+  f_mean_account_age_days_top_attackers?: number;
+  f_new_accounts_ratio_top_attackers?: number;
+  f_host_engagement_ratio?: number;
+  f_dislike_ratio?: number;
+  label_predicted_class?: string;
+  label_confidence?: number;
 }
 
 export interface LedgerItem {
@@ -141,6 +199,10 @@ export interface InvestigationCase {
     forensic_dossier?: ForensicDossier;
     analytics?: AnalyticsData;
     error?: string;
+    host_metadata?: HostMetadata;
+    harvest_summary?: HarvestSummary;
+    ai_training_features?: AITrainingFeatures;
+    content_type?: string;
   };
 }
 

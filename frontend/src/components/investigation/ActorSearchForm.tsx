@@ -14,12 +14,14 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
   const [maxCount, setMaxCount] = useState<number>(150);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Quick preset targets for 1-click live demo testing
+  // Quick preset targets for 1-click live demo testing across 6 channels
   const presets = [
-    { name: '@Ahsani_fadhli (X)', value: '@Ahsani_fadhli', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { name: 'YouTube Live (HGgCE9a7BjU)', value: 'https://www.youtube.com/watch?v=HGgCE9a7BjU', platform: 'youtube' as PlatformType, mode: 'event' as const },
-    { name: 'Instagram Reel (DfCR3JPlK9F)', value: 'https://www.instagram.com/p/DfCR3JPlK9F/', platform: 'instagram' as PlatformType, mode: 'event' as const },
-    { name: '@cyber_agitator (Bot)', value: '@cyber_agitator', platform: 'x' as PlatformType, mode: 'actor' as const },
+    { name: 'X Aktor (@Kemhan_RI)', value: '@Kemhan_RI', platform: 'x' as PlatformType, mode: 'actor' as const },
+    { name: 'X Tweet (/status/)', value: 'https://x.com/Kemhan_RI/status/1849372819203819201', platform: 'x' as PlatformType, mode: 'event' as const },
+    { name: 'YT Video (HGgCE9a7BjU)', value: 'https://www.youtube.com/watch?v=HGgCE9a7BjU', platform: 'youtube' as PlatformType, mode: 'event' as const },
+    { name: 'YT Shorts (p66hnaKuB3o)', value: 'https://www.youtube.com/shorts/p66hnaKuB3o', platform: 'youtube' as PlatformType, mode: 'event' as const },
+    { name: 'IG Reel (DOFtzyCkzNq)', value: 'https://www.instagram.com/reel/DOFtzyCkzNq/', platform: 'instagram' as PlatformType, mode: 'event' as const },
+    { name: 'IG Post (DfCR3JPlK9F)', value: 'https://www.instagram.com/p/DfCR3JPlK9F/', platform: 'instagram' as PlatformType, mode: 'event' as const },
   ];
 
   const detectPlatformFromUrl = (url: string): PlatformType => {

@@ -24,6 +24,73 @@ interface CasesTableProps {
   showFilters?: boolean;
 }
 
+// Helper to format clean 6-channel display labels & badges
+const formatTargetDisplay = (target: string, platform: string) => {
+  const lower = target.toLowerCase();
+  const isUrl = target.startsWith('http://') || target.startsWith('https://');
+
+  if (!isUrl) {
+    return {
+      label: target.startsWith('@') ? target : `@${target}`,
+      badge: 'X Aktor',
+      badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
+    };
+  }
+
+  if (lower.includes('/shorts/')) {
+    const parts = target.split('/shorts/')[1]?.split('?')[0] || '';
+    return {
+      label: `Shorts: ${parts.slice(0, 11)}`,
+      badge: 'YT Shorts',
+      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+    };
+  }
+
+  if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+    const vid = target.includes('v=')
+      ? target.split('v=')[1]?.split('&')[0]
+      : target.split('/').pop()?.split('?')[0] || '';
+    return {
+      label: `Video: ${vid.slice(0, 11)}`,
+      badge: 'YT Video',
+      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+    };
+  }
+
+  if (lower.includes('/reel/') || lower.includes('/reels/')) {
+    const parts = target.split('/reel')[1]?.replace(/^s?\//, '').split('/')[0] || '';
+    return {
+      label: `Reel: ${parts.slice(0, 11)}`,
+      badge: 'IG Reel',
+      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    };
+  }
+
+  if (lower.includes('instagram.com/p/')) {
+    const parts = target.split('/p/')[1]?.split('/')[0] || '';
+    return {
+      label: `Post: ${parts.slice(0, 11)}`,
+      badge: 'IG Post',
+      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    };
+  }
+
+  if (lower.includes('/status/')) {
+    const parts = target.split('/status/')[1]?.split('?')[0] || '';
+    return {
+      label: `Tweet: ${parts.slice(0, 12)}`,
+      badge: 'X Tweet',
+      badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
+    };
+  }
+
+  return {
+    label: target,
+    badge: `${platform.toUpperCase()} Event`,
+    badgeColor: 'text-slate-400 bg-slate-800 border-slate-700',
+  };
+};
+
 export const CasesTable: React.FC<CasesTableProps> = ({
   cases,
   currentPage: externalPage,
@@ -187,17 +254,28 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                     onClick={() => onSelectCase(rc.case_id)}
                     className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                   >
-                    <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
-                      <span className="truncate block max-w-xs">{rc.target}</span>
-                      {(rc as any).display_name && (
-                        <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5 truncate max-w-xs">
-                          {(rc as any).display_name}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">
-                      {rc.platform}
-                    </td>
+                    {(() => {
+                      const formatted = formatTargetDisplay(rc.target, rc.platform);
+                      return (
+                        <>
+                          <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate block max-w-xs">{formatted.label}</span>
+                            </div>
+                            {(rc as any).display_name && (
+                              <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5 truncate max-w-xs">
+                                {(rc as any).display_name}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs">
+                            <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold ${formatted.badgeColor}`}>
+                              {formatted.badge}
+                            </span>
+                          </td>
+                        </>
+                      );
+                    })()}
                     <td className="py-3.5 px-3.5 sm:px-5">
                       <ThreatBadge type="class" value={rc.verdict || rc.status} />
                     </td>

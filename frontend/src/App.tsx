@@ -124,7 +124,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // Inspect 21 XAI Features in Inspector Drawer
+  // Inspect 21 XAI Features or Event Forensic Signals in Inspector Drawer
   const handleInspect21Features = () => {
     if (!activeCase || !activeCase.detection) return;
     const features = activeCase.detection.extracted_features || {};
@@ -136,17 +136,73 @@ export const App: React.FC = () => {
       activeCase.platform === 'youtube' ||
       activeCase.platform === 'instagram';
 
-    handleOpenInspector({
-      title: isEventCase
-        ? `Audit Indikator Event: ${activeCase.platform.toUpperCase()}`
-        : `Analisis 21-Fitur: @${activeCase.target}`,
-      subtitle: `Klasifikasi AI: ${activeCase.detection.predicted_class} (${Math.round(
-        activeCase.detection.confidence * 100
-      )}%)`,
-      threatClass: activeCase.detection.predicted_class,
-      confidence: activeCase.detection.confidence,
-      threatLevel: activeCase.detection.threat_attribution?.forensic_dossier?.threat_level || 'HIGH',
-      indicators: Object.entries(features).map(([k, v]) => {
+    const resultSummary = activeCase.result_summary || {};
+    const hostMeta = (resultSummary as any).host_metadata;
+    const harvestMeta = (resultSummary as any).harvest_summary;
+    const aiFeats = (resultSummary as any).ai_training_features || features;
+
+    // Compose indicators list dynamically
+    let indicatorList: Array<{ label: string; value: string; mono?: boolean }> = [];
+
+    if (isEventCase) {
+      if (hostMeta) {
+        if (hostMeta.creator?.username_or_channel) {
+          indicatorList.push({
+            label: 'Host Kreator / Channel',
+            value: hostMeta.creator.username_or_channel,
+          });
+        }
+        if (hostMeta.engagement?.views_count !== undefined) {
+          indicatorList.push({
+            label: 'Total Views (Tayangan)',
+            value: hostMeta.engagement.views_count.toLocaleString('id-ID'),
+            mono: true,
+          });
+        }
+        if (hostMeta.engagement?.likes_count !== undefined) {
+          indicatorList.push({
+            label: 'Total Suka (Likes)',
+            value: hostMeta.engagement.likes_count.toLocaleString('id-ID'),
+            mono: true,
+          });
+        }
+        if (hostMeta.engagement?.dislikes_count !== undefined) {
+          indicatorList.push({
+            label: 'Estimasi Dislikes (RYD API)',
+            value: String(hostMeta.engagement.dislikes_count),
+            mono: true,
+          });
+        }
+      }
+
+      if (harvestMeta) {
+        indicatorList.push({
+          label: 'Panen Komentar Riil',
+          value: `${harvestMeta.total_comments_extracted} ditarik (${harvestMeta.unique_commenters_count} akun unik)`,
+          mono: true,
+        });
+        indicatorList.push({
+          label: 'Rasio Spammer / Berulang',
+          value: `${(harvestMeta.spammer_ratio * 100).toFixed(1)}%`,
+          mono: true,
+        });
+      }
+
+      // Add ML feature vector
+      Object.entries(aiFeats).forEach(([k, v]) => {
+        const topMatch = topXai.find((f) => f.feature === k);
+        const explanationText =
+          topMatch && topMatch.explanation && topMatch.explanation !== 'undefined'
+            ? ` (${topMatch.explanation})`
+            : '';
+        indicatorList.push({
+          label: topMatch ? `★ ${k}${explanationText}` : k,
+          value: typeof v === 'number' ? v.toFixed(3) : String(v),
+          mono: true,
+        });
+      });
+    } else {
+      indicatorList = Object.entries(features).map(([k, v]) => {
         const topMatch = topXai.find((f) => f.feature === k);
         const explanationText =
           topMatch && topMatch.explanation && topMatch.explanation !== 'undefined'
@@ -157,12 +213,27 @@ export const App: React.FC = () => {
           value: typeof v === 'number' ? v.toFixed(3) : String(v),
           mono: true,
         };
-      }),
+      });
+    }
+
+    handleOpenInspector({
+      title: isEventCase
+        ? `Audit Indikator Event: ${activeCase.platform.toUpperCase()}`
+        : `Analisis 21-Fitur: @${activeCase.target}`,
+      subtitle: `Klasifikasi AI: ${activeCase.detection.predicted_class} (${Math.round(
+        activeCase.detection.confidence * 100
+      )}%)`,
+      threatClass: activeCase.detection.predicted_class,
+      confidence: activeCase.detection.confidence,
+      threatLevel: activeCase.detection.threat_attribution?.forensic_dossier?.threat_level || 'HIGH',
+      indicators: indicatorList,
       rawMetadata: {
         case_id: activeCase.case_id,
         probabilities: activeCase.detection.class_probabilities,
         extracted_features: features,
         top_xai_explanations: topXai,
+        host_metadata: hostMeta,
+        harvest_summary: harvestMeta,
       },
     });
   };
@@ -383,6 +454,7 @@ export const App: React.FC = () => {
                       target={activeCase.target}
                       platform={activeCase.platform}
                       onInspectFeatures={handleInspect21Features}
+                      resultSummary={activeCase.result_summary}
                     />
 
                     {/* Right: Forensic Intelligence Dossier Card */}
