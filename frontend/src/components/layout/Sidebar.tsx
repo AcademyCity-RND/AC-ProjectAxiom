@@ -30,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleCollapse,
 }) => {
   const { operatorRole } = useAuthStore();
+  const isAdmin = operatorRole?.toLowerCase() === 'admin';
 
   // Core navigation modules
   const menuItems = [
@@ -38,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'network', label: 'Network Graph', icon: Share2 },
     { id: 'targets', label: 'Target Directory', icon: Users },
     { id: 'reports', label: 'Case Reports', icon: FileCheck2 },
-    ...(operatorRole === 'admin'
+    ...(isAdmin
       ? [{ id: 'users', label: 'User Management', icon: UserCog, badge: 'Admin' }]
       : []),
   ];

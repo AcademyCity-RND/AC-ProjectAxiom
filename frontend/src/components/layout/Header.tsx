@@ -12,6 +12,7 @@ export const Header: React.FC<HeaderProps> = ({
   isMobileMenuOpen,
 }) => {
   const { operatorName, operatorRole, logout } = useAuthStore();
+  const isAdmin = operatorRole?.toLowerCase() === 'admin';
   const [timeStr, setTimeStr] = useState<string>('');
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Operator Session Info & Dedicated Logout Button */}
         <div className="flex items-center gap-2">
-          {operatorRole === 'admin' ? (
+          {isAdmin ? (
             /* Profil Khusus Administrator (Satgas Inti / PUSSIBERAD Root) */
             <div
               className="flex items-center gap-2.5 bg-gradient-to-r from-amber-950/30 via-slate-900/90 to-slate-900/90 border border-amber-500/35 px-3 py-1.5 rounded-md shadow-sm transition-all"

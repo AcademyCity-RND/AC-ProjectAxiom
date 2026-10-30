@@ -71,13 +71,14 @@ export const App: React.FC = () => {
     loadCaseDetails,
   } = useCaseStore();
   const { isAuthenticated, isInitialized, initAuth, operatorRole } = useAuthStore();
+  const isAdmin = operatorRole?.toLowerCase() === 'admin';
 
   useEffect(() => {
     // Guard RBAC: jika operator bukan admin namun berada di tab 'users', kembalikan ke overview
-    if (activeTab === 'users' && operatorRole !== 'admin') {
+    if (activeTab === 'users' && !isAdmin) {
       setActiveTab('overview');
     }
-  }, [activeTab, operatorRole]);
+  }, [activeTab, isAdmin]);
 
   useEffect(() => {
     // Inisialisasi autentikasi JWT & Health check ke backend FastAPI
@@ -608,7 +609,7 @@ export const App: React.FC = () => {
       {/* =========================================================================
           MODULE 6: USER MANAGEMENT & DIGITAL LEAK TRACING (ADMIN ONLY)
       ========================================================================= */}
-      {activeTab === 'users' && operatorRole === 'admin' && (
+      {activeTab === 'users' && isAdmin && (
         <UserManagement />
       )}
 
