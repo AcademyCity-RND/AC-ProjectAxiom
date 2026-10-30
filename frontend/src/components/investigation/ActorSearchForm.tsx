@@ -16,11 +16,31 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
 
   // Quick preset targets for 1-click live demo testing
   const presets = [
-    { label: '@cyber_agitator', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { label: '@bot_amplifier9', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { label: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', platform: 'youtube' as PlatformType, mode: 'event' as const },
-    { label: 'https://x.com/Kemhan_RI/status/1849372819203819201', platform: 'x' as PlatformType, mode: 'event' as const },
+    { name: '@Ahsani_fadhli (X)', value: '@Ahsani_fadhli', platform: 'x' as PlatformType, mode: 'actor' as const },
+    { name: 'YouTube Live (HGgCE9a7BjU)', value: 'https://www.youtube.com/watch?v=HGgCE9a7BjU', platform: 'youtube' as PlatformType, mode: 'event' as const },
+    { name: 'Instagram Reel (DfCR3JPlK9F)', value: 'https://www.instagram.com/p/DfCR3JPlK9F/', platform: 'instagram' as PlatformType, mode: 'event' as const },
+    { name: '@cyber_agitator (Bot)', value: '@cyber_agitator', platform: 'x' as PlatformType, mode: 'actor' as const },
   ];
+
+  const detectPlatformFromUrl = (url: string): PlatformType => {
+    const lower = url.toLowerCase();
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
+    if (lower.includes('instagram.com')) return 'instagram';
+    return 'x';
+  };
+
+  const isUrlString = (text: string): boolean => {
+    const trimmed = text.trim().toLowerCase();
+    return (
+      trimmed.startsWith('http://') ||
+      trimmed.startsWith('https://') ||
+      trimmed.includes('youtube.com') ||
+      trimmed.includes('youtu.be') ||
+      trimmed.includes('instagram.com') ||
+      trimmed.includes('x.com/') ||
+      trimmed.includes('twitter.com/')
+    );
+  };
 
   const handleModeChange = (newMode: 'actor' | 'event') => {
     setMode(newMode);
@@ -32,39 +52,42 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
     setInputVal(val);
     setErrorMsg(null);
 
-    // Auto-detect platform from URL in event mode
-    if (mode === 'event') {
-      if (val.includes('youtube.com') || val.includes('youtu.be')) {
-        setPlatform('youtube');
-      } else if (val.includes('instagram.com')) {
-        setPlatform('instagram');
-      } else if (val.includes('x.com') || val.includes('twitter.com')) {
-        setPlatform('x');
-      }
+    // Smart auto-detect: jika input adalah URL, otomatis beralih ke mode event & platform terkait
+    if (isUrlString(val)) {
+      setMode('event');
+      setPlatform(detectPlatformFromUrl(val));
+    } else if (val.trim().startsWith('@') && mode === 'event') {
+      setMode('actor');
+      setPlatform('x');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = inputVal.trim();
+    let trimmed = inputVal.trim();
     if (!trimmed) {
-      setErrorMsg(mode === 'actor' ? 'Masukkan username target (@handle).' : 'Masukkan URL postingan.');
+      setErrorMsg('Masukkan username target (@handle) atau tautan URL postingan.');
       return;
     }
 
-    if (mode === 'actor') {
+    // Auto-detect apakah input merupakan URL walaupun user berada di tab aktor
+    const treatAsEvent = mode === 'event' || isUrlString(trimmed);
+
+    if (treatAsEvent) {
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        trimmed = `https://${trimmed}`;
+      }
+      const targetPlatform = detectPlatformFromUrl(trimmed);
+      setPlatform(targetPlatform);
+      setMode('event');
+      await onSearch(trimmed, targetPlatform, maxCount, true);
+    } else {
       const sanitized = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
       if (!/^[a-zA-Z0-9_]{1,50}$/.test(sanitized)) {
         setErrorMsg('Format username tidak valid. Gunakan huruf, angka, dan underscore.');
         return;
       }
       await onSearch(sanitized, platform, maxCount, false);
-    } else {
-      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-        setErrorMsg('URL harus diawali dengan http:// atau https://');
-        return;
-      }
-      await onSearch(trimmed, platform, maxCount, true);
     }
   };
 
@@ -231,25 +254,33 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
         )}
 
         {/* Quick Preset Chips for Live Testing */}
-        <div className="flex items-center gap-2 pt-1 text-xs text-slate-400">
-          <span className="text-[10px] uppercase tracking-wider font-mono text-slate-500 shrink-0">Preset Demo:</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 text-xs text-slate-400">
+          <span className="text-[10px] uppercase tracking-wider font-mono text-slate-500 shrink-0">Preset Sasaran:</span>
           <div className="flex items-center gap-1.5 flex-wrap">
-            {presets.map((p, idx) => (
-              <button
-                key={idx}
-                type="button"
-                disabled={isLoading}
-                onClick={() => {
-                  setMode(p.mode);
-                  setPlatform(p.platform);
-                  setInputVal(p.label);
-                  setErrorMsg(null);
-                }}
-                className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm truncate max-w-xs"
-              >
-                {p.label}
-              </button>
-            ))}
+            {presets.map((p, idx) => {
+              const isSelected = inputVal === p.value;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => {
+                    setMode(p.mode);
+                    setPlatform(p.platform);
+                    setInputVal(p.value);
+                    setErrorMsg(null);
+                  }}
+                  className={`text-[11px] font-mono px-2.5 py-1 rounded-md border transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm ${
+                    isSelected
+                      ? 'bg-sky-500/15 border-sky-500/50 text-sky-300 font-semibold shadow-xs'
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
+                  }`}
+                  title={`Klik untuk mengisi: ${p.value}`}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
           </div>
         </div>
       </form>

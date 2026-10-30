@@ -318,7 +318,7 @@ def detect_narrative_drift(
     parsed_items = []
     for act in activities:
         content = str(act.get("content") or act.get("text") or "").strip()
-        ts = _parse_timestamp(act.get("posted_at") or act.get("created_at"))
+        ts = _parse_timestamp(act.get("posted_at") or act.get("created_at") or act.get("published_at"))
         if content and ts:
             parsed_items.append((ts, content))
 
@@ -483,9 +483,9 @@ def compute_advanced_analytics(
     3. Narrative Drift Timeline
     """
     timestamps = [
-        act.get("posted_at") or act.get("created_at")
+        act.get("posted_at") or act.get("created_at") or act.get("published_at")
         for act in activities
-        if act.get("posted_at") or act.get("created_at")
+        if act.get("posted_at") or act.get("created_at") or act.get("published_at")
     ]
 
     circadian = generate_circadian_heatmap(timestamps)

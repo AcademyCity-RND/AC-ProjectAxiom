@@ -12,6 +12,7 @@ class AuditLog(Base):
     """
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     operator_username: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
+    operator_role: Mapped[Optional[str]] = mapped_column(String(20), default="user", nullable=True)
     action: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     target: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)

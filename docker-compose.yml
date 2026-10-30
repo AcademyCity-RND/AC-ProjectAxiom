@@ -10,7 +10,7 @@ services:
       - pg_data:/var/lib/postgresql/data
     ports:
       # Hardened: Bind to localhost (127.0.0.1) only, isolating DB from LAN / public network
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s

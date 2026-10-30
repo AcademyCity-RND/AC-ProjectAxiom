@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { User, CheckCircle2, ChevronRight, Info, ShieldAlert, Check } from 'lucide-react';
+import {
+  User,
+  CheckCircle2,
+  ChevronRight,
+  Info,
+  ShieldAlert,
+  Check,
+  AlertCircle,
+  Video,
+  Camera,
+  Radio,
+  ExternalLink,
+} from 'lucide-react';
 import { ThreatBadge } from '../common/ThreatBadge';
 import { useCaseStore } from '../../store/useCaseStore';
 import type { ActorSummary, DetectionResultData } from '../../types';
@@ -19,6 +31,13 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   platform,
   onInspectFeatures,
 }) => {
+  const isEvent =
+    target.startsWith('http://') ||
+    target.startsWith('https://') ||
+    platform === 'youtube' ||
+    platform === 'instagram' ||
+    Boolean((actor?.profile_metadata as any)?.is_event);
+
   const predictedClass = detection?.predicted_class || 'UNKNOWN';
   const confidence = detection?.confidence || 0;
   const confidencePercent = Math.round(confidence * 100);
@@ -45,11 +64,35 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   const burstiness = features.burstiness_score !== undefined ? Number(features.burstiness_score).toFixed(2) : '0.00';
   const temporalEntropy = features.temporal_entropy !== undefined ? Number(features.temporal_entropy).toFixed(2) : '0.00';
 
+  // Event specific signals
+  const totalComments = features.total_comments ?? actor?.following_count ?? 0;
+  const uniqueCommenters = features.unique_commenters ?? actor?.followers_count ?? 0;
+  const burstRatio = features.burst_ratio ? `${(Number(features.burst_ratio) * 100).toFixed(1)}% Serentak` : 'Normal';
+  const clusterCount = features.cluster_links_count ? `${features.cluster_links_count} Klaster` : '0 Klaster';
+
   const [isAddedToWatchlist, setIsAddedToWatchlist] = useState<boolean>(false);
   const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [watchlistError, setWatchlistError] = useState<string | null>(null);
+
+  // Helper title for event content
+  const getEventTitle = () => {
+    if (platform === 'youtube') {
+      const vid = target.includes('v=')
+        ? target.split('v=')[1]?.split('&')[0]
+        : target.split('/').pop() || 'Video';
+      return `YouTube Video (${vid.slice(0, 11)})`;
+    }
+    if (platform === 'instagram') {
+      const parts = target.split('/').filter(Boolean);
+      const code = parts[parts.length - 1] || 'Post';
+      return `Instagram Post (${code.slice(0, 12)})`;
+    }
+    return `${platform.toUpperCase()} Event Content`;
+  };
 
   const handleAddToWatchlist = async () => {
     setIsAdding(true);
+    setWatchlistError(null);
     try {
       const cls = (predictedClass || 'SUSPICIOUS').toUpperCase();
       const defaultTag = cls === 'BOT' ? 'propaganda_botnet' : cls === 'BUZZER' ? 'buzzer_coordinator' : 'suspicious_cib';
@@ -62,7 +105,8 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
       setIsAddedToWatchlist(true);
       setTimeout(() => setIsAddedToWatchlist(false), 4000);
     } catch (err: any) {
-      alert(err.message || 'Gagal menambahkan target ke Watchlist');
+      setWatchlistError(err.message || 'Gagal menambahkan target ke Watchlist');
+      setTimeout(() => setWatchlistError(null), 4000);
     } finally {
       setIsAdding(false);
     }
@@ -72,41 +116,79 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
     <div className="cyber-card p-5 space-y-4">
       {/* Card Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-        <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-          PROFIL &amp; IDENTITAS AKTOR TARGET
+        <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 flex items-center gap-1.5">
+          {isEvent ? 'AUDIT NARASI & KONTEN VIRAL (EVENT AUDIT)' : 'PROFIL & IDENTITAS AKTOR TARGET'}
         </div>
-        <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
-          {platform}
+        <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider bg-slate-950 px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1.5">
+          {platform === 'youtube' && <Video className="w-3 h-3 text-rose-400" />}
+          {platform === 'instagram' && <Camera className="w-3 h-3 text-amber-400" />}
+          {platform === 'x' && <Radio className="w-3 h-3 text-sky-400" />}
+          <span>{platform}</span>
         </span>
       </div>
 
-      {/* Profile & Confidence Ring Row */}
+      {/* Profile / Content & Confidence Ring Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Profile Info */}
-        <div className="flex items-start gap-3.5">
+        {/* Profile / Event Info */}
+        <div className="flex items-start gap-3.5 min-w-0">
           <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner">
-            <User className="w-6 h-6 text-slate-400" />
+            {isEvent ? (
+              platform === 'youtube' ? (
+                <Video className="w-6 h-6 text-rose-400" />
+              ) : platform === 'instagram' ? (
+                <Camera className="w-6 h-6 text-amber-400" />
+              ) : (
+                <Radio className="w-6 h-6 text-sky-400" />
+              )
+            ) : (
+              <User className="w-6 h-6 text-slate-400" />
+            )}
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-white font-mono tracking-tight">
-                {target.startsWith('@') ? target : `@${target}`}
-              </h3>
-              {actor?.is_verified && (
-                <span title="Terverifikasi">
-                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                </span>
-              )}
-            </div>
+          <div className="space-y-1 min-w-0">
+            {isEvent ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-white font-mono tracking-tight truncate">
+                    {getEventTitle()}
+                  </h3>
+                </div>
+                <a
+                  href={target}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-sky-400 hover:text-sky-300 font-mono flex items-center gap-1 truncate max-w-xs sm:max-w-sm transition-colors"
+                  title="Buka konten asli di tab baru"
+                >
+                  <span className="truncate">{target}</span>
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                </a>
+                <p className="text-xs text-slate-400 line-clamp-2 max-w-sm leading-relaxed">
+                  Audit interaksi komentar publik untuk mendeteksi astroturfing dan manipulasi opini kognitif.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-white font-mono tracking-tight">
+                    {target.startsWith('@') ? target : `@${target}`}
+                  </h3>
+                  {actor?.is_verified && (
+                    <span title="Terverifikasi">
+                      <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                    </span>
+                  )}
+                </div>
 
-            <div className="text-xs text-slate-300 font-medium">
-              {actor?.display_name || 'Akun Siber Kognitif'}
-            </div>
+                <div className="text-xs text-slate-300 font-medium">
+                  {actor?.display_name || 'Akun Siber Kognitif'}
+                </div>
 
-            <p className="text-xs text-slate-400 line-clamp-2 max-w-sm leading-relaxed">
-              {actor?.bio || 'Tidak ada bio deskripsi publik yang terpasang pada profil ini.'}
-            </p>
+                <p className="text-xs text-slate-400 line-clamp-2 max-w-sm leading-relaxed">
+                  {actor?.bio || 'Tidak ada bio deskripsi publik yang terpasang pada profil ini.'}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -153,88 +235,140 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
             </div>
             <ThreatBadge type="class" value={predictedClass} />
             <div className="text-[10px] text-slate-400 font-mono">
-              Model: XGBoost 21-F
+              {isEvent ? 'Audit Influx & CIB' : 'Model: XGBoost 21-F'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Structural & Behavioral Signals Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
-        <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
-          <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-            Pengikut / Mengikuti
+      {/* Structural & Behavioral Signals Strip (Adapted for Event vs Actor) */}
+      {isEvent ? (
+        /* Event Metrics Strip */
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
+          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+              Total Komentar
+            </div>
+            <div className="text-xs font-mono font-semibold tabular-nums text-sky-400 mt-1">
+              {totalComments} Komentar
+            </div>
           </div>
-          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
-            {actor?.followers_count ?? 120} / {actor?.following_count ?? 850}
-          </div>
-        </div>
 
-        <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
-          <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-            Frekuensi Postingan
+          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+              Komentator Unik
+            </div>
+            <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
+              {uniqueCommenters} Akun
+            </div>
           </div>
-          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
-            {postsPerDay} / hari
-          </div>
-        </div>
 
-        <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
-          <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-            Burstiness Parameter
+          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+              Puncak Lonjakan (Burst)
+            </div>
+            <div className="text-xs font-mono font-semibold tabular-nums text-amber-400 mt-1">
+              {burstRatio}
+            </div>
           </div>
-          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
-            B = {burstiness}
-          </div>
-        </div>
 
-        <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
-          <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-            Entropi Temporal
-          </div>
-          <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
-            H = {temporalEntropy}
+          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+              Klaster Sindikat CIB
+            </div>
+            <div className="text-xs font-mono font-semibold tabular-nums text-rose-400 mt-1">
+              {clusterCount}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Actor 21-Feature Signals Strip */
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80">
+          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+              Pengikut / Mengikuti
+            </div>
+            <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
+              {actor?.followers_count ?? 120} / {actor?.following_count ?? 850}
+            </div>
+          </div>
+
+          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+              Frekuensi Postingan
+            </div>
+            <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
+              {postsPerDay} / hari
+            </div>
+          </div>
+
+          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+              Parameter Lonjakan (Burstiness)
+            </div>
+            <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
+              B = {burstiness}
+            </div>
+          </div>
+
+          <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
+            <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
+              Entropi Waktu (Temporal H)
+            </div>
+            <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
+              H = {temporalEntropy}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer Action: Trigger Inspector Drawer & Watchlist */}
-      <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 text-slate-400" />
-          Ekstraksi 21 fitur lengkap tersedia
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleAddToWatchlist}
-            disabled={isAddedToWatchlist || isAdding}
-            className={`border px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer shadow-sm ${
-              isAddedToWatchlist
-                ? 'border-emerald-500/50 bg-emerald-950/40 text-emerald-400'
-                : 'border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-          >
-            {isAddedToWatchlist ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Terpantau</span>
-              </>
-            ) : (
-              <>
-                <ShieldAlert className="w-3.5 h-3.5 text-sky-400" />
-                <span>{isAdding ? 'Menyimpan...' : 'Pantau di Watchlist'}</span>
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={onInspectFeatures}
-            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
-          >
-            <span>Inspeksi 21 Fitur XAI</span>
-            <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
-          </button>
+      <div className="pt-2 flex flex-col gap-2.5">
+        {watchlistError && (
+          <div className="flex items-center gap-2 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/25 px-3 py-2 rounded-md">
+            <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <span>{watchlistError}</span>
+          </div>
+        )}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-slate-400" />
+            {isEvent
+              ? 'Data komentar dan klaster CIB terintegrasi'
+              : 'Ekstraksi 21 fitur lengkap tersedia'}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleAddToWatchlist}
+              disabled={isAddedToWatchlist || isAdding}
+              className={`border px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer shadow-sm ${
+                isAddedToWatchlist
+                  ? 'border-emerald-500/50 bg-emerald-950/40 text-emerald-400'
+                  : 'border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white'
+              }`}
+            >
+              {isAddedToWatchlist ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Terpantau</span>
+                </>
+              ) : (
+                <>
+                  <ShieldAlert className="w-3.5 h-3.5 text-sky-400" />
+                  <span>{isAdding ? 'Menyimpan...' : 'Pantau di Watchlist'}</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onInspectFeatures}
+              className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
+            >
+              <span>{isEvent ? 'Inspeksi Indikator Event' : 'Inspeksi 21 Fitur XAI'}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

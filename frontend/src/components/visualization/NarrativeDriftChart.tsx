@@ -64,7 +64,7 @@ export const NarrativeDriftChart: React.FC<NarrativeDriftChartProps> = ({ data }
           ) : (
             <>
               <CheckCircle2 className="w-3.5 h-3.5" />
-              NARASI KONSISTEN & STABIL
+              NARASI KONSISTEN &amp; STABIL
             </>
           )}
         </span>

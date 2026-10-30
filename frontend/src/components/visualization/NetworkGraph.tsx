@@ -76,6 +76,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       nodesList.push({
         id: targetNode.data.id,
         position: { x: center.x - 70, y: center.y - 25 },
+        style: { background: 'transparent', border: 'none', padding: 0 },
         data: {
           label: (
             <div className="px-3 py-2 bg-[#0F172A] border-2 border-[#38BDF8] rounded-md shadow-lg text-center select-none cursor-pointer">
@@ -129,6 +130,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       nodesList.push({
         id: n.data.id,
         position: { x, y },
+        style: { background: 'transparent', border: 'none', padding: 0 },
         data: {
           label: (
             <div

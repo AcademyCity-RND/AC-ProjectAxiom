@@ -20,7 +20,7 @@ interface DualTierLedgerTableProps {
   caseId: string;
   onInspectRow: (data: any) => void;
   onExportCsv: () => void;
-  onExportHtml: () => void;
+  onExportHtml?: () => void;
 }
 
 export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
@@ -29,7 +29,6 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
   caseId,
   onInspectRow,
   onExportCsv,
-  onExportHtml,
 }) => {
   const [activeTier, setActiveTier] = useState<'tier1' | 'tier2'>('tier1');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -79,7 +78,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
           <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-md text-xs shadow-inner">
             <button
               onClick={() => setActiveTier('tier1')}
-              className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+              className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                 activeTier === 'tier1'
                   ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -89,7 +88,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
             </button>
             <button
               onClick={() => setActiveTier('tier2')}
-              className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+              className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                 activeTier === 'tier2'
                   ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -99,22 +98,14 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
             </button>
           </div>
 
-          {/* Export Buttons */}
+          {/* Export Raw CSV Button */}
           <button
             onClick={onExportCsv}
             title="Download Raw Ledger CSV"
-            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
           >
             <FileDown className="w-3.5 h-3.5 text-emerald-400" />
-            <span>CSV</span>
-          </button>
-          <button
-            onClick={onExportHtml}
-            title="Cetak Dossier Resmi (A4)"
-            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
-          >
-            <FileDown className="w-3.5 h-3.5 text-sky-400" />
-            <span>Dossier HTML</span>
+            <span>Unduh CSV</span>
           </button>
         </div>
       </div>
@@ -143,8 +134,16 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               <tbody className="divide-y divide-slate-800/50">
                 {attackers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-500 font-mono text-xs">
-                      Belum ada catatan aktivitas penyerang / amplifikator inti untuk kasus ini. Jalankan investigasi atau pilih kasus dari direktori.
+                    <td colSpan={7} className="py-14 text-center">
+                      <div className="max-w-sm mx-auto space-y-2">
+                        <div className="w-8 h-8 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
+                          <ShieldAlert className="w-4 h-4 text-slate-500" />
+                        </div>
+                        <div className="text-xs font-semibold text-slate-300">Belum Ada Aktor Inti Terdeteksi</div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed font-mono">
+                          Pilih kasus dari direktori sasaran atau jalankan investigasi baru untuk memetakan peringkat aktor penyerang.
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -228,10 +227,10 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
             </div>
 
             {/* Quick Filter Pills */}
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1.5 text-xs flex-wrap">
               <button
                 onClick={() => setClassFilter('ALL')}
-                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                   classFilter === 'ALL'
                     ? 'bg-slate-800 text-sky-400 font-semibold border border-slate-700/80 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -241,7 +240,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               </button>
               <button
                 onClick={() => setClassFilter('BUZZER')}
-                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50 ${
                   classFilter === 'BUZZER'
                     ? 'bg-amber-950/40 text-amber-400 font-semibold border border-amber-500/30 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -251,7 +250,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               </button>
               <button
                 onClick={() => setClassFilter('BOT')}
-                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-500/50 ${
                   classFilter === 'BOT'
                     ? 'bg-rose-950/40 text-rose-400 font-semibold border border-rose-500/30 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -261,7 +260,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               </button>
               <button
                 onClick={() => setClassFilter('ORGANIC')}
-                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/50 ${
                   classFilter === 'ORGANIC'
                     ? 'bg-emerald-950/40 text-emerald-400 font-semibold border border-emerald-500/30 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -287,10 +286,20 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               <tbody className="divide-y divide-slate-800/50">
                 {filteredLedger.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-500 font-mono text-xs">
-                      {ledger.length === 0
-                        ? "Belum ada catatan buku besar (full ledger) untuk kasus ini. Jalankan investigasi atau pilih kasus dari direktori."
-                        : "Tidak ada komentar/post yang cocok dengan filter pencarian saat ini."}
+                    <td colSpan={5} className="py-14 text-center">
+                      <div className="max-w-sm mx-auto space-y-2">
+                        <div className="w-8 h-8 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
+                          <Search className="w-4 h-4 text-slate-500" />
+                        </div>
+                        <div className="text-xs font-semibold text-slate-300">
+                          {ledger.length === 0 ? 'Buku Besar Kosong' : 'Tidak Ada Hasil yang Cocok'}
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed font-mono">
+                          {ledger.length === 0
+                            ? 'Belum ada log postingan atau komentar tercatat untuk kasus ini.'
+                            : 'Coba ubah kata kunci pencarian atau reset filter kategori di atas.'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -321,7 +330,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                       <td className="py-3 px-4">
                         <ThreatBadge type="class" value={item.estimated_class} />
                       </td>
-                      <td className="py-3 px-4 text-slate-300 text-xs truncate max-w-[280px]">
+                      <td className="py-3 px-4 text-slate-300 text-xs truncate max-w-xs md:max-w-md lg:max-w-lg" title={item.content}>
                         {item.content}
                       </td>
                       <td className="py-3 px-4 text-right font-mono tabular-nums text-xs font-semibold text-rose-400">

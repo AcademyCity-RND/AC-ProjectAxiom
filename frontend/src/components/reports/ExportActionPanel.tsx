@@ -27,27 +27,45 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
   cases = [],
   onSelectCase,
 }) => {
-  const [isExportingHtml, setIsExportingHtml] = useState<boolean>(false);
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  const [isViewingPdf, setIsViewingPdf] = useState<boolean>(false);
   const [isExportingCsv, setIsExportingCsv] = useState<boolean>(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const htmlUrl = caseId ? api.getExportReportUrl(caseId, 'html') : '#';
+  const pdfUrl = caseId ? api.getExportReportUrl(caseId, 'pdf') : '#';
   const csvUrl = caseId ? api.getExportReportUrl(caseId, 'csv') : '#';
 
-  const handleExportHtml = async (e: React.MouseEvent) => {
+  const handleExportPdf = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!caseId) {
-      setExportError('Pilih kasus sasaran terlebih dahulu untuk mencetak berkas dossier.');
+      setExportError('Pilih kasus sasaran terlebih dahulu untuk mengunduh berkas dossier PDF.');
       return;
     }
     setExportError(null);
-    setIsExportingHtml(true);
+    setIsExportingPdf(true);
     try {
-      await api.downloadReport(caseId, 'html');
+      await api.downloadReport(caseId, 'pdf', 'download');
     } catch (err: any) {
-      setExportError(err.message || 'Gagal memuat berkas dossier forensik.');
+      setExportError(err.message || 'Gagal mengunduh berkas dossier PDF.');
     } finally {
-      setIsExportingHtml(false);
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleViewPdf = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!caseId) {
+      setExportError('Pilih kasus sasaran terlebih dahulu untuk melihat berkas dossier.');
+      return;
+    }
+    setExportError(null);
+    setIsViewingPdf(true);
+    try {
+      await api.downloadReport(caseId, 'pdf', 'view');
+    } catch (err: any) {
+      setExportError(err.message || 'Gagal memuat pratinjau berkas dossier.');
+    } finally {
+      setIsViewingPdf(false);
     }
   };
 
@@ -94,7 +112,7 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
               </span>
             </div>
             <h2 className="text-base font-semibold tracking-tight text-white mt-0.5">
-              Pusat Penerbitan &amp; Ekspor Berkas Barang Bukti Hukum
+              Pusat Penerbitan &amp; Ekspor Berkas Bukti Digital
             </h2>
           </div>
         </div>
@@ -149,53 +167,61 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
 
       {/* Export Options Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Option 1: Official HTML / PDF Dossier */}
+        {/* Option 1: Official PDF Dossier (PUSSIBERAD Military Standard) */}
         <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-5 flex flex-col justify-between space-y-4 shadow-inner">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-white flex items-center gap-2">
                 <FileText className="w-4 h-4 text-sky-400" />
-                Berkas Dossier Resmi (@media print A4)
+                Berkas Dossier Resmi (Dokumen PDF A4)
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-950/70 text-sky-300 border border-sky-500/30">
-                HTML / PDF
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-950/70 text-sky-300 border border-sky-500/30 font-semibold">
+                PDF RESMI
               </span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Format laporan komprehensif siap cetak A4 berstandar militer. Memuat ringkasan eksekutif, tabel 21 fitur XGBoost, topologi jejaring CIB, matriks circadian, serta analisis bukti hukum.
+              Dokumen laporan intelijen forensik resmi format PDF A4 berstandar militer PUSSIBERAD. Memuat ringkasan eksekutif, tabel 21 fitur XGBoost, topologi jejaring CIB, matriks sirkadian, serta analisis bukti hukum.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
             <button
-              onClick={handleExportHtml}
-              disabled={!caseId || isExportingHtml}
-              className="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold py-2.5 rounded-md text-xs flex items-center justify-center gap-2 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+              onClick={handleExportPdf}
+              disabled={!caseId || isExportingPdf || isViewingPdf}
+              className="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold py-2.5 px-3 rounded-md text-xs flex items-center justify-center gap-2 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+              title="Unduh dan cetak berkas PDF dossier resmi ke penyimpanan lokal"
             >
-              {isExportingHtml ? (
+              {isExportingPdf ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Merender Dossier...</span>
+                  <span>Menyiapkan PDF...</span>
                 </>
               ) : (
                 <>
                   <FileDown className="w-3.5 h-3.5" />
-                  <span>Buka &amp; Cetak Dossier Resmi</span>
-                  <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+                  <span>Unduh Dossier Resmi (PDF)</span>
                 </>
               )}
             </button>
-            {caseId && (
-              <a
-                href={htmlUrl}
-                target="_blank"
-                rel="noreferrer"
-                title="Buka langsung tautan terotentikasi di tab baru"
-                className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white p-2.5 rounded-md text-xs flex items-center justify-center transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
-              </a>
-            )}
+
+            <button
+              onClick={handleViewPdf}
+              disabled={!caseId || isViewingPdf || isExportingPdf}
+              className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white font-medium py-2.5 px-3 rounded-md text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+              title="Lihat pratinjau dokumen dossier A4 di tab baru"
+            >
+              {isViewingPdf ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" />
+                  <span>Membuka...</span>
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Buka Pratinjau Dokumen</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 

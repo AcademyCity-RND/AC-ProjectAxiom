@@ -10,6 +10,12 @@ import type {
   SystemStats,
   WatchlistItem,
   WatchlistCreatePayload,
+  UserAccount,
+  UserCreatePayload,
+  UserListResponse,
+  AuditLogItem,
+  AuditLogListResponse,
+  AuditSummary,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -172,8 +178,8 @@ export const api = {
     return response.data;
   },
 
-  // 7. URL Ekspor Berkas Laporan Resmi (HTML/PDF/CSV)
-  getExportReportUrl: (caseId: string, format: 'html' | 'pdf' | 'csv'): string => {
+  // 7. URL Ekspor Berkas Laporan Resmi (PDF/CSV)
+  getExportReportUrl: (caseId: string, format: 'pdf' | 'csv'): string => {
     const base = API_BASE_URL.startsWith('http')
       ? API_BASE_URL
       : `${window.location.origin}${API_BASE_URL}`;
@@ -182,20 +188,35 @@ export const api = {
     return `${base}/export/report/${caseId}?format=${format}${tokenParam}`;
   },
 
-  // 7b. Eksekusi Unduh Berkas Laporan Terotentikasi (Blob Streaming)
-  downloadReport: async (caseId: string, format: 'html' | 'csv'): Promise<void> => {
+  // 7b. Eksekusi Unduh / Buka Berkas Laporan Terotentikasi (Blob Streaming)
+  downloadReport: async (
+    caseId: string,
+    format: 'pdf' | 'csv',
+    action: 'download' | 'view' = 'download'
+  ): Promise<void> => {
     const response = await apiClient.get(`/export/report/${caseId}?format=${format}`, {
       responseType: 'blob',
     });
-    const mimeType = format === 'html' ? 'text/html;charset=utf-8' : 'text/csv;charset=utf-8';
+    const mimeType = format === 'pdf' ? 'text/html;charset=utf-8' : 'text/csv;charset=utf-8';
     const blob = new Blob([response.data], { type: mimeType });
     const blobUrl = window.URL.createObjectURL(blob);
 
-    if (format === 'html') {
-      const win = window.open(blobUrl, '_blank');
-      if (!win) {
-        window.location.href = blobUrl;
+    if (format === 'pdf') {
+      const targetUrl = action === 'download' ? `${blobUrl}#print` : blobUrl;
+      const win = window.open(targetUrl, '_blank');
+      if (win) {
+        if (action === 'download') {
+          win.onload = () => {
+            try { win.print(); } catch {}
+          };
+          setTimeout(() => {
+            try { win.print(); } catch {}
+          }, 600);
+        }
+      } else {
+        window.location.href = targetUrl;
       }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 120000);
     } else {
       const a = document.createElement('a');
       a.href = blobUrl;
@@ -203,6 +224,7 @@ export const api = {
       document.body.appendChild(a);
       a.click();
       a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
     }
   },
 
@@ -229,6 +251,44 @@ export const api = {
 
   deleteFromWatchlist: async (watchlistId: number): Promise<{ status: string; message: string }> => {
     const response = await apiClient.delete(`/watchlist/${watchlistId}`);
+    return response.data;
+  },
+
+  // 10. Modul Manajemen User & RBAC (Admin Only)
+  getUsers: async (): Promise<UserListResponse> => {
+    const response = await apiClient.get('/users');
+    return response.data;
+  },
+
+  createUser: async (payload: UserCreatePayload): Promise<UserAccount> => {
+    const response = await apiClient.post('/users', payload);
+    return response.data;
+  },
+
+  updateUserStatus: async (userId: number, isActive: boolean): Promise<UserAccount> => {
+    const response = await apiClient.patch(`/users/${userId}/status`, { is_active: isActive });
+    return response.data;
+  },
+
+  deleteUser: async (userId: number): Promise<{ status: string; message: string }> => {
+    const response = await apiClient.delete(`/users/${userId}`);
+    return response.data;
+  },
+
+  // 11. Modul Audit Forensik & Digital Leak Tracing (Admin Only)
+  getAuditLogs: async (params?: {
+    operator?: string;
+    action?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<AuditLogListResponse> => {
+    const response = await apiClient.get('/audit/logs', { params });
+    return response.data;
+  },
+
+  getAuditSummary: async (): Promise<AuditSummary> => {
+    const response = await apiClient.get('/audit/summary');
     return response.data;
   },
 };

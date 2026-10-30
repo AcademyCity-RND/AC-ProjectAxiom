@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, ExternalLink, Shield, Activity, Calendar, Hash, ShieldAlert, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ShieldAlert, Check, ChevronRight } from 'lucide-react';
 import { ThreatBadge } from './ThreatBadge';
 import { useCaseStore } from '../../store/useCaseStore';
 
@@ -27,6 +27,19 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
 }) => {
   const [isAdded, setIsAdded] = useState<boolean>(false);
   const [isAdding, setIsAdding] = useState<boolean>(false);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Trap focus & keyboard dismiss
+  useEffect(() => {
+    if (isOpen) {
+      closeBtnRef.current?.focus();
+    }
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !data) return null;
 
@@ -55,10 +68,19 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   };
 
   return (
-    <aside
-      className="fixed inset-y-0 right-0 w-[400px] max-w-full bg-slate-900 border-l border-slate-800 shadow-2xl z-50 flex flex-col justify-between transition-transform duration-200 ease-out"
-      aria-label="Contextual Inspector Drawer"
-    >
+    <>
+      {/* Scrim — dismiss on click outside */}
+      <div
+        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <aside
+        className="fixed inset-y-0 right-0 w-[400px] max-w-full bg-slate-900 border-l border-slate-800 shadow-2xl z-50 flex flex-col justify-between animate-in slide-in-from-right duration-200 ease-out"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Contextual Inspector Drawer"
+      >
       {/* Drawer Header */}
       <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
         <div className="space-y-0.5 min-w-0">
@@ -70,8 +92,9 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
           </h2>
         </div>
         <button
+          ref={closeBtnRef}
           onClick={onClose}
-          className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+          className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 cursor-pointer"
           title="Tutup Panel (Esc)"
         >
           <X className="w-4 h-4" />
@@ -144,11 +167,9 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         {/* Raw Metadata (Progressive Disclosure) */}
         {data.rawMetadata && (
           <details className="group space-y-1.5">
-            <summary className="text-[11px] font-mono uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-200 flex items-center justify-between py-1 select-none transition-colors">
+            <summary className="text-[11px] font-mono uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-200 flex items-center justify-between py-1 select-none transition-colors list-none">
               <span>Raw JSON / Telemetri</span>
-              <span className="text-[10px] text-sky-400 group-open:rotate-90 transition-transform">
-                ▶
-              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-sky-400 transition-transform group-open:rotate-90" />
             </summary>
             <pre className="p-3 bg-slate-950 border border-slate-800/80 rounded font-mono text-[11px] text-slate-300 overflow-x-auto max-h-48 leading-snug">
               {JSON.stringify(data.rawMetadata, null, 2)}
@@ -191,6 +212,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
           Tutup
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };

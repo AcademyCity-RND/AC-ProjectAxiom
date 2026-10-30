@@ -26,7 +26,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => {
   const savedToken = localStorage.getItem('axiom_token');
   const savedUsername = localStorage.getItem('axiom_operator') || '';
-  const savedRole = localStorage.getItem('axiom_role') || '';
+  const savedRole = (localStorage.getItem('axiom_role') || '').toLowerCase();
 
   return {
     token: savedToken,
@@ -61,11 +61,14 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         set({ isLoading: true });
         const profile = await api.getMe();
+        const normalizedRole = (profile.role || 'user').toLowerCase();
+        localStorage.setItem('axiom_operator', profile.username);
+        localStorage.setItem('axiom_role', normalizedRole);
         set({
           token: currentToken,
           user: profile,
           operatorName: profile.username,
-          operatorRole: profile.role.toUpperCase(),
+          operatorRole: normalizedRole,
           isAuthenticated: true,
           isInitialized: true,
           isLoading: false,
@@ -93,15 +96,16 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ isLoading: true, error: null });
       try {
         const res = await api.login(username, password);
+        const normalizedRole = (res.role || 'user').toLowerCase();
         localStorage.setItem('axiom_token', res.access_token);
         localStorage.setItem('axiom_operator', res.username);
-        localStorage.setItem('axiom_role', res.role.toUpperCase());
+        localStorage.setItem('axiom_role', normalizedRole);
 
         set({
           token: res.access_token,
-          user: { username: res.username, role: res.role, is_active: true },
+          user: { username: res.username, role: normalizedRole, is_active: true },
           operatorName: res.username,
-          operatorRole: res.role.toUpperCase(),
+          operatorRole: normalizedRole,
           isAuthenticated: true,
           isLoading: false,
           error: null,

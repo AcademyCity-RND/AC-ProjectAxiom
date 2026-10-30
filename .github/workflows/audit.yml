@@ -29,7 +29,6 @@ jobs:
         run: pip install pip-audit
 
       - name: Run Vulnerability Scan on Backend
-        continue-on-error: true
         run: |
           cd backend
           pip-audit -r requirements.txt --desc auto

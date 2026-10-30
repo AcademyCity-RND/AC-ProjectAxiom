@@ -80,7 +80,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ backendStatus = 'online' }
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
               <div className="text-xs font-semibold uppercase tracking-wider font-mono text-slate-200 flex items-center gap-2">
                 <Terminal className="w-4 h-4 text-sky-400" />
-                OTENTIKASI PERSONEL SATGAS
+                AUTENTIKASI PERSONEL SATGAS
               </div>
               <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
                 <span className={`w-1.5 h-1.5 rounded-full ${backendStatus === 'online' ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>

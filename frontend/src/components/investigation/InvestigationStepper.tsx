@@ -33,18 +33,28 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
     return () => clearInterval(interval);
   }, [status]);
 
+  const isEvent =
+    target.startsWith('http://') ||
+    target.startsWith('https://') ||
+    platform === 'youtube' ||
+    platform === 'instagram';
+
   // Map high-level status to discrete pipeline steps
   const steps = [
     {
       id: 'ingestion',
       name: 'Ingestion & Scraping',
-      desc: `Pengambilan profil & log riwayat ${platform.toUpperCase()}`,
+      desc: isEvent
+        ? `Pengambilan komentar publik & interaksi ${platform.toUpperCase()}`
+        : `Pengambilan profil & log riwayat ${platform.toUpperCase()}`,
       icon: DownloadCloud,
     },
     {
       id: 'features',
       name: 'Feature Extraction',
-      desc: 'Ekstraksi 21 parameter perilaku & struktur akun',
+      desc: isEvent
+        ? 'Ekstraksi anomali temporal & laju burst komentar'
+        : 'Ekstraksi 21 parameter perilaku & struktur akun',
       icon: Binary,
     },
     {
@@ -56,7 +66,7 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
     {
       id: 'clustering',
       name: 'CIB Clustering',
-      desc: 'Deteksi klaster terkoordinasi (Cosine >= 0.85)',
+      desc: 'Deteksi klaster terkoordinasi (Cosine \u2265 0.85)',
       icon: Layers,
     },
     {
@@ -95,7 +105,7 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
           </div>
           <div className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
             Target: <span className="font-mono text-sky-400">{target}</span>
-            <span className="text-xs uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">
+            <span className="text-xs uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
               {platform}
             </span>
           </div>
@@ -129,18 +139,17 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
         </div>
       </div>
 
-      {/* 5-Stage Stepper Grid */}
+      {/* 5-Stage Stepper Grid (Adaptive Compact on Mobile, 5-col Grid on Desktop) */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
         {steps.map((step, idx) => {
           const Icon = step.icon;
           const isDone = activeIndex > idx;
           const isCurrent = activeIndex === idx && status !== 'completed' && status !== 'failed';
-          const isPending = activeIndex < idx;
 
           return (
             <div
               key={step.id}
-              className={`p-3 rounded border transition-all duration-150 ${
+              className={`p-2.5 sm:p-3 rounded border transition-all duration-150 flex sm:block items-center gap-3 sm:gap-0 ${
                 isDone
                   ? 'bg-slate-950/70 border-emerald-500/30 text-slate-200'
                   : isCurrent
@@ -148,7 +157,7 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
                   : 'bg-slate-950/40 border-slate-800 text-slate-500 opacity-60'
               }`}
             >
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex sm:justify-between items-center sm:mb-1.5 shrink-0">
                 <div
                   className={`w-6 h-6 rounded flex items-center justify-center text-xs font-mono font-semibold ${
                     isDone
@@ -161,7 +170,7 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
                   {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : idx + 1}
                 </div>
                 <Icon
-                  className={`w-4 h-4 ${
+                  className={`w-4 h-4 hidden sm:block ${
                     isDone
                       ? 'text-emerald-400'
                       : isCurrent
@@ -171,9 +180,22 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
                 />
               </div>
 
-              <div className="text-xs font-medium truncate">{step.name}</div>
-              <div className="text-[10px] text-slate-400 leading-tight mt-0.5 line-clamp-2">
-                {step.desc}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium truncate flex items-center gap-1.5">
+                  <span>{step.name}</span>
+                  <Icon
+                    className={`w-3.5 h-3.5 sm:hidden inline shrink-0 ${
+                      isDone
+                        ? 'text-emerald-400'
+                        : isCurrent
+                        ? 'text-sky-400'
+                        : 'text-slate-600'
+                    }`}
+                  />
+                </div>
+                <div className="text-[10px] text-slate-400 leading-tight mt-0.5 line-clamp-1 sm:line-clamp-2">
+                  {step.desc}
+                </div>
               </div>
             </div>
           );
