@@ -29,6 +29,7 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTag, setSelectedTag] = useState<string>('ALL');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Form states
   const [newUsername, setNewUsername] = useState<string>('');
@@ -75,14 +76,18 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
   };
 
   const handleDelete = async (id: number, username: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus ${username} dari daftar pantauan?`)) {
-      try {
-        await deleteFromWatchlist(id);
-        setSuccessToast(`Target ${username} telah dihapus dari Watchlist.`);
-        setTimeout(() => setSuccessToast(null), 3000);
-      } catch (err: any) {
-        alert(err.message || 'Gagal menghapus target.');
-      }
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId(null), 4000);
+      return;
+    }
+    setConfirmDeleteId(null);
+    try {
+      await deleteFromWatchlist(id);
+      setSuccessToast(`Target ${username} telah dihapus dari Watchlist.`);
+      setTimeout(() => setSuccessToast(null), 3000);
+    } catch (err: any) {
+      alert(err.message || 'Gagal menghapus target.');
     }
   };
 
@@ -279,10 +284,15 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
                         </button>
                         <button
                           onClick={() => handleDelete(item.id, item.username)}
-                          title="Hapus dari Watchlist"
-                          className="p-1.5 rounded text-rose-400 hover:text-rose-300 bg-rose-950/20 hover:bg-rose-900/30 border border-rose-800/30 transition-all duration-150 active:scale-[0.98]"
+                          title={confirmDeleteId === item.id ? 'Klik sekali lagi untuk konfirmasi hapus' : 'Hapus dari Watchlist'}
+                          className={`p-1.5 rounded text-xs inline-flex items-center gap-1 transition-all duration-150 active:scale-[0.98] border ${
+                            confirmDeleteId === item.id
+                              ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 hover:bg-rose-500/30 px-2.5 font-medium'
+                              : 'text-rose-400 hover:text-rose-300 bg-rose-950/20 hover:bg-rose-900/30 border-rose-800/30'
+                          }`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
+                          {confirmDeleteId === item.id && <span className="hidden sm:inline font-mono text-[10px]">Konfirmasi?</span>}
                         </button>
                       </div>
                     </td>

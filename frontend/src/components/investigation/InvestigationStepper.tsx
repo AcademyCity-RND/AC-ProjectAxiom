@@ -95,7 +95,7 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
           </div>
           <div className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
             Target: <span className="font-mono text-sky-400">{target}</span>
-            <span className="text-xs uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">
+            <span className="text-xs uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
               {platform}
             </span>
           </div>

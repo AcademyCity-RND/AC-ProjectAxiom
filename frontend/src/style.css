@@ -158,3 +158,29 @@ table,
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+/* Text selection — browser surface, themed from palette */
+::selection {
+  background-color: rgba(56, 189, 248, 0.25);
+  color: #F8FAFC;
+}
+
+/* Caret — matches accent for focused inputs */
+input, textarea {
+  caret-color: #38BDF8;
+}
+
+/* Consistent native <select> baseline */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  padding-right: 2rem !important;
+}
+
+/* Underline offset for prose links */
+a {
+  text-underline-offset: 3px;
+}

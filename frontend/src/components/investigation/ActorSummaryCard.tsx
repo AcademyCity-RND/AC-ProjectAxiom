@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, CheckCircle2, ChevronRight, Info, ShieldAlert, Check } from 'lucide-react';
+import { User, CheckCircle2, ChevronRight, Info, ShieldAlert, Check, AlertCircle } from 'lucide-react';
 import { ThreatBadge } from '../common/ThreatBadge';
 import { useCaseStore } from '../../store/useCaseStore';
 import type { ActorSummary, DetectionResultData } from '../../types';
@@ -47,9 +47,11 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
   const [isAddedToWatchlist, setIsAddedToWatchlist] = useState<boolean>(false);
   const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [watchlistError, setWatchlistError] = useState<string | null>(null);
 
   const handleAddToWatchlist = async () => {
     setIsAdding(true);
+    setWatchlistError(null);
     try {
       const cls = (predictedClass || 'SUSPICIOUS').toUpperCase();
       const defaultTag = cls === 'BOT' ? 'propaganda_botnet' : cls === 'BUZZER' ? 'buzzer_coordinator' : 'suspicious_cib';
@@ -62,7 +64,8 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
       setIsAddedToWatchlist(true);
       setTimeout(() => setIsAddedToWatchlist(false), 4000);
     } catch (err: any) {
-      alert(err.message || 'Gagal menambahkan target ke Watchlist');
+      setWatchlistError(err.message || 'Gagal menambahkan target ke Watchlist');
+      setTimeout(() => setWatchlistError(null), 4000);
     } finally {
       setIsAdding(false);
     }
@@ -199,42 +202,50 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
       </div>
 
       {/* Footer Action: Trigger Inspector Drawer & Watchlist */}
-      <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 text-slate-400" />
-          Ekstraksi 21 fitur lengkap tersedia
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleAddToWatchlist}
-            disabled={isAddedToWatchlist || isAdding}
-            className={`border px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer shadow-sm ${
-              isAddedToWatchlist
-                ? 'border-emerald-500/50 bg-emerald-950/40 text-emerald-400'
-                : 'border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white'
-            }`}
-          >
-            {isAddedToWatchlist ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Terpantau</span>
-              </>
-            ) : (
-              <>
-                <ShieldAlert className="w-3.5 h-3.5 text-sky-400" />
-                <span>{isAdding ? 'Menyimpan...' : 'Pantau di Watchlist'}</span>
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={onInspectFeatures}
-            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
-          >
-            <span>Inspeksi 21 Fitur XAI</span>
-            <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
-          </button>
+      <div className="pt-2 flex flex-col gap-2.5">
+        {watchlistError && (
+          <div className="flex items-center gap-2 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/25 px-3 py-2 rounded-md">
+            <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <span>{watchlistError}</span>
+          </div>
+        )}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-slate-400" />
+            Ekstraksi 21 fitur lengkap tersedia
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleAddToWatchlist}
+              disabled={isAddedToWatchlist || isAdding}
+              className={`border px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer shadow-sm ${
+                isAddedToWatchlist
+                  ? 'border-emerald-500/50 bg-emerald-950/40 text-emerald-400'
+                  : 'border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white'
+              }`}
+            >
+              {isAddedToWatchlist ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Terpantau</span>
+                </>
+              ) : (
+                <>
+                  <ShieldAlert className="w-3.5 h-3.5 text-sky-400" />
+                  <span>{isAdding ? 'Menyimpan...' : 'Pantau di Watchlist'}</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onInspectFeatures}
+              className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
+            >
+              <span>Inspeksi 21 Fitur XAI</span>
+              <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
