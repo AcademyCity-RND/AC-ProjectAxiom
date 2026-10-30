@@ -19,6 +19,7 @@ import { DualTierLedgerTable } from './components/reports/DualTierLedgerTable';
 import { ExportActionPanel } from './components/reports/ExportActionPanel';
 import { LoginPage } from './components/auth/LoginPage';
 import { WatchlistManager } from './components/watchlist/WatchlistManager';
+import { UserManagement } from './components/users/UserManagement';
 import { useAuthStore } from './store/useAuthStore';
 import {
   Plus,
@@ -67,7 +68,14 @@ export const App: React.FC = () => {
     startEventInvestigation,
     loadCaseDetails,
   } = useCaseStore();
-  const { isAuthenticated, isInitialized, initAuth } = useAuthStore();
+  const { isAuthenticated, isInitialized, initAuth, operatorRole } = useAuthStore();
+
+  useEffect(() => {
+    // Guard RBAC: jika operator bukan admin namun berada di tab 'users', kembalikan ke overview
+    if (activeTab === 'users' && operatorRole !== 'admin') {
+      setActiveTab('overview');
+    }
+  }, [activeTab, operatorRole]);
 
   useEffect(() => {
     // Inisialisasi autentikasi JWT & Health check ke backend FastAPI
@@ -764,6 +772,13 @@ export const App: React.FC = () => {
             onExportCsv={() => currentCaseId && api.downloadReport(currentCaseId, 'csv')}
           />
         </div>
+      )}
+
+      {/* =========================================================================
+          MODULE 6: USER MANAGEMENT & DIGITAL LEAK TRACING (ADMIN ONLY)
+      ========================================================================= */}
+      {activeTab === 'users' && operatorRole === 'admin' && (
+        <UserManagement />
       )}
 
       {/* =========================================================================

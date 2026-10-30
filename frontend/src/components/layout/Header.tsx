@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Radio, Activity, UserCheck, LogOut, Menu, X } from 'lucide-react';
+import { Shield, Radio, Activity, UserCheck, ShieldAlert, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface HeaderProps {
@@ -86,20 +86,56 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Operator Session Info & Dedicated Logout Button */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2.5 bg-slate-900/80 border border-slate-800/90 px-3 py-1.5 rounded-md shadow-sm">
-            <div className="w-6 h-6 rounded-full bg-sky-950/80 flex items-center justify-center text-sky-300 text-xs font-semibold border border-sky-500/30">
-              <UserCheck className="w-3.5 h-3.5" />
-            </div>
-            <div className="text-left">
-              <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
-                <span>{operatorName || 'Operator'}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          {operatorRole === 'admin' ? (
+            /* Profil Khusus Administrator (Satgas Inti / PUSSIBERAD Root) */
+            <div
+              className="flex items-center gap-2.5 bg-gradient-to-r from-amber-950/30 via-slate-900/90 to-slate-900/90 border border-amber-500/35 px-3 py-1.5 rounded-md shadow-sm transition-all"
+              title="Akses: Administrator Inti (Full RBAC & Forensics Audit)"
+            >
+              <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 text-xs font-semibold border border-amber-500/50 shadow-inner">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
               </div>
-              <div className="text-[10px] text-slate-400 font-mono tracking-tight uppercase">
-                ROLE: <span className="text-sky-400 font-semibold">{operatorRole || 'USER'}</span>
+              <div className="text-left">
+                <div className="text-xs font-semibold text-slate-100 flex items-center gap-1.5">
+                  <span className="tracking-tight">{operatorName || 'admin'}</span>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                  </span>
+                </div>
+                <div className="text-[10px] font-mono tracking-tight flex items-center gap-1">
+                  <span className="text-slate-400">ROLE:</span>
+                  <span className="text-amber-400 font-bold uppercase">ADMIN</span>
+                  <span className="text-[8px] px-1 py-0.2 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 font-semibold tracking-wider">
+                    ROOT
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* Profil Standar Operator Analis */
+            <div
+              className="flex items-center gap-2.5 bg-slate-900/80 border border-slate-800/90 px-3 py-1.5 rounded-md shadow-sm transition-all"
+              title="Akses: Analis Operasional (Penyelidikan & Analitik)"
+            >
+              <div className="w-6 h-6 rounded-full bg-sky-950/80 flex items-center justify-center text-sky-300 text-xs font-semibold border border-sky-500/30 shadow-inner">
+                <UserCheck className="w-3.5 h-3.5 text-sky-400" />
+              </div>
+              <div className="text-left">
+                <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
+                  <span className="tracking-tight">{operatorName || 'Operator'}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                </div>
+                <div className="text-[10px] font-mono tracking-tight flex items-center gap-1">
+                  <span className="text-slate-400">ROLE:</span>
+                  <span className="text-sky-400 font-semibold uppercase">{operatorRole || 'USER'}</span>
+                  <span className="text-[8px] px-1 py-0.2 bg-slate-800 text-slate-400 rounded border border-slate-700 font-medium">
+                    ANALIS
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <button
             type="button"

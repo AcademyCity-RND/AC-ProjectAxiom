@@ -8,7 +8,9 @@ import {
   Cpu,
   PanelLeftClose,
   PanelLeftOpen,
+  UserCog,
 } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface SidebarProps {
   activeTab: string;
@@ -27,13 +29,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed = false,
   onToggleCollapse,
 }) => {
-  // Max 5 core modules as mandated by DESIGN.md Section 5
+  const { operatorRole } = useAuthStore();
+
+  // Core navigation modules
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: Compass, badge: 'Aktif' },
     { id: 'narrative', label: 'Narrative Monitor', icon: Radio },
     { id: 'network', label: 'Network Graph', icon: Share2 },
     { id: 'targets', label: 'Target Directory', icon: Users },
     { id: 'reports', label: 'Case Reports', icon: FileCheck2 },
+    ...(operatorRole === 'admin'
+      ? [{ id: 'users', label: 'User Management', icon: UserCog, badge: 'Admin' }]
+      : []),
   ];
 
   const handleSelectTab = (tabId: string) => {
@@ -117,7 +124,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {!isCollapsed && <span className="truncate">{item.label}</span>}
                     </div>
                     {!isCollapsed && item.badge && (
-                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded font-mono bg-sky-500/10 text-sky-400 border border-sky-500/25 shrink-0">
+                      <span
+                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded font-mono shrink-0 ${
+                          item.badge === 'Admin'
+                            ? 'bg-amber-500/15 text-amber-300 border border-amber-500/35'
+                            : 'bg-sky-500/10 text-sky-400 border border-sky-500/25'
+                        }`}
+                      >
                         {item.badge}
                       </span>
                     )}

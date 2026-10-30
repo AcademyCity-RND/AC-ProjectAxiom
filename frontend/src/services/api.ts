@@ -10,6 +10,12 @@ import type {
   SystemStats,
   WatchlistItem,
   WatchlistCreatePayload,
+  UserAccount,
+  UserCreatePayload,
+  UserListResponse,
+  AuditLogItem,
+  AuditLogListResponse,
+  AuditSummary,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -245,6 +251,44 @@ export const api = {
 
   deleteFromWatchlist: async (watchlistId: number): Promise<{ status: string; message: string }> => {
     const response = await apiClient.delete(`/watchlist/${watchlistId}`);
+    return response.data;
+  },
+
+  // 10. Modul Manajemen User & RBAC (Admin Only)
+  getUsers: async (): Promise<UserListResponse> => {
+    const response = await apiClient.get('/users');
+    return response.data;
+  },
+
+  createUser: async (payload: UserCreatePayload): Promise<UserAccount> => {
+    const response = await apiClient.post('/users', payload);
+    return response.data;
+  },
+
+  updateUserStatus: async (userId: number, isActive: boolean): Promise<UserAccount> => {
+    const response = await apiClient.patch(`/users/${userId}/status`, { is_active: isActive });
+    return response.data;
+  },
+
+  deleteUser: async (userId: number): Promise<{ status: string; message: string }> => {
+    const response = await apiClient.delete(`/users/${userId}`);
+    return response.data;
+  },
+
+  // 11. Modul Audit Forensik & Digital Leak Tracing (Admin Only)
+  getAuditLogs: async (params?: {
+    operator?: string;
+    action?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<AuditLogListResponse> => {
+    const response = await apiClient.get('/audit/logs', { params });
+    return response.data;
+  },
+
+  getAuditSummary: async (): Promise<AuditSummary> => {
+    const response = await apiClient.get('/audit/summary');
     return response.data;
   },
 };

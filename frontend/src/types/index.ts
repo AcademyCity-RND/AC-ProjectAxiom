@@ -219,3 +219,45 @@ export interface WatchlistCreatePayload {
   tag?: string;
   notes?: string;
 }
+
+export interface UserAccount {
+  id: number;
+  username: string;
+  role: 'admin' | 'user';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCreatePayload {
+  username: string;
+  password: string;
+}
+
+export interface AuditLogItem {
+  id: number;
+  operator_username: string;
+  operator_role?: string;
+  action: string;
+  target?: string | null;
+  ip_address?: string | null;
+  details?: Record<string, any> | null;
+  status: string;
+  timestamp: string;
+}
+
+export interface AuditSummary {
+  total_activities: number;
+  total_scraping_operations: number;
+  total_document_downloads: number;
+}
+
+export interface UserListResponse {
+  total: number;
+  users: UserAccount[];
+}
+
+export interface AuditLogListResponse {
+  total: number;
+  logs: AuditLogItem[];
+}

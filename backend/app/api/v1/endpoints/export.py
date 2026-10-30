@@ -12,6 +12,7 @@ from app.services.report_exporter import (
     generate_csv_ledger,
     get_dual_tier_ledger,
 )
+from app.services.audit_logger import log_activity
 
 logger = logging.getLogger("axiom.export")
 router = APIRouter()
@@ -48,12 +49,32 @@ def export_case_report(
     if fmt in ("html", "pdf"):
         try:
             html_output = render_html_dossier(dossier_data)
+            evidence_hash = dossier_data.get("cryptographic_hash", "")
+            target_account = dossier_data.get("case", {}).get("target", "unknown")
+
+            # Catat jejak audit pengunduhan dossier resmi untuk pelacakan kebocoran (leak tracing)
+            log_activity(
+                db=db,
+                username=current_user.sub or "anonymous",
+                role=current_user.role or "user",
+                action="DOWNLOAD_DOSSIER_PDF",
+                target=f"case:{case_id}",
+                details={
+                    "case_id": case_id,
+                    "target_account": target_account,
+                    "format": "pdf",
+                    "evidence_sha256": evidence_hash,
+                    "document_code": f"DOSSIER-{case_id[:8]}",
+                },
+                status="SUCCESS",
+            )
+
             return Response(
                 content=html_output,
                 media_type="text/html",
                 headers={
                     "Content-Disposition": f"inline; filename=dossier_{case_id}.html",
-                    "X-Evidence-SHA256": dossier_data.get("cryptographic_hash", "")
+                    "X-Evidence-SHA256": evidence_hash
                 }
             )
         except Exception as e:
@@ -66,12 +87,32 @@ def export_case_report(
     elif fmt == "csv":
         try:
             csv_output = generate_csv_ledger(dossier_data)
+            evidence_hash = dossier_data.get("cryptographic_hash", "")
+            target_account = dossier_data.get("case", {}).get("target", "unknown")
+
+            # Catat jejak audit pengunduhan CSV ledger
+            log_activity(
+                db=db,
+                username=current_user.sub or "anonymous",
+                role=current_user.role or "user",
+                action="DOWNLOAD_LEDGER_CSV",
+                target=f"case:{case_id}",
+                details={
+                    "case_id": case_id,
+                    "target_account": target_account,
+                    "format": "csv",
+                    "evidence_sha256": evidence_hash,
+                    "document_code": f"LEDGER-{case_id[:8]}",
+                },
+                status="SUCCESS",
+            )
+
             return Response(
                 content=csv_output,
                 media_type="text/csv",
                 headers={
                     "Content-Disposition": f"attachment; filename=axiom_ledger_{case_id}.csv",
-                    "X-Evidence-SHA256": dossier_data.get("cryptographic_hash", "")
+                    "X-Evidence-SHA256": evidence_hash
                 }
             )
         except Exception as e:

@@ -18,6 +18,7 @@ from app.api.v1.deps import require_roles
 from app.core.rate_limiter import investigation_rate_limiter
 from app.services.investigation_orchestrator import run_investigation_pipeline
 from app.services.event_orchestrator import run_event_investigation_pipeline
+from app.services.audit_logger import log_activity
 
 logger = logging.getLogger("axiom.investigate")
 router = APIRouter()
@@ -45,21 +46,22 @@ async def start_investigation(
 
     client_ip = request.client.host if request.client else "unknown"
 
-    # 2. Catat Audit Trail
-    audit_entry = AuditLogCreate(
+    # 2. Catat Audit Trail ke Database & Log
+    log_activity(
+        db=db,
         username=current_user.sub or "anonymous",
-        role=current_user.role or "unknown",
-        action=AuditActionEnum.INVESTIGATE_TARGET,
-        target=f"{payload.platform.value}:{payload.target}",
+        role=current_user.role or "user",
+        action="SCRAPE_INVESTIGATION",
+        target=f"@{payload.target}",
         ip_address=client_ip,
         details={
+            "platform": payload.platform.value,
+            "target": payload.target,
             "max_interactions": payload.max_interactions,
             "depth_level": payload.depth_level,
         },
-        timestamp=datetime.now(timezone.utc),
         status="ACCEPTED",
     )
-    logger.info(f"AUDIT_LOG: {audit_entry.model_dump_json()}")
 
     # 3. Buat Entitas InvestigationCase di Database
     case_id = str(uuid.uuid4())
@@ -119,22 +121,23 @@ async def start_event_investigation(
     client_ip = request.client.host if request.client else "unknown"
     platform = payload.detected_platform.value
 
-    # 2. Catat Audit Trail
-    audit_entry = AuditLogCreate(
+    # 2. Catat Audit Trail ke Database & Log
+    log_activity(
+        db=db,
         username=current_user.sub or "anonymous",
-        role=current_user.role or "unknown",
-        action=AuditActionEnum.INVESTIGATE_TARGET,
-        target=f"{platform}:{payload.url}",
+        role=current_user.role or "user",
+        action="SCRAPE_INVESTIGATION",
+        target=payload.url,
         ip_address=client_ip,
         details={
+            "platform": platform,
+            "url": payload.url,
             "max_comments": payload.max_comments,
             "depth_level": payload.depth_level,
-            "type": "event_audit"
+            "type": "event_audit",
         },
-        timestamp=datetime.now(timezone.utc),
         status="ACCEPTED",
     )
-    logger.info(f"AUDIT_LOG_EVENT: {audit_entry.model_dump_json()}")
 
     # 3. Buat Entitas InvestigationCase di Database
     case_id = str(uuid.uuid4())
