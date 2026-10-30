@@ -50,11 +50,19 @@ def get_chroma_client() -> chromadb.ClientAPI:
             except Exception:
                 pass
 
-        # 3. Fallback terakhir: In-Memory EphemeralClient (untuk CI & air-gapped demo tanpa container terpisah)
-        logger.info("Menggunakan ChromaDB EphemeralClient (In-Memory) untuk mode terisolasi.")
-        _chroma_client = chromadb.EphemeralClient(
-            settings=ChromaSettings(anonymized_telemetry=False)
-        )
+        # 3. Fallback terakhir: In-Memory EphemeralClient (untuk mode terisolasi jika didukung)
+        if hasattr(chromadb, "EphemeralClient"):
+            logger.info("Menggunakan ChromaDB EphemeralClient (In-Memory) untuk mode terisolasi.")
+            _chroma_client = chromadb.EphemeralClient(
+                settings=ChromaSettings(anonymized_telemetry=False)
+            )
+        else:
+            logger.warning("EphemeralClient tidak tersedia di chromadb-client; menggunakan HttpClient fallback.")
+            _chroma_client = chromadb.HttpClient(
+                host=settings.CHROMA_HOST,
+                port=settings.CHROMA_PORT,
+                settings=ChromaSettings(anonymized_telemetry=False)
+            )
     return _chroma_client
 
 
