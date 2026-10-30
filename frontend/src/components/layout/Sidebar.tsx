@@ -65,11 +65,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-2.5 space-y-4 overflow-y-auto flex-1">
           <div>
             {!isCollapsed ? (
-              <div className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 mb-2 font-mono">
-                MODUL UTAMA
+              <div className="flex items-center justify-between px-2 mb-2">
+                <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 font-mono">
+                  MODUL UTAMA
+                </span>
+                {onToggleCollapse && (
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    className="hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer text-[10px] font-mono border border-transparent hover:border-slate-700"
+                    title="Kecilkan Sidebar (Mode Ikon Saja)"
+                  >
+                    <PanelLeftClose className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Kecilkan</span>
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="h-2" />
+              onToggleCollapse && (
+                <div className="flex justify-center mb-2">
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    className="hidden md:flex p-1.5 rounded-md text-sky-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
+                    title="Perluas Sidebar"
+                  >
+                    <PanelLeftOpen className="w-4 h-4 text-sky-400" />
+                  </button>
+                </div>
+              )
             )}
             <nav className="space-y-1">
               {menuItems.map((item) => {
@@ -144,27 +168,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Footer: Sidebar Collapse Toggle + Engine Info */}
-        <div className="p-2.5 border-t border-slate-800/80 bg-[#0A0E17]/80 shrink-0 space-y-2">
-          {onToggleCollapse && (
-            <button
-              onClick={onToggleCollapse}
-              className={`hidden md:flex items-center ${
-                isCollapsed ? 'justify-center w-full py-1.5' : 'justify-between w-full px-2 py-1.5'
-              } text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-md transition-colors text-xs font-mono cursor-pointer`}
-              title={isCollapsed ? 'Tampilkan Label Sidebar' : 'Sembunyikan Label Sidebar (Ikon Saja)'}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                {isCollapsed ? (
-                  <PanelLeftOpen className="w-4 h-4 text-sky-400 shrink-0" />
-                ) : (
-                  <PanelLeftClose className="w-4 h-4 text-slate-400 shrink-0" />
-                )}
-                {!isCollapsed && <span className="text-[11px] text-slate-400 truncate">Kecilkan Sidebar</span>}
-              </div>
-            </button>
-          )}
-
+        {/* Footer: Engine Info */}
+        <div className="p-2.5 border-t border-slate-800/80 bg-[#0A0E17]/80 shrink-0">
           <div
             className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'} text-xs text-slate-400`}
             title="Engine: XGBoost • Chroma • Llama"

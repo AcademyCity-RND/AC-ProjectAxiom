@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Radio, Activity, UserCheck, LogOut, Menu, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Shield, Radio, Activity, UserCheck, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
   isMobileMenuOpen?: boolean;
-  onToggleSidebarCollapse?: () => void;
-  isSidebarCollapsed?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileMenu,
   isMobileMenuOpen,
-  onToggleSidebarCollapse,
-  isSidebarCollapsed,
 }) => {
   const { operatorName, operatorRole, logout } = useAuthStore();
   const [timeStr, setTimeStr] = useState<string>('');
@@ -66,23 +62,6 @@ export const Header: React.FC<HeaderProps> = ({
             Cognitive Domain Threat Intelligence &amp; Astroturfing Detection
           </p>
         </div>
-
-        {/* Desktop Collapsible Sidebar Toggle Icon */}
-        {onToggleSidebarCollapse && (
-          <button
-            type="button"
-            onClick={onToggleSidebarCollapse}
-            className="hidden md:flex ml-2 p-1.5 rounded-md bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer shadow-xs active:scale-95"
-            title={isSidebarCollapsed ? "Tampilkan Sidebar Penuh" : "Sembunyikan Sidebar (Mode Ikon Saja)"}
-            aria-label={isSidebarCollapsed ? "Tampilkan Sidebar Penuh" : "Sembunyikan Sidebar"}
-          >
-            {isSidebarCollapsed ? (
-              <PanelLeftOpen className="w-4 h-4 text-sky-400" />
-            ) : (
-              <PanelLeftClose className="w-4 h-4 text-slate-400 hover:text-slate-200" />
-            )}
-          </button>
-        )}
       </div>
 
       {/* Operational Stats & Indicators */}
