@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  ShieldAlert,
-  Plus,
-  Trash2,
   Search,
   Filter,
+  Plus,
+  Trash2,
   ExternalLink,
   Play,
-  CheckCircle2,
+  ShieldAlert,
   AlertCircle,
-  X,
+  Tag,
   Clock,
   User,
-  Tag,
+  CheckCircle2,
 } from 'lucide-react';
 import { useCaseStore } from '../../store/useCaseStore';
 import { ThreatBadge } from '../common/ThreatBadge';
+import { Modal } from '../common/Modal';
 import type { PlatformType } from '../../types';
 
 interface WatchlistManagerProps {
@@ -39,20 +39,6 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadWatchlist();
-  }, [loadWatchlist]);
-
-  // Dismiss modal on Escape key
-  useEffect(() => {
-    if (!showAddModal) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowAddModal(false);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [showAddModal]);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,342 +87,274 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
     }
   };
 
-  // Filter watchlist
+  // Filter daftar watchlist
   const filteredWatchlist = watchlist.filter((item) => {
-    const matchSearch =
+    const matchesSearch =
       searchQuery === '' ||
       item.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.notes && item.notes.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchTag = selectedTag === 'ALL' || item.tag === selectedTag;
-    return matchSearch && matchTag;
+    const matchesTag = selectedTag === 'ALL' || item.tag === selectedTag;
+
+    return matchesSearch && matchesTag;
   });
+
+  const getTagBadgeClass = (tag: string) => {
+    switch (tag) {
+      case 'propaganda_botnet':
+        return 'bg-rose-500/10 text-rose-400 border-rose-500/25';
+      case 'buzzer_coordinator':
+        return 'bg-amber-500/10 text-amber-400 border-amber-500/25';
+      case 'amplification_node':
+        return 'bg-purple-500/10 text-purple-400 border-purple-500/25';
+      default:
+        return 'bg-sky-500/10 text-sky-400 border-sky-500/25';
+    }
+  };
+
+  const getTagLabel = (tag: string) => {
+    switch (tag) {
+      case 'propaganda_botnet':
+        return 'Botnet Propaganda';
+      case 'buzzer_coordinator':
+        return 'Koordinator Buzzer';
+      case 'amplification_node':
+        return 'Node Amplifikasi';
+      case 'suspicious_cib':
+        return 'Indikasi CIB';
+      default:
+        return tag;
+    }
+  };
 
   return (
     <div className="space-y-4">
-      {/* Toast Notification */}
+      {/* Toast Notifikasi */}
       {successToast && (
-        <div className="bg-emerald-950/80 border border-emerald-500/40 p-3 rounded text-xs text-emerald-300 flex items-center justify-between animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>{successToast}</span>
-          </div>
-          <button onClick={() => setSuccessToast(null)} className="text-emerald-400 hover:text-emerald-200">
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 bg-slate-900 border border-emerald-500/40 text-emerald-300 rounded-lg shadow-xl font-mono text-xs animate-in slide-in-from-bottom-2 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{successToast}</span>
         </div>
       )}
 
-      {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold tracking-tight text-slate-100 flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-sky-400 shrink-0" />
-            Daftar Sasaran Pantauan Khusus (Persistent Watchlist)
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Pengawasan persisten terhadap aktor ancaman siber kognitif, koordinator buzzer, dan operator botnet.
-          </p>
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800/80 p-3 rounded-lg">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative min-w-[200px]">
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari target atau catatan..."
+              className="w-full bg-slate-900 border border-slate-800 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 font-mono"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <select
+              value={selectedTag}
+              onChange={(e) => setSelectedTag(e.target.value)}
+              aria-label="Filter Kategori Watchlist"
+              className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-sky-500/50 font-mono cursor-pointer"
+            >
+              <option value="ALL">Semua Kategori ({watchlist.length})</option>
+              <option value="propaganda_botnet">Botnet Propaganda</option>
+              <option value="buzzer_coordinator">Koordinator Buzzer</option>
+              <option value="amplification_node">Node Amplifikasi</option>
+              <option value="suspicious_cib">Indikasi CIB</option>
+            </select>
+          </div>
         </div>
 
         <button
+          type="button"
           onClick={() => setShowAddModal(true)}
-          className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-3.5 py-1.5 rounded text-xs shadow-sm inline-flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 self-start sm:self-auto"
+          className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-3.5 py-1.5 rounded-md text-xs flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-[0.98] shadow-sm cursor-pointer shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
-          Tambah Target Pantauan
+          <span>Tambah Target Baru</span>
         </button>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="cyber-card p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800/80 shadow-xs">
-        <div className="relative flex-1 max-w-sm">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari target atau catatan intelijen..."
-            className="w-full h-8 pl-8 pr-3 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150"
-          />
-          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5 pointer-events-none" />
-        </div>
-
-        <div className="flex items-center gap-1.5 text-xs flex-wrap">
-          <span className="text-[11px] text-slate-500 mr-1 flex items-center gap-1 font-mono">
-            <Filter className="w-3 h-3" /> Tag:
+      {/* Tabel Watchlist */}
+      <div className="cyber-card overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/70">
+          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
+            INVENTARISASI PENGAWASAN AKTIF (WATCHLIST)
+          </div>
+          <span className="text-xs font-mono tabular-nums text-slate-400">
+            {filteredWatchlist.length} Sasaran Terdaftar
           </span>
-          <button
-            onClick={() => setSelectedTag('ALL')}
-            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
-              selectedTag === 'ALL'
-                ? 'bg-slate-800 text-sky-400 font-semibold border border-slate-700/80 shadow-xs'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
-            }`}
-          >
-            Semua ({watchlist.length})
-          </button>
-          <button
-            onClick={() => setSelectedTag('suspicious_cib')}
-            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50 ${
-              selectedTag === 'suspicious_cib'
-                ? 'bg-amber-950/40 text-amber-400 font-semibold border border-amber-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
-            }`}
-          >
-            Suspicious CIB
-          </button>
-          <button
-            onClick={() => setSelectedTag('propaganda_botnet')}
-            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-500/50 ${
-              selectedTag === 'propaganda_botnet'
-                ? 'bg-rose-950/40 text-rose-400 font-semibold border border-rose-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
-            }`}
-          >
-            Botnet
-          </button>
-          <button
-            onClick={() => setSelectedTag('buzzer_coordinator')}
-            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 ${
-              selectedTag === 'buzzer_coordinator'
-                ? 'bg-purple-950/40 text-purple-400 font-semibold border border-purple-500/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
-            }`}
-          >
-            Koordinator
-          </button>
         </div>
-      </div>
 
-      {/* Watchlist Table */}
-      <div className="cyber-card overflow-hidden bg-slate-900 border border-slate-800/80 shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px]">
-            <thead className="bg-slate-950/70 border-b border-slate-800 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+            <thead className="border-b border-slate-800/80 text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 bg-slate-950/40">
               <tr>
-                <th className="py-3 px-4">Target / Akun</th>
-                <th className="py-3 px-4">Platform</th>
-                <th className="py-3 px-4">Tag Klaster</th>
-                <th className="py-3 px-4">Catatan Taktis</th>
-                <th className="py-3 px-4">Ditambahkan Oleh</th>
-                <th className="py-3 px-4">Waktu Terdaftar</th>
-                <th className="py-3 px-4 text-right">Aksi</th>
+                <th className="py-3 px-3.5 sm:px-5">Akun Target</th>
+                <th className="py-3 px-3.5 sm:px-5">Platform</th>
+                <th className="py-3 px-3.5 sm:px-5">Kategori Ancaman</th>
+                <th className="py-3 px-3.5 sm:px-5">Catatan Operasional</th>
+                <th className="py-3 px-3.5 sm:px-5 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {isLoadingWatchlist ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-slate-500 font-mono">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
-                      <span>Memuat daftar sasaran Watchlist dari PostgreSQL...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredWatchlist.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-14 text-center">
-                    <div className="max-w-md mx-auto space-y-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center mx-auto text-slate-400">
-                        <ShieldAlert className="w-5 h-5" />
-                      </div>
-                      <div className="text-sm font-semibold text-slate-200">
-                        Belum Ada Sasaran di Watchlist
-                      </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Sasaran yang mencurigakan dapat dimasukkan ke daftar pantauan untuk audit berkala dan pengawasan persisten.
-                      </p>
-                      <button
-                        onClick={() => setShowAddModal(true)}
-                        className="bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700/80 text-xs px-3.5 py-1.5 rounded shadow-xs transition-all duration-150 ease-out active:scale-[0.98] inline-flex items-center gap-1.5 font-medium"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Daftarkan Sasaran Pertama
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
+            <tbody className="divide-y divide-slate-800/50">
+              {filteredWatchlist.length > 0 ? (
                 filteredWatchlist.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-800/40 transition-colors duration-150">
-                    <td className="py-3.5 px-4 font-mono font-medium text-sky-400">
-                      {item.username}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono text-xs uppercase text-slate-300">
-                      {item.platform}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-sky-950/50 text-sky-400 border border-sky-800/40">
-                        {item.tag}
+                  <tr key={item.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-3 px-3.5 sm:px-5 font-mono font-medium text-sky-400">
+                      <span className="truncate block max-w-xs">{item.username}</span>
+                      <span className="text-[10px] text-slate-500 font-sans block mt-0.5">
+                        Ditambahkan {new Date(item.added_at).toLocaleDateString('id-ID')}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-300 truncate max-w-[220px]" title={item.notes || ''}>
+                    <td className="py-3 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">
+                      {item.platform}
+                    </td>
+                    <td className="py-3 px-3.5 sm:px-5">
+                      <span
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded border ${getTagBadgeClass(
+                          item.tag
+                        )}`}
+                      >
+                        {getTagLabel(item.tag)}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3.5 sm:px-5 text-xs text-slate-300 max-w-xs truncate">
                       {item.notes || '-'}
                     </td>
-                    <td className="py-3.5 px-4 text-xs font-mono text-slate-400">
-                      {item.added_by || 'system'}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs font-mono tabular-nums text-slate-400">
-                      {new Date(item.added_at).toLocaleString('id-ID', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="py-3 px-3.5 sm:px-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
                         <button
+                          type="button"
                           onClick={() => onStartInvestigate(item.username, item.platform as PlatformType)}
-                          title="Jalankan Investigasi Ulang Terhadap Target Ini"
-                          className="px-2.5 py-1 rounded text-sky-400 hover:text-sky-300 bg-sky-950/30 hover:bg-sky-900/40 border border-sky-800/40 text-xs inline-flex items-center gap-1 transition-all duration-150 active:scale-[0.98]"
+                          className="px-2.5 py-1 rounded bg-slate-800 hover:bg-sky-500 hover:text-slate-950 text-sky-400 text-xs font-mono transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Jalankan Audit Kasus Langsung"
                         >
-                          <Play className="w-3 h-3 fill-sky-400/20" />
-                          <span className="hidden sm:inline font-medium">Investigasi</span>
+                          <Play className="w-3 h-3" />
+                          <span>Audit</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleDelete(item.id, item.username)}
-                          title={confirmDeleteId === item.id ? 'Klik sekali lagi untuk konfirmasi hapus' : 'Hapus dari Watchlist'}
-                          className={`p-1.5 rounded text-xs inline-flex items-center gap-1 transition-all duration-150 active:scale-[0.98] border ${
+                          className={`p-1.5 rounded transition-all cursor-pointer ${
                             confirmDeleteId === item.id
-                              ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 hover:bg-rose-500/30 px-2.5 font-medium'
-                              : 'text-rose-400 hover:text-rose-300 bg-rose-950/20 hover:bg-rose-900/30 border-rose-800/30'
+                              ? 'bg-rose-600 text-white animate-pulse'
+                              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-500/40'
                           }`}
+                          title={
+                            confirmDeleteId === item.id
+                              ? 'Klik sekali lagi untuk konfirmasi hapus'
+                              : 'Hapus dari Watchlist'
+                          }
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          {confirmDeleteId === item.id && <span className="hidden sm:inline font-mono text-[10px]">Konfirmasi?</span>}
                         </button>
                       </div>
                     </td>
                   </tr>
                 ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-xs text-slate-500 font-mono">
+                    {isLoadingWatchlist ? 'Memuat data watchlist...' : 'Belum ada target dalam watchlist.'}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal Tambah Sasaran Pantauan */}
-      {showAddModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowAddModal(false);
-          }}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="p-6 w-full max-w-md space-y-4 rounded-lg border border-slate-800/80 shadow-2xl bg-slate-900 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="p-1 rounded bg-sky-950/60 border border-sky-500/30 text-sky-400">
-                  <ShieldAlert className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm font-semibold tracking-tight text-white">
-                  Tambah Sasaran ke Watchlist
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+      {/* Modal Tambah Watchlist Baru Menggunakan Shared Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Tambah Target ke Watchlist"
+        subtitle="Registrasi akun sasaran pemantauan siber kognitif"
+        icon={<ShieldAlert className="w-4 h-4" />}
+        maxWidth="md"
+      >
+        <form onSubmit={handleAddSubmit} className="space-y-4">
+          {formError && (
+            <div className="p-3 bg-rose-950/40 border border-rose-500/30 text-rose-300 rounded text-xs flex items-center gap-2 font-mono">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">Target (@Username / ID)</label>
+            <input
+              type="text"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="contoh: @buzzer_agitator"
+              required
+              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500 font-mono"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">Platform</label>
+              <select
+                value={newPlatform}
+                onChange={(e) => setNewPlatform(e.target.value as PlatformType)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-sky-500 font-mono cursor-pointer"
               >
-                <X className="w-4 h-4" />
-              </button>
+                <option value="x">X / Twitter</option>
+                <option value="youtube">YouTube</option>
+                <option value="instagram">Instagram</option>
+              </select>
             </div>
 
-            {formError && (
-              <div className="bg-rose-950/60 border border-rose-500/40 p-2.5 rounded text-xs text-rose-300 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span>{formError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
-                  Username Sasaran
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="@cyber_target atau username"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  className="w-full h-9 px-3 bg-slate-950 border border-slate-800 rounded text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
-                    Platform
-                  </label>
-                  <select
-                    value={newPlatform}
-                    onChange={(e) => setNewPlatform(e.target.value as PlatformType)}
-                    className="w-full h-9 px-2.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150 cursor-pointer"
-                  >
-                    <option value="x">X (Twitter)</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="instagram">Instagram</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
-                    Tag Klaster
-                  </label>
-                  <select
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    className="w-full h-9 px-2.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150 cursor-pointer"
-                  >
-                    <option value="suspicious_cib">Suspicious CIB</option>
-                    <option value="propaganda_botnet">Propaganda Botnet</option>
-                    <option value="buzzer_coordinator">Buzzer Coordinator</option>
-                    <option value="targeted_provocation">Targeted Provocation</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
-                  Catatan Intelijen Taktis (Opsional)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Catatan latar belakang, relasi sindikat, atau observasi awal..."
-                  value={newNotes}
-                  onChange={(e) => setNewNotes(e.target.value)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all duration-150 resize-none leading-relaxed"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-3.5 py-1.5 rounded text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-4 py-1.5 rounded text-xs shadow-sm inline-flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                      <span>Menyimpan...</span>
-                    </>
-                  ) : (
-                    'Simpan Target'
-                  )}
-                </button>
-              </div>
-            </form>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">Kategori Tag</label>
+              <select
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-sky-500 font-mono cursor-pointer"
+              >
+                <option value="suspicious_cib">Indikasi CIB</option>
+                <option value="propaganda_botnet">Botnet Propaganda</option>
+                <option value="buzzer_coordinator">Koordinator Buzzer</option>
+                <option value="amplification_node">Node Amplifikasi</option>
+              </select>
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">Catatan Investigasi (Opsional)</label>
+            <textarea
+              value={newNotes}
+              onChange={(e) => setNewNotes(e.target.value)}
+              placeholder="Catatan analisis, waktu operasi, atau indikasi afiliasi..."
+              rows={3}
+              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500 font-sans"
+            />
+          </div>
+
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800/80">
+            <button
+              type="button"
+              onClick={() => setShowAddModal(false)}
+              className="px-3 py-1.5 rounded-md border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-medium cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-medium cursor-pointer"
+            >
+              {isSubmitting ? 'Menyimpan...' : 'Simpan Target'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

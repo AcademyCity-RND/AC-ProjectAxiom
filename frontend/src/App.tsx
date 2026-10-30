@@ -20,6 +20,8 @@ import { ExportActionPanel } from './components/reports/ExportActionPanel';
 import { LoginPage } from './components/auth/LoginPage';
 import { WatchlistManager } from './components/watchlist/WatchlistManager';
 import { UserManagement } from './components/users/UserManagement';
+import { StatCard } from './components/common/StatCard';
+import { CasesTable } from './components/investigation/CasesTable';
 import { useAuthStore } from './store/useAuthStore';
 import {
   Plus,
@@ -218,57 +220,32 @@ export const App: React.FC = () => {
           Per DESIGN.md Section 2 (Screen Complexity Caps) - Dinamis dari PostgreSQL
       ========================================================================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* KPI 1 */}
-        <div className="cyber-card p-4 sm:p-5 flex flex-col justify-between">
-          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-            KASUS INVESTIGASI
-          </div>
-          <div className="flex items-baseline justify-between mt-3">
-            <span className="text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums text-white">
-              {stats?.total_cases ?? (cases.length > 0 ? cases.length : 0)}
-            </span>
-            <span className="text-xs text-slate-400 font-mono">
-              {stats ? `${stats.completed_cases} Kasus Selesai` : 'Tercatat di DB'}
-            </span>
-          </div>
-        </div>
+        <StatCard
+          label="KASUS INVESTIGASI"
+          value={stats?.total_cases ?? (cases.length > 0 ? cases.length : 0)}
+          subtext={stats ? `${stats.completed_cases} Kasus Selesai` : 'Tercatat di DB'}
+        />
 
-        {/* KPI 2 */}
-        <div className="cyber-card p-4 sm:p-5 flex flex-col justify-between">
-          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-            AKTOR TERIDENTIFIKASI
-          </div>
-          <div className="flex items-baseline justify-between mt-3">
-            <span className="text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums text-white">
-              {stats?.total_actors ?? (cases.length > 0 ? cases.length : 0)}
-            </span>
-            <span className="text-xs text-rose-400 font-mono font-medium">
+        <StatCard
+          label="AKTOR TERIDENTIFIKASI"
+          value={stats?.total_actors ?? (cases.length > 0 ? cases.length : 0)}
+          subtext={
+            <span className="text-rose-400 font-mono font-medium">
               {stats ? `${stats.bot_count} Bot / ${stats.buzzer_count} Buzzer` : '0 Bot / 0 Buzzer'}
             </span>
-          </div>
-        </div>
+          }
+        />
 
-        {/* KPI 3 */}
-        <div className="cyber-card p-4 sm:p-5 flex flex-col justify-between">
-          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-            AKURASI MODEL XGBOOST
-          </div>
-          <div className="flex items-baseline justify-between mt-3">
-            <span className="text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums text-emerald-400">
-              {stats ? `${Math.round(stats.model_accuracy * 100)}%` : '100%'}
-            </span>
-            <span className="text-xs text-slate-400 font-mono">
-              {stats ? `Avg Conf: ${(stats.avg_confidence * 100).toFixed(1)}%` : 'F1-Score 1.00'}
-            </span>
-          </div>
-        </div>
+        <StatCard
+          label="AKURASI MODEL XGBOOST"
+          value={stats ? `${Math.round(stats.model_accuracy * 100)}%` : '100%'}
+          subtext={stats ? `Avg Conf: ${(stats.avg_confidence * 100).toFixed(1)}%` : 'F1-Score 1.00'}
+          colorVariant="emerald"
+        />
 
-        {/* KPI 4 */}
-        <div className="cyber-card p-4 sm:p-5 flex flex-col justify-between">
-          <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-            STATUS ENGINE FASTAPI
-          </div>
-          <div className="flex items-baseline justify-between mt-3 gap-2 flex-wrap">
+        <StatCard
+          label="STATUS ENGINE FASTAPI"
+          value={
             <div className="flex items-center gap-2">
               <span
                 className={`w-2.5 h-2.5 rounded-full shrink-0 ${
@@ -291,9 +268,9 @@ export const App: React.FC = () => {
                 {backendStatus === 'online' ? 'ONLINE' : backendStatus === 'checking' ? 'SYNC' : 'OFFLINE'}
               </span>
             </div>
-            <span className="text-xs text-slate-400 font-mono shrink-0 pl-1">Port 8000 &bull; 70/70</span>
-          </div>
-        </div>
+          }
+          subtext="Port 8000 • 70/70"
+        />
       </div>
 
       {/* =========================================================================
@@ -359,82 +336,19 @@ export const App: React.FC = () => {
             <div className="space-y-4">
               <ActorSearchForm onSearch={handleStartInvestigation} isLoading={isAnalyzing} />
 
-              {/* Table of Past Cases (Strictly Capped at 5 Columns) - Dinamis dari PostgreSQL */}
-              <div className="cyber-card overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/70">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-                    DAFTAR KASUS TERAKHIR DIPERIKSA (POSTGRESQL)
-                  </div>
-                  <span className="text-xs text-slate-400 font-mono tabular-nums">
-                    {displayCases.length} Kasus Tercatat
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-[13px]">
-                    <thead className="border-b border-slate-800/80 text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 bg-slate-950/40">
-                      <tr>
-                        <th className="py-3 px-3.5 sm:px-5">Target / Akun</th>
-                        <th className="py-3 px-3.5 sm:px-5">Platform</th>
-                        <th className="py-3 px-3.5 sm:px-5">Klasifikasi AI</th>
-                        <th className="py-3 px-3.5 sm:px-5">Waktu</th>
-                        <th className="py-3 px-3.5 sm:px-5 text-right">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/50">
-                      {displayCases.length > 0 ? (
-                        displayCases.slice(0, 8).map((rc, i) => (
-                          <tr
-                            key={i}
-                            onClick={() => {
-                              loadCaseDetails(rc.case_id);
-                              setShowSearchForm(false);
-                            }}
-                            className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
-                          >
-                            <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
-                              {rc.target}
-                            </td>
-                            <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">
-                              {rc.platform}
-                            </td>
-                            <td className="py-3.5 px-3.5 sm:px-5">
-                              <ThreatBadge type="class" value={rc.verdict || rc.status} />
-                            </td>
-                            <td className="py-3.5 px-3.5 sm:px-5 font-mono tabular-nums text-xs text-slate-400">
-                              {(rc as any).created_at
-                                ? new Date((rc as any).created_at).toLocaleTimeString('id-ID', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                                : (rc as any).date || '-'}
-                            </td>
-                            <td className="py-3.5 px-3.5 sm:px-5 text-right">
-                              <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
-                                Buka <ChevronRight className="w-3.5 h-3.5" />
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={5} className="py-12 text-center">
-                            <div className="max-w-xs mx-auto space-y-2">
-                              <div className="w-8 h-8 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
-                                <FolderOpen className="w-4 h-4" />
-                              </div>
-                              <div className="text-xs font-semibold text-slate-300">Belum Ada Kasus Terdaftar</div>
-                              <p className="text-[11px] text-slate-500 leading-relaxed font-mono">
-                                Jalankan investigasi akun atau gunakan preset demo di atas.
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              {/* Table of Past Cases Menggunakan Shared CasesTable */}
+              <CasesTable
+                cases={displayCases}
+                currentPage={1}
+                pageSize={8}
+                onPageChange={() => {}}
+                onSelectCase={(cid) => {
+                  loadCaseDetails(cid);
+                  setShowSearchForm(false);
+                }}
+                title="DAFTAR KASUS TERAKHIR DIPERIKSA (POSTGRESQL)"
+                emptyMessage="Belum ada kasus terdaftar. Jalankan investigasi akun atau gunakan preset di atas."
+              />
             </div>
           ) : (
             /* Active Investigation Results or Stepper */
@@ -649,110 +563,19 @@ export const App: React.FC = () => {
               }}
             />
           ) : (
-            <div className="cyber-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/70">
-                <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-                  DATABASE SASARAN AKTIF (POSTGRESQL)
-                </div>
-                <span className="text-xs font-mono tabular-nums text-slate-400">
-                  Total: {displayCases.length} Kasus
-                </span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-[13px]">
-                  <thead className="border-b border-slate-800/80 text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 bg-slate-950/40">
-                    <tr>
-                      <th className="py-3 px-3.5 sm:px-5">Target / Akun</th>
-                      <th className="py-3 px-3.5 sm:px-5">Platform</th>
-                      <th className="py-3 px-3.5 sm:px-5">Klasifikasi AI</th>
-                      <th className="py-3 px-3.5 sm:px-5">Case ID</th>
-                      <th className="py-3 px-3.5 sm:px-5 text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/50">
-                    {displayCases.length > 0 ? (
-                      displayCases
-                        .slice(
-                          (targetDirectoryPage - 1) * TARGET_PAGE_SIZE,
-                          targetDirectoryPage * TARGET_PAGE_SIZE
-                        )
-                        .map((rc, i) => (
-                          <tr
-                            key={i}
-                            onClick={() => {
-                              loadCaseDetails(rc.case_id);
-                              setActiveTab('overview');
-                              setShowSearchForm(false);
-                            }}
-                            className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
-                          >
-                            <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
-                              {rc.target}
-                              {(rc as any).display_name && (
-                                <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5">
-                                  {(rc as any).display_name}
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
-                            <td className="py-3.5 px-3.5 sm:px-5">
-                              <ThreatBadge type="class" value={rc.verdict || rc.status} />
-                            </td>
-                            <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs text-slate-400">{rc.case_id}</td>
-                            <td className="py-3.5 px-3.5 sm:px-5 text-right">
-                              <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
-                                Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="py-12 text-center text-xs text-slate-500 font-mono">
-                          Belum ada target atau kasus terdaftar di database PostgreSQL.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination Controls — Batasi tinggi scroll tabel */}
-              {displayCases.length > 0 && (
-                <div className="px-4 sm:px-5 py-3 border-t border-slate-800/80 bg-slate-950/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-slate-400">
-                  <div>
-                    Menampilkan <span className="text-white font-medium font-mono">{(targetDirectoryPage - 1) * TARGET_PAGE_SIZE + 1}</span> - <span className="text-white font-medium font-mono">{Math.min(targetDirectoryPage * TARGET_PAGE_SIZE, displayCases.length)}</span> dari <span className="text-white font-medium font-mono">{displayCases.length}</span> sasaran
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setTargetDirectoryPage((p) => Math.max(1, p - 1))}
-                      disabled={targetDirectoryPage === 1}
-                      className="px-2.5 py-1.5 rounded border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 hover:text-white transition-colors cursor-pointer text-xs"
-                    >
-                      &larr; Sebelumnya
-                    </button>
-                    <span className="px-2 text-slate-400 font-mono text-xs">
-                      Halaman {targetDirectoryPage} / {Math.max(1, Math.ceil(displayCases.length / TARGET_PAGE_SIZE))}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setTargetDirectoryPage((p) =>
-                          Math.min(Math.max(1, Math.ceil(displayCases.length / TARGET_PAGE_SIZE)), p + 1)
-                        )
-                      }
-                      disabled={targetDirectoryPage >= Math.max(1, Math.ceil(displayCases.length / TARGET_PAGE_SIZE))}
-                      className="px-2.5 py-1.5 rounded border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 hover:text-white transition-colors cursor-pointer text-xs"
-                    >
-                      Selanjutnya &rarr;
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <CasesTable
+              cases={displayCases}
+              currentPage={targetDirectoryPage}
+              pageSize={TARGET_PAGE_SIZE}
+              onPageChange={setTargetDirectoryPage}
+              onSelectCase={(cid) => {
+                loadCaseDetails(cid);
+                setActiveTab('overview');
+                setShowSearchForm(false);
+              }}
+              title="DATABASE SASARAN AKTIF (POSTGRESQL)"
+              emptyMessage="Belum ada target atau kasus terdaftar di database PostgreSQL."
+            />
           )}
         </div>
       )}
