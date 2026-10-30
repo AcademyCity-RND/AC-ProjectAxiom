@@ -46,6 +46,8 @@ export const App: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<InspectorData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [showSearchForm, setShowSearchForm] = useState<boolean>(true);
+  const [targetDirectoryPage, setTargetDirectoryPage] = useState<number>(1);
+  const TARGET_PAGE_SIZE = 8;
 
   const {
     activeCase,
@@ -127,8 +129,12 @@ export const App: React.FC = () => {
       threatLevel: activeCase.detection.threat_attribution?.forensic_dossier?.threat_level || 'HIGH',
       indicators: Object.entries(features).map(([k, v]) => {
         const topMatch = topXai.find((f) => f.feature === k);
+        const explanationText =
+          topMatch && topMatch.explanation && topMatch.explanation !== 'undefined'
+            ? ` (${topMatch.explanation})`
+            : '';
         return {
-          label: topMatch ? `★ ${k} (${topMatch.explanation})` : k,
+          label: topMatch ? `★ ${k}${explanationText}` : k,
           value: typeof v === 'number' ? v.toFixed(3) : String(v),
           mono: true,
         };
@@ -246,7 +252,7 @@ export const App: React.FC = () => {
           <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
             STATUS ENGINE FASTAPI
           </div>
-          <div className="flex items-baseline justify-between mt-3">
+          <div className="flex items-baseline justify-between mt-3 gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <span
                 className={`w-2.5 h-2.5 rounded-full shrink-0 ${
@@ -269,7 +275,7 @@ export const App: React.FC = () => {
                 {backendStatus === 'online' ? 'ONLINE' : backendStatus === 'checking' ? 'SYNC' : 'OFFLINE'}
               </span>
             </div>
-            <span className="text-xs text-slate-400 font-mono">Port 8000 &bull; 70/70</span>
+            <span className="text-xs text-slate-400 font-mono shrink-0 pl-1">Port 8000 &bull; 70/70</span>
           </div>
         </div>
       </div>
@@ -463,7 +469,7 @@ export const App: React.FC = () => {
                   <div className="cyber-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 shadow-sm">
                     <div className="text-xs text-slate-300 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                      <span>Analisis forensik selesai. Buka visualisasi jejaring CIB, matriks sirkadian, atau berkas dossier:</span>
+                      <span>Investigasi selesai. Eksplorasi bukti forensik &amp; dossier:</span>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
@@ -650,36 +656,41 @@ export const App: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
                     {displayCases.length > 0 ? (
-                      displayCases.map((rc, i) => (
-                        <tr
-                          key={i}
-                          onClick={() => {
-                            loadCaseDetails(rc.case_id);
-                            setActiveTab('overview');
-                            setShowSearchForm(false);
-                          }}
-                          className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
-                        >
-                          <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
-                            {rc.target}
-                            {(rc as any).display_name && (
-                              <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5">
-                                {(rc as any).display_name}
+                      displayCases
+                        .slice(
+                          (targetDirectoryPage - 1) * TARGET_PAGE_SIZE,
+                          targetDirectoryPage * TARGET_PAGE_SIZE
+                        )
+                        .map((rc, i) => (
+                          <tr
+                            key={i}
+                            onClick={() => {
+                              loadCaseDetails(rc.case_id);
+                              setActiveTab('overview');
+                              setShowSearchForm(false);
+                            }}
+                            className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
+                          >
+                            <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
+                              {rc.target}
+                              {(rc as any).display_name && (
+                                <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5">
+                                  {(rc as any).display_name}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
+                            <td className="py-3.5 px-3.5 sm:px-5">
+                              <ThreatBadge type="class" value={rc.verdict || rc.status} />
+                            </td>
+                            <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs text-slate-400">{rc.case_id}</td>
+                            <td className="py-3.5 px-3.5 sm:px-5 text-right">
+                              <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
+                                Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
                               </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
-                          <td className="py-3.5 px-3.5 sm:px-5">
-                            <ThreatBadge type="class" value={rc.verdict || rc.status} />
-                          </td>
-                          <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs text-slate-400">{rc.case_id}</td>
-                          <td className="py-3.5 px-3.5 sm:px-5 text-right">
-                            <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
-                              Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
-                            </span>
-                          </td>
-                        </tr>
-                      ))
+                            </td>
+                          </tr>
+                        ))
                     ) : (
                       <tr>
                         <td colSpan={5} className="py-12 text-center text-xs text-slate-500 font-mono">
@@ -690,6 +701,41 @@ export const App: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Controls — Batasi tinggi scroll tabel */}
+              {displayCases.length > 0 && (
+                <div className="px-4 sm:px-5 py-3 border-t border-slate-800/80 bg-slate-950/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-slate-400">
+                  <div>
+                    Menampilkan <span className="text-white font-medium font-mono">{(targetDirectoryPage - 1) * TARGET_PAGE_SIZE + 1}</span> - <span className="text-white font-medium font-mono">{Math.min(targetDirectoryPage * TARGET_PAGE_SIZE, displayCases.length)}</span> dari <span className="text-white font-medium font-mono">{displayCases.length}</span> sasaran
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setTargetDirectoryPage((p) => Math.max(1, p - 1))}
+                      disabled={targetDirectoryPage === 1}
+                      className="px-2.5 py-1.5 rounded border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 hover:text-white transition-colors cursor-pointer text-xs"
+                    >
+                      &larr; Sebelumnya
+                    </button>
+                    <span className="px-2 text-slate-400 font-mono text-xs">
+                      Halaman {targetDirectoryPage} / {Math.max(1, Math.ceil(displayCases.length / TARGET_PAGE_SIZE))}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTargetDirectoryPage((p) =>
+                          Math.min(Math.max(1, Math.ceil(displayCases.length / TARGET_PAGE_SIZE)), p + 1)
+                        )
+                      }
+                      disabled={targetDirectoryPage >= Math.max(1, Math.ceil(displayCases.length / TARGET_PAGE_SIZE))}
+                      className="px-2.5 py-1.5 rounded border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 hover:text-white transition-colors cursor-pointer text-xs"
+                    >
+                      Selanjutnya &rarr;
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

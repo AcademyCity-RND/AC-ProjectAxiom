@@ -28,6 +28,7 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
   onSelectCase,
 }) => {
   const [isExportingHtml, setIsExportingHtml] = useState<boolean>(false);
+  const [isViewingHtml, setIsViewingHtml] = useState<boolean>(false);
   const [isExportingCsv, setIsExportingCsv] = useState<boolean>(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -37,17 +38,34 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
   const handleExportHtml = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!caseId) {
-      setExportError('Pilih kasus sasaran terlebih dahulu untuk mencetak berkas dossier.');
+      setExportError('Pilih kasus sasaran terlebih dahulu untuk mengunduh berkas dossier.');
       return;
     }
     setExportError(null);
     setIsExportingHtml(true);
     try {
-      await api.downloadReport(caseId, 'html');
+      await api.downloadReport(caseId, 'html', 'download');
     } catch (err: any) {
-      setExportError(err.message || 'Gagal memuat berkas dossier forensik.');
+      setExportError(err.message || 'Gagal mengunduh berkas dossier forensik.');
     } finally {
       setIsExportingHtml(false);
+    }
+  };
+
+  const handleViewHtml = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!caseId) {
+      setExportError('Pilih kasus sasaran terlebih dahulu untuk melihat berkas dossier.');
+      return;
+    }
+    setExportError(null);
+    setIsViewingHtml(true);
+    try {
+      await api.downloadReport(caseId, 'html', 'view');
+    } catch (err: any) {
+      setExportError(err.message || 'Gagal memuat pratinjau berkas dossier.');
+    } finally {
+      setIsViewingHtml(false);
     }
   };
 
@@ -166,36 +184,44 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
             <button
               onClick={handleExportHtml}
-              disabled={!caseId || isExportingHtml}
-              className="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold py-2.5 rounded-md text-xs flex items-center justify-center gap-2 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+              disabled={!caseId || isExportingHtml || isViewingHtml}
+              className="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold py-2.5 px-3 rounded-md text-xs flex items-center justify-center gap-2 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+              title="Unduh berkas fisik HTML dossier resmi ke penyimpanan lokal"
             >
               {isExportingHtml ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Merender Dossier...</span>
+                  <span>Mengunduh Berkas...</span>
                 </>
               ) : (
                 <>
                   <FileDown className="w-3.5 h-3.5" />
-                  <span>Buka &amp; Cetak Dossier Resmi</span>
-                  <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+                  <span>Unduh Berkas Dossier (HTML)</span>
                 </>
               )}
             </button>
-            {caseId && (
-              <a
-                href={htmlUrl}
-                target="_blank"
-                rel="noreferrer"
-                title="Buka langsung tautan terotentikasi di tab baru"
-                className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white p-2.5 rounded-md text-xs flex items-center justify-center transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
-              </a>
-            )}
+
+            <button
+              onClick={handleViewHtml}
+              disabled={!caseId || isViewingHtml || isExportingHtml}
+              className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white font-medium py-2.5 px-3 rounded-md text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+              title="Lihat dossier di tab baru untuk preview atau cetak langsung"
+            >
+              {isViewingHtml ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" />
+                  <span>Membuka...</span>
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Lihat di Tab Baru</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 

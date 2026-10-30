@@ -1,6 +1,7 @@
-import React from 'react';
-import { ShieldAlert, FileText, CheckCircle, Fingerprint, Crosshair, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldAlert, FileText, CheckCircle, Fingerprint, Crosshair, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { ThreatBadge } from '../common/ThreatBadge';
+import { api } from '../../services/api';
 import type { ForensicDossier } from '../../types';
 
 interface ForensicDossierCardProps {
@@ -14,6 +15,32 @@ export const ForensicDossierCard: React.FC<ForensicDossierCardProps> = ({
   caseId,
   target,
 }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isViewing, setIsViewing] = useState(false);
+
+  const handleDownload = async () => {
+    if (!caseId) return;
+    setIsDownloading(true);
+    try {
+      await api.downloadReport(caseId, 'html', 'download');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleView = async () => {
+    if (!caseId) return;
+    setIsViewing(true);
+    try {
+      await api.downloadReport(caseId, 'html', 'view');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsViewing(false);
+    }
+  };
   // Fallback default if dossier is pending synthesis or offline
   const fallbackDossier: ForensicDossier = {
     threat_level: 'HIGH',
@@ -62,10 +89,32 @@ export const ForensicDossierCard: React.FC<ForensicDossierCardProps> = ({
           </div>
         </div>
 
-        {/* Threat Level Badge */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">Tingkat Ancaman:</span>
-          <ThreatBadge type="level" value={activeDossier.threat_level} />
+        {/* Actions & Threat Level */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 mr-1">
+            <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">Tingkat Ancaman:</span>
+            <ThreatBadge type="level" value={activeDossier.threat_level} />
+          </div>
+
+          <button
+            onClick={handleDownload}
+            disabled={!caseId || isDownloading}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 hover:text-white text-xs font-mono transition-colors cursor-pointer disabled:opacity-50"
+            title="Unduh berkas HTML dossier resmi"
+          >
+            {isDownloading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+            Unduh
+          </button>
+
+          <button
+            onClick={handleView}
+            disabled={!caseId || isViewing}
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-mono transition-colors cursor-pointer disabled:opacity-50"
+            title="Buka pratinjau dossier resmi di tab baru"
+          >
+            {isViewing ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3 text-slate-400" />}
+            Lihat
+          </button>
         </div>
       </div>
 
