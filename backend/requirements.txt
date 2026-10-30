@@ -51,5 +51,5 @@ python-json-logger==3.2.1
 
 # Testing
 pytest>=9.0.3
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
+pytest-asyncio>=0.25.0
+pytest-cov>=6.0.0
