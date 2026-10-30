@@ -1,231 +1,90 @@
-# 📡 Dokumentasi Spesifikasi Format Data JSON Scraping — Project Axiom
+# 📊 AXIOM Standard Scraping Data Format Specification
+> **Versi:** 2.0.0 (Unified Forensics & AI Training Dataset Specification)  
+> **Target:** YouTube (Video & Shorts), Instagram (Post & Reels), Twitter/X (User & Tweet)  
+> **Status:** Production Ready  
 
-Dokumen ini mendefinisikan secara resmi standar struktur skema JSON data hasil *crawling* dan *scraping* dari berbagai platform media sosial (**X/Twitter, YouTube, dan Instagram**) pada platform **Axiom — Cognitive Domain Threat Intelligence & Astroturfing/CIB Detection Platform** (PUSSIBERAD TNI AD).
-
-Seluruh data yang diekstraksi melalui mesin scraper ini menjadi masukan (*input*) utama bagi:
-1. **Pipeline Ekstraksi 21 Fitur Perilaku Kuantitatif (XGBoost Classifier)**.
-2. **Mesin Deteksi Anomali Temporal (*Temporal Influx Anomaly Detection*)**.
-3. **Analisis Jejaring Terkoordinasi CIB (*Cytoscape / Network Graph SNA*)**.
-4. **Buku Besar Forensik Digital (*Dual-Tier Commenter Audit Ledger*)**.
-
----
-
-## 📑 Daftar Isi
-1. [Arsitektur Engine Scraper](#1-arsitektur-engine-scraper)
-2. [Spesifikasi Skema Data X (Twitter)](#2-spesifikasi-skema-data-x-twitter)
-   - [2.1 Profil Aktor Target](#21-profil-aktor-target)
-   - [2.2 Cuitan & Aktivitas Aktor](#22-cuitan--aktivitas-aktor)
-   - [2.3 Audit Komentar / Balasan Tweet (Event Investigation)](#23-audit-komentar--balasan-tweet-event-investigation)
-3. [Spesifikasi Skema Data YouTube](#3-spesifikasi-skema-data-youtube)
-   - [3.1 Format URL yang Didukung (Video & Shorts)](#31-format-url-yang-didukung-video--shorts)
-   - [3.2 Struktur Komentar YouTube](#32-struktur-komentar-youtube)
-   - [3.3 Skema Hasil Analisis Temporal Influx](#33-skema-hasil-analisis-temporal-influx)
-4. [Spesifikasi Skema Data Instagram](#4-spesifikasi-skema-data-instagram)
-   - [4.1 Format URL yang Didukung (Post & Reels)](#41-format-url-yang-didukung-post--reels)
-   - [4.2 Struktur Komentar Instagram](#42-struktur-komentar-instagram)
-5. [Tabel Kamus Data Global (Data Dictionary)](#5-tabel-kamus-data-global-data-dictionary)
+Dokumen ini mendefinisikan kontrak data (*Data Contract*) standar hasil scraping di ekosistem AXIOM. Seluruh engine scraper (`youtube_auditor`, `instagram_auditor`, `x_auditor`) **wajib** mengembalikan payload data yang mematuhi skema terpadu ini agar:
+1. Analisis intelijen CIB (*Coordinated Inauthentic Behavior*), deteksi bot, dan buzzer berjalan deterministik.
+2. Data hasil scraping dapat langsung diekstrak sebagai fitur tabular untuk model Machine Learning (**XGBoost / LightGBM**).
+3. Data teks narasi dapat langsung di-*embed* ke Vector Store (**ChromaDB**) untuk klasterisasi semantik CIB (*Copypasta Network*).
+4. Data dapat langsung disintesis oleh Large Language Model (**Groq Llama 3.3**) untuk pembuatan *Forensic Intelligence Dossier*.
 
 ---
 
-## 1. Arsitektur Engine Scraper
+## 1. Skema Utama Payload (Root Schema)
 
-Sistem Axiom mengintegrasikan tiga modul scraper terspesialisasi di backend FastAPI:
+Setiap proses audit berbasis Event URL atau Aktor menghasilkan objek JSON dengan 5 pilar utama:
 
-| Platform | Modul Backend | Library / Protokol | Mode Operasi |
+```json
+{
+  "schema_version": "2.0.0",
+  "audit_timestamp": "2026-10-30T13:20:00Z",
+  "target_url": "https://www.youtube.com/watch?v=HGgCE9a7BjU",
+  "platform": "youtube",
+  "content_type": "video",
+  
+  "host_metadata": { ... },
+  "harvest_summary": { ... },
+  "comments": [ ... ],
+  "user_mapping": { ... },
+  "top_attackers": [ ... ],
+  "forensic_signals": { ... },
+  "ai_training_features": { ... }
+}
+```
+
+---
+
+## 2. Rincian Pilar Data Kontrak
+
+### A. `host_metadata` (Dossier Konten & Pemilik/Kanal)
+Menyimpan identitas pemilik konten serta performa keterlibatan (*engagement*) pada video/postingan tersebut.
+
+| Field | Tipe Data | Deskripsi | Contoh |
 | :--- | :--- | :--- | :--- |
-| **X (Twitter)** | `app.services.scraper.twscrape_adapter` (Aktor) & `app.services.x_auditor` (Tweet/Event) | `twscrape` (SQLite Pool) | Cookies Auth (`auth_token`, `ct0`) + Human Jitter Delay + Mock Fallback |
-| **YouTube** | `app.services.youtube_auditor` | `youtube-comment-downloader` | Pure Innertube HTTP Streaming (Tanpa Kuota API Key) |
-| **Instagram** | `app.services.instagram_auditor` | `instaloader` | GraphQL Public Endpoint + Auto Fallback Engine |
+| `platform` | `string` | Platform media sosial (`"youtube"`, `"instagram"`, `"x"`) | `"youtube"` |
+| `content_id` | `string` | ID unik konten (11-char Video ID / Shortcode) | `"HGgCE9a7BjU"` |
+| `content_url` | `string` | URL kanonikal konten | `"https://www.youtube.com/watch?v=HGgCE9a7BjU"` |
+| `content_type` | `string` | Jenis konten (`"video"`, `"shorts"`, `"post"`, `"reel"`, `"tweet"`) | `"video"` |
+| `title_or_caption` | `string` | Judul video YouTube atau caption postingan IG | `"Momen Iring-iringan Mobil Presiden..."` |
+| `published_at` | `string (ISO)` | Waktu rilis konten oleh pembuat | `"2026-10-28T11:02:28Z"` |
+| `creator.username_or_channel` | `string` | Nama channel atau username pembuat | `"TribunJakarta Official"` |
+| `creator.channel_or_user_id` | `string` | ID unik akun/channel (`UC...` di YouTube) | `"UC-..."` |
+| `creator.subscribers_or_followers` | `integer` | Jumlah subscriber/follower pembuat | `2530000` |
+| `creator.is_verified` | `boolean` | Status centang biru / verifikasi | `true` |
+| `creator.profile_url` | `string` | URL menuju profil pembuat | `"https://www.youtube.com/@tribunjakarta"` |
+| `engagement.views_count` | `integer` | Jumlah penonton (views) | `189213` |
+| `engagement.likes_count` | `integer` | Jumlah like postingan/video | `257` |
+| `engagement.dislikes_count` | `integer` | Estimasi dislike riil (via RYD API untuk YouTube) | `0` |
+| `engagement.total_comments_on_platform` | `integer` | Total komentar yang tercatat di platform | `820` |
 
 ---
 
-## 2. Spesifikasi Skema Data X (Twitter)
+### B. `harvest_summary` (Ringkasan Penjaringan Komentar)
+Statistik agregat kuota dan rasio keunikan interaksi.
 
-Platform X digunakan untuk investigasi aktor individu (`/api/v1/investigate/actor`). Data dibagi menjadi dua entitas: **Profil Aktor** dan **Riwayat Cuitan**.
+| Field | Tipe Data | Deskripsi |
+| :--- | :--- | :--- |
+| `target_quota` | `integer` | Kuota komentar yang diminta (default: `150`) |
+| `total_comments_extracted` | `integer` | Jumlah komentar riil yang berhasil ditarik |
+| `unique_commenters_count` | `integer` | Jumlah akun unik yang menulis komentar |
+| `spammer_ratio` | `float` | Rasio user berkomentar berulang: `1.0 - (unique_commenters / total_comments)` |
+| `extraction_status` | `string` | Status pengambilan: `"live_complete"`, `"live_partial"`, `"authenticated_session"`, `"fallback"` |
 
-### 2.1 Profil Aktor Target
-Menyimpan atribut akun, rasio pertemanan, dan riwayat metadata akun.
+---
 
-#### Skema Field
-* `username` (*string*): Username/handle akun tanpa simbol `@`.
-* `platform` (*string*): Identifikasi platform (`"x"`).
-* `display_name` (*string*): Nama tampilan pada profil.
-* `bio` (*string*): Teks deskripsi profil / biografi.
-* `followers_count` (*integer*): Jumlah pengikut.
-* `following_count` (*integer*): Jumlah akun yang diikuti (friends).
-* `is_verified` (*boolean*): Status centang biru / verifikasi X.
-* `account_created_at` (*string ISO-8601*): Waktu pembuatan akun (UTC).
-* `profile_metadata` (*object*):
-  * `statuses_count` (*integer*): Total cuitan sepanjang riwayat akun.
-  * `media_count` (*integer*): Total media (foto/video) yang diunggah.
-  * `favourites_count` (*integer*): Total cuitan yang disukai (*likes given*).
-  * `profile_image_url` (*string*): URL foto profil target.
+### C. `comments` (Array Komentar Terstruktur)
+Daftar seluruh komentar mentah yang ditarik hingga kuota (150 item). Setiap elemen memiliki struktur:
 
-#### Contoh JSON Profil Aktor:
 ```json
 {
-  "username": "infiltrator_01",
-  "platform": "x",
-  "display_name": "Suara Kebenaran Rakyat",
-  "bio": "Menyuarakan transparansi pertahanan dan kedaulatan bangsa. Jangan mudah dibodohi!",
-  "followers_count": 84,
-  "following_count": 1420,
-  "is_verified": false,
-  "account_created_at": "2026-08-14T08:30:00+00:00",
-  "profile_metadata": {
-    "statuses_count": 2340,
-    "media_count": 12,
-    "favourites_count": 310,
-    "profile_image_url": "https://pbs.twimg.com/profile_images/default_avatar.png"
-  }
-}
-```
-
----
-
-### 2.2 Cuitan & Aktivitas Aktor
-Daftar riwayat cuitan yang digunakan untuk ekstraksi fitur teks, leksikal, dan temporal (Shannon Entropy).
-
-#### Skema Field
-* `platform_post_id` (*string*): ID unik cuitan di Twitter.
-* `activity_type` (*string*): `"tweet"` (cuitan mandiri) atau `"reply"` (balasan).
-* `content` (*string*): Teks mentah cuitan.
-* `posted_at` (*string ISO-8601*): Waktu publikasi cuitan (UTC).
-* `in_reply_to_user` (*string | null*): Username target yang dibalas (jika bertipe reply).
-* `conversation_id` (*string | null*): ID utas percakapan Twitter.
-* `lang` (*string*): Kode bahasa deteksi otomatis (misal: `"in"`, `"en"`).
-* `hashtags` (*array of strings*): Daftar tagar tanpa tanda `#`.
-* `mentions` (*array of strings*): Daftar akun yang di-*mention* tanpa tanda `@`.
-* `urls` (*array of strings*): Daftar tautan eksternal dalam cuitan.
-* `has_media` (*boolean*): Menandakan keberadaan lampiran gambar/video.
-* `metrics` (*object*):
-  * `likes` (*integer*): Jumlah suka.
-  * `retweets` (*integer*): Jumlah retweet / repost.
-  * `replies` (*integer*): Jumlah balasan.
-  * `views` (*integer*): Jumlah impresi tayangan (*view count*).
-
-#### Contoh JSON Cuitan:
-```json
-{
-  "platform_post_id": "1849372819203819201",
-  "activity_type": "reply",
-  "content": "@Kemhan_RI Alokasi anggaran pengadaan alutsista siber sangat tidak transparan dan sarat kepentingan asing! Rakyat butuh audit independen segera! #AuditSiber",
-  "posted_at": "2026-10-24T09:15:00+00:00",
-  "in_reply_to_user": "Kemhan_RI",
-  "conversation_id": "1849371000000000000",
-  "lang": "in",
-  "hashtags": [
-    "AuditSiber"
-  ],
-  "mentions": [
-    "Kemhan_RI"
-  ],
-  "urls": [],
-  "has_media": false,
-  "metrics": {
-    "likes": 12,
-    "retweets": 45,
-    "replies": 3,
-    "views": 2100
-  }
-}
-```
-
----
-
-### 2.3 Audit Komentar / Balasan Tweet (Event Investigation)
-Platform X juga mendukung audit komentar / balasan massal berbasis URL cuitan (`/api/v1/investigate/event`), menggunakan mesin `app.services.x_auditor`.
-
-#### Format URL Tweet yang Didukung
-1. **Format Web Standar:** `https://x.com/Kemhan_RI/status/1849372819203819201`
-2. **Format Twitter Legacy:** `https://twitter.com/Puspen_TNI/status/1849372819203819202`
-3. **Format Short / Direct Status:** `https://x.com/i/status/1849372819203819203`
-4. **Tweet ID Numerik Mentah:** `1849372819203819201`
-
-#### Skema Field Komentar Balasan X
-* `comment_id` (*string*): ID unik balasan tweet di X.
-* `video_id` (*string*): ID cuitan induk target (*numeric Tweet ID string*).
-* `author_id` (*string*): ID / handle unik pengomentar (`"x_username"`).
-* `author_name` (*string*): Handle pengomentar dengan simbol `@` (misal: `"@buzzer_x_101"`).
-* `text` (*string*): Teks mentah balasan cuitan.
-* `published_at` (*string ISO-8601*): Waktu publikasi balasan cuitan (UTC).
-* `likes` (*integer*): Jumlah suka pada balasan.
-* `replies` (*integer*): Jumlah balasan bertingkat (*nested replies*).
-* `is_reply` (*boolean*): Selalu `true` untuk balasan tweet.
-* `platform` (*string*): Identifikasi platform (`"x"`).
-
-#### Contoh JSON Komentar Balasan X:
-```json
-{
-  "comment_id": "1849375000000000001",
-  "video_id": "1849372819203819201",
-  "author_id": "x_buzzer_kedaulatan",
-  "author_name": "@buzzer_kedaulatan",
-  "text": "Narasi propaganda ini sengaja disebar untuk memecah belah kedaulatan! Tolak provokasi! #KawalKedaulatan",
-  "published_at": "2026-10-24T09:25:14+00:00",
-  "likes": 18,
-  "replies": 1,
-  "is_reply": true,
-  "platform": "x"
-}
-```
-
----
-
-## 3. Spesifikasi Skema Data YouTube
-
-Platform YouTube digunakan untuk audit komentar massal berbasis video/peristiwa (`/api/v1/investigate/event`).
-
-### 3.1 Format URL yang Didukung (Video & Shorts)
-Regex parser backend (`app.services.youtube_auditor`) otomatis mengenali dan menormalisasi:
-1. **Video Reguler:** `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
-2. **YouTube Shorts:** `https://www.youtube.com/shorts/2cAAEqjFaYk`
-3. **URL Pendek:** `https://youtu.be/dQw4w9WgXcQ`
-4. **Embed URL:** `https://www.youtube.com/embed/dQw4w9WgXcQ`
-
----
-
-### 3.2 Struktur Komentar YouTube
-
-#### Skema Field
-* `comment_id` (*string*): ID unik komentar YouTube (misal: `"UgzTtCmNJgk..."`).
-* `video_id` (*string*): 11-karakter ID video YouTube.
-* `author_id` (*string*): Channel ID pengomentar (diawali `"UC..."`).
-* `author_name` (*string*): Handle pengomentar (diawali `@`).
-* `text` (*string*): Isi narasi komentar warganet.
-* `published_at` (*string ISO-8601*): Timestamp publikasi komentar dalam zona waktu UTC.
-* `likes` (*integer*): Jumlah upvote/like pada komentar.
-* `replies` (*integer*): Jumlah sub-balasan pada komentar tersebut.
-* `is_reply` (*boolean*): `true` jika merupakan balasan ke komentar lain, `false` jika komentar utama (*top-level*).
-* `platform` (*string*): Identifikasi platform (`"youtube"`).
-
-#### Contoh JSON Komentar YouTube (Video Reguler):
-```json
-{
-  "comment_id": "UgzTtCmNJgk_tu-8fQt4AaABAg",
-  "video_id": "H3dR6gvgn6Q",
-  "author_id": "UCqAZl7pmev0EdQCjrmgDi1w",
-  "author_name": "@thisistanks-p7zv",
-  "text": "Tim Prabowo",
-  "published_at": "2023-10-28T18:33:45+00:00",
+  "comment_id": "Ugx_HGgCE9_0001",
+  "author_username": "@selalusemangat2521",
+  "author_id": "UCg4gvSvKqi-CpaLFEuj00dw",
+  "text": "Sedih negara gw. Dh ga punya ibu negara. Dan Ibukota....",
+  "published_at": "2026-10-30T12:15:00Z",
   "likes": 0,
-  "replies": 0,
-  "is_reply": false,
-  "platform": "youtube"
-}
-```
-
-#### Contoh JSON Komentar YouTube Shorts:
-```json
-{
-  "comment_id": "Ugy9E_-x6qlq7EoKXjF4AaABAg",
-  "video_id": "2cAAEqjFaYk",
-  "author_id": "UCGMIX8sZuiygsnmCG3pAG_g",
-  "author_name": "@YudiPrasetyo-f3t",
-  "text": "Rusak semenjak mulyono pimpin indonesia 10 th",
-  "published_at": "2026-10-18T18:35:15+00:00",
-  "likes": 0,
-  "replies": 0,
+  "replies_count": 0,
   "is_reply": false,
   "platform": "youtube"
 }
@@ -233,88 +92,93 @@ Regex parser backend (`app.services.youtube_auditor`) otomatis mengenali dan men
 
 ---
 
-### 3.3 Skema Hasil Analisis Temporal Influx
-Dihasilkan oleh fungsi `detect_temporal_influx_anomaly` untuk mendeteksi serangan serbuan bot (*astroturfing raid*).
+### D. `user_mapping` (Pemetaan Aktivitas & Metadata per User Unik)
+Kamus berindeks `author_id` atau `author_username`. Menghubungkan setiap user dengan seluruh jejak komentarnya:
 
-#### Contoh JSON Analisis Temporal:
 ```json
 {
-  "total_comments": 150,
-  "is_anomaly": true,
-  "anomaly_score": 0.842,
-  "burst_ratio": 0.4533,
-  "peak_burst_count": 68,
-  "time_span_minutes": 180.0,
-  "mean_rate_per_min": 0.833,
-  "peak_rate_per_min": 6.8,
-  "peak_window_start": "2026-10-28T16:15:00+00:00",
-  "peak_window_end": "2026-10-28T16:25:00+00:00",
-  "explanation": "Terdeteksi lonjakan temporal koordinasi: 68 komentar (45.3% dari total) muncul serentak dalam jendela 10 menit."
+  "@selalusemangat2521": {
+    "author_name": "@selalusemangat2521",
+    "author_id": "UCg4gvSvKqi-CpaLFEuj00dw",
+    "comment_frequency": 1,
+    "comments_list": [
+      "Sedih negara gw. Dh ga punya ibu negara. Dan Ibukota...."
+    ],
+    "total_likes_received": 0,
+    "first_comment_time": "2026-10-30T12:15:00Z",
+    "last_comment_time": "2026-10-30T12:15:00Z",
+    "account_created_at": "2017-07-31T00:00:00Z",
+    "account_age_days_at_comment": 3379,
+    "is_top_attacker": false
+  }
 }
 ```
 
 ---
 
-## 4. Spesifikasi Skema Data Instagram
+### E. `top_attackers` (Top 10 Aktor Terindikasi CIB/Buzzer/Bot)
+Menyaring dan meranking 5 s/d 10 akun paling dominan atau mencurigakan untuk dilakukan audit mendalam.
 
-Platform Instagram digunakan untuk audit postingan gambar, video, dan reels publik (`/api/v1/investigate/event`).
-
-### 4.1 Format URL yang Didukung (Post & Reels)
-Regex parser backend (`app.services.instagram_auditor`) otomatis mengenali:
-1. **Postingan Foto / Karosel:** `https://www.instagram.com/p/C_abc123/`
-2. **Instagram Reels:** `https://www.instagram.com/reel/C_xyz456/`
-3. **Instagram TV:** `https://www.instagram.com/tv/C_tv789/`
-4. **Shortcode Mentah:** `C_abc123`
+```json
+[
+  {
+    "rank": 1,
+    "username": "@agitator_cib_01",
+    "author_id": "UC_xyz123",
+    "comment_count": 5,
+    "cluster_connections": 4,
+    "posted_in_burst_window": true,
+    "risk_score": 0.88,
+    "estimated_category": "BUZZER",
+    "account_created_at": "2026-10-25T08:00:00Z",
+    "account_age_days_at_comment": 3,
+    "signals": [
+      "Akun baru dibuat 3 hari sebelum posting komentar",
+      "Memposting 5 kali narasi identik (copypasta cluster)",
+      "Terlibat dalam lonjakan temporal 10 menit pertama"
+    ]
+  }
+]
+```
 
 ---
 
-### 4.2 Struktur Komentar Instagram
+### F. `ai_training_features` (Vektor Fitur Tabular untuk Machine Learning)
+Fitur numerik dan kategorikal siap pakai untuk model **XGBoost / LightGBM**:
 
-#### Skema Field
-* `comment_id` (*string*): ID unik komentar Instagram.
-* `shortcode` (*string*): Kode unik postingan / reel Instagram.
-* `username` (*string*): Username akun pengomentar.
-* `author_name` (*string*): Nama akun pengomentar.
-* `text` (*string*): Narasi atau konten teks komentar.
-* `created_at` (*string ISO-8601*): Timestamp publikasi komentar dalam zona waktu UTC.
-* `published_at` (*string ISO-8601*): Alias timestamp publikasi terstandardisasi.
-* `likes_count` (*integer*): Jumlah like pada komentar tersebut.
-* `is_reply` (*boolean*): Status apakah merupakan sub-balasan (*thread reply*).
-* `platform` (*string*): Identifikasi platform (`"instagram"`).
-
-#### Contoh JSON Komentar Instagram:
 ```json
 {
-  "comment_id": "ig_c_DBrcX5_0000",
-  "shortcode": "DBrcX54TFQe",
-  "username": "cyber_ig_100",
-  "author_name": "cyber_ig_100",
-  "text": "Bubarkan lembaga ini! Hanya menghabiskan uang rakyat tanpa hasil nyata! 🔥 #KawalDemokrasi",
-  "created_at": "2026-10-28T16:46:15+00:00",
-  "published_at": "2026-10-28T16:46:15+00:00",
-  "likes_count": 10,
-  "is_reply": false,
-  "platform": "instagram"
+  "f_total_comments": 150.0,
+  "f_unique_commenters_ratio": 0.54,
+  "f_temporal_burst_ratio": 0.38,
+  "f_anomaly_score": 0.72,
+  "f_cluster_links_count": 6.0,
+  "f_top_attackers_count": 8.0,
+  "f_mean_comments_per_user": 1.85,
+  "f_max_comments_by_single_user": 7.0,
+  "f_mean_account_age_days_top_attackers": 14.5,
+  "f_new_accounts_ratio_top_attackers": 0.625,
+  "f_host_engagement_ratio": 0.00135,
+  "f_dislike_ratio": 0.0,
+  "label_predicted_class": "BUZZER",
+  "label_confidence": 0.94
 }
 ```
 
 ---
 
-## 5. Tabel Kamus Data Global (Data Dictionary)
+## 3. Matriks Perilaku Scraping 6 Fitur Utama
 
-Ringkasan tipe data dan pemetaan atribut antar-platform:
-
-| Atribut Kanonikal Axiom | X (Twitter) | YouTube | Instagram | Deskripsi Operasional |
-| :--- | :--- | :--- | :--- | :--- |
-| **`post_id`** | `platform_post_id` | `comment_id` | `comment_id` | ID unik catatan di platform asal |
-| **`target_id`** | `username` | `video_id` | `shortcode` | Identifier target investigasi |
-| **`author`** | `username` | `author_name` | `username` | Akun aktor yang memposting |
-| **`content`** | `content` | `text` | `text` | Teks narasi untuk ekstraksi MiniLM & Klasifikasi |
-| **`timestamp`** | `posted_at` | `published_at` | `created_at` | Waktu posting berformat ISO-8601 UTC |
-| **`engagement_likes`**| `metrics.likes` | `likes` | `likes_count` | Jumlah like / apresiasi audiens |
-| **`engagement_replies`**| `metrics.replies`| `replies` | N/A | Jumlah balasan yang memicu interaksi |
-| **`is_reply`** | `activity_type == 'reply'`| `is_reply` | `is_reply` | Indikator target bias dan amplifikasi terarah |
+| Parameter | 1. X User (@handle) | 2. X Tweet (/status/) | 3. IG Reels (/reels/) | 4. IG Post (/p/) | 5. YT Shorts (/shorts/) | 6. YT Video (watch?v=) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Identifier** | Username (@handle) | Numeric Tweet ID | Shortcode (alphanumeric) | Shortcode (alphanumeric) | 11-char Video ID | 11-char Video ID |
+| **Host / Author** | Akun Target (@handle) | Pemilik Cuitan (@handle) | @humas_poldakalsel | @narasinewsroom | BBC News Indonesia | TribunJakarta |
+| **Followers / Subs** | Real via API/twscrape | Real via API/twscrape | Real via Instaloader Reel | Real via Instaloader Post | Real via HTML/About | Real via HTML/About |
+| **Engagement Utama** | Tweets, Media, Likes | Retweets, Quotes, Likes | Likes & Komentar | Likes & Komentar | Views, Likes, Dislikes | Views, Likes, Dislikes |
+| **Total Komentar Platform** | N/A (Profil Aktor) | Real Replies di X | Real Komentar di IG | Real Komentar di IG | Real Komentar di YT | Real Komentar di YT |
+| **Interaksi Ditarik** | 150 Cuitan Historis | 150 Balasan (Replies) | 50-150 Komentar | 50-150 Komentar | 150 Komentar Live | 150 Komentar Live |
+| **Account Created Date** | Real via user.created | Real via user.created | Proxy Earliest Post/Bio | Proxy Earliest Post/Bio | Channel Joined Date | Channel Joined Date |
+| **Audit Usia Akun** | Aktor Utama | Top Attackers Balasan | Top Attackers Komentar | Top Attackers Komentar | Top Attackers Komentar | Top Attackers Komentar |
 
 ---
-
-*Dokumentasi ini disusun dan disahkan untuk keperluan operasional pengembangan intelijen siber kognitif Project Axiom PUSSIBERAD TNI AD.*
+*Dokumen ini divalidasi langsung oleh sistem AXIOM PUSSIBERAD pada 6 fitur operasional aktif: X User (@Kemhan_RI), X Tweet (/status/1849372819203819201), Instagram Reel (DOFtzyCkzNq), Instagram Post (DfCR3JPlK9F), YouTube Shorts (p66hnaKuB3o), dan YouTube Video (HGgCE9a7BjU).*

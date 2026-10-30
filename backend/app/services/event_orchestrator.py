@@ -11,9 +11,9 @@ from app.models.activity import ActivityLog
 from app.models.detection import DetectionResult
 from app.models.cluster import ClusterLink
 
-from app.services.youtube_auditor import fetch_youtube_comments, detect_temporal_influx_anomaly
-from app.services.instagram_auditor import fetch_instagram_comments
-from app.services.x_auditor import fetch_x_tweet_replies
+from app.services.youtube_auditor import fetch_youtube_comments, detect_temporal_influx_anomaly, audit_youtube_event
+from app.services.instagram_auditor import fetch_instagram_comments, audit_instagram_event
+from app.services.x_auditor import fetch_x_tweet_replies, audit_x_tweet_event
 from app.services.vector_store import VectorStoreService
 from app.services.llm_analyst import get_llm_analyst_service
 from app.services.analytics import compute_advanced_analytics
@@ -51,14 +51,26 @@ async def run_event_investigation_pipeline(
         db.commit()
 
         # ---------------------------------------------------------
-        # 1. SCRAPING KOMENTAR DARI PLATFORM
+        # 1. SCRAPING KOMENTAR & METADATA DARI PLATFORM
         # ---------------------------------------------------------
+        host_metadata: Dict[str, Any] = {}
+        pre_scraped_attackers: List[Dict[str, Any]] = []
+
         if platform == "youtube":
-            comments = fetch_youtube_comments(event_url, max_comments=max_comments)
+            audit_res = audit_youtube_event(event_url, max_comments=max_comments)
+            comments = audit_res["comments"]
+            host_metadata = audit_res.get("host_metadata", {})
+            pre_scraped_attackers = audit_res.get("top_attackers", [])
         elif platform == "instagram":
-            comments = fetch_instagram_comments(event_url, max_comments=max_comments)
+            audit_res = audit_instagram_event(event_url, max_comments=max_comments)
+            comments = audit_res["comments"]
+            host_metadata = audit_res.get("host_metadata", {})
+            pre_scraped_attackers = audit_res.get("top_attackers", [])
         elif platform == "x":
-            comments = await fetch_x_tweet_replies(event_url, max_comments=max_comments)
+            audit_res = await audit_x_tweet_event(event_url, max_comments=max_comments)
+            comments = audit_res["comments"]
+            host_metadata = audit_res.get("host_metadata", {})
+            pre_scraped_attackers = audit_res.get("top_attackers", [])
         else:
             raise ValueError(f"Platform tidak didukung untuk event audit: {platform}")
 
@@ -84,8 +96,21 @@ async def run_event_investigation_pipeline(
         })
         unique_commenters_count = len(unique_author_names)
 
+        pre_scraped_attacker_dates = {
+            a["username"]: a.get("account_created_at")
+            for a in pre_scraped_attackers if a.get("account_created_at")
+        }
+
         actor_record_map: Dict[str, ActorProfile] = {}
         for author_name in unique_author_names:
+            join_date_str = pre_scraped_attacker_dates.get(author_name)
+            join_dt = None
+            if join_date_str:
+                try:
+                    join_dt = datetime.fromisoformat(join_date_str.replace("Z", "+00:00"))
+                except Exception:
+                    pass
+
             author_profile = ActorProfile(
                 case_id=case_id,
                 username=author_name,
@@ -94,6 +119,7 @@ async def run_event_investigation_pipeline(
                 followers_count=0,
                 following_count=0,
                 is_verified=False,
+                account_created_at=join_dt
             )
             db.add(author_profile)
             actor_record_map[author_name] = author_profile
@@ -289,6 +315,7 @@ async def run_event_investigation_pipeline(
         summary = {
             "target": event_url,
             "platform": platform,
+            "host_metadata": host_metadata,
             "total_comments": total_comments,
             "unique_commenters": unique_commenters_count,
             "temporal_anomaly": temporal_anomaly,
