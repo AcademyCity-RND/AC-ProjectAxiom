@@ -44,6 +44,16 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
     loadWatchlist();
   }, [loadWatchlist]);
 
+  // Dismiss modal on Escape key
+  useEffect(() => {
+    if (!showAddModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowAddModal(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal]);
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -306,7 +316,14 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
 
       {/* Modal Tambah Sasaran Pantauan */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddModal(false);
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="p-6 w-full max-w-md space-y-4 rounded-lg border border-slate-800/80 shadow-2xl bg-slate-900 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">

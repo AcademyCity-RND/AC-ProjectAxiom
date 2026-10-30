@@ -143,8 +143,16 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               <tbody className="divide-y divide-slate-800/50">
                 {attackers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-500 font-mono text-xs">
-                      Belum ada catatan aktivitas penyerang / amplifikator inti untuk kasus ini. Jalankan investigasi atau pilih kasus dari direktori.
+                    <td colSpan={7} className="py-14 text-center">
+                      <div className="max-w-sm mx-auto space-y-2">
+                        <div className="w-8 h-8 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
+                          <ShieldAlert className="w-4 h-4 text-slate-500" />
+                        </div>
+                        <div className="text-xs font-semibold text-slate-300">Belum Ada Aktor Inti Terdeteksi</div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed font-mono">
+                          Pilih kasus dari direktori sasaran atau jalankan investigasi baru untuk memetakan peringkat aktor penyerang.
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -287,10 +295,20 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               <tbody className="divide-y divide-slate-800/50">
                 {filteredLedger.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-500 font-mono text-xs">
-                      {ledger.length === 0
-                        ? "Belum ada catatan buku besar (full ledger) untuk kasus ini. Jalankan investigasi atau pilih kasus dari direktori."
-                        : "Tidak ada komentar/post yang cocok dengan filter pencarian saat ini."}
+                    <td colSpan={5} className="py-14 text-center">
+                      <div className="max-w-sm mx-auto space-y-2">
+                        <div className="w-8 h-8 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
+                          <Search className="w-4 h-4 text-slate-500" />
+                        </div>
+                        <div className="text-xs font-semibold text-slate-300">
+                          {ledger.length === 0 ? 'Buku Besar Kosong' : 'Tidak Ada Hasil yang Cocok'}
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed font-mono">
+                          {ledger.length === 0
+                            ? 'Belum ada log postingan atau komentar tercatat untuk kasus ini.'
+                            : 'Coba ubah kata kunci pencarian atau reset filter kategori di atas.'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -321,7 +339,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                       <td className="py-3 px-4">
                         <ThreatBadge type="class" value={item.estimated_class} />
                       </td>
-                      <td className="py-3 px-4 text-slate-300 text-xs truncate max-w-[280px]">
+                      <td className="py-3 px-4 text-slate-300 text-xs truncate max-w-xs md:max-w-md lg:max-w-lg" title={item.content}>
                         {item.content}
                       </td>
                       <td className="py-3 px-4 text-right font-mono tabular-nums text-xs font-semibold text-rose-400">

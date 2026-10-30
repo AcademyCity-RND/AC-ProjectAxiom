@@ -144,6 +144,11 @@ table,
 }
 
 /* Minimalist Production Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1E293B #0A0E17;
+}
+
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -183,4 +188,49 @@ select {
 /* Underline offset for prose links */
 a {
   text-underline-offset: 3px;
+}
+
+/* React Flow Tactical Theme Overrides (Prevents white-box node bleed) */
+.axiom-network-flow .react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+}
+.axiom-network-flow .react-flow__node.selected {
+  outline: 2px solid #38BDF8 !important;
+  outline-offset: 2px !important;
+}
+.axiom-network-flow .react-flow__controls {
+  background: #0F172A !important;
+  border: 1px solid #1E293B !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4) !important;
+}
+.axiom-network-flow .react-flow__controls-button {
+  background: #0F172A !important;
+  border-bottom: 1px solid #1E293B !important;
+  color: #94A3B8 !important;
+  fill: #94A3B8 !important;
+  transition: all 120ms ease-out !important;
+}
+.axiom-network-flow .react-flow__controls-button:hover {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+  fill: #F8FAFC !important;
+}
+.axiom-network-flow .react-flow__controls-button svg {
+  fill: currentColor !important;
+}
+.axiom-network-flow .react-flow__attribution {
+  background: rgba(10, 14, 23, 0.7) !important;
+  color: #64748B !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+}
+.axiom-network-flow .react-flow__attribution a {
+  color: #94A3B8 !important;
 }

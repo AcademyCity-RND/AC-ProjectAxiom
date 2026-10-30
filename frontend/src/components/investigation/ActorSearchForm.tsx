@@ -16,10 +16,10 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
 
   // Quick preset targets for 1-click live demo testing
   const presets = [
-    { label: '@cyber_agitator', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { label: '@bot_amplifier9', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { label: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', platform: 'youtube' as PlatformType, mode: 'event' as const },
-    { label: 'https://x.com/Kemhan_RI/status/1849372819203819201', platform: 'x' as PlatformType, mode: 'event' as const },
+    { name: '@cyber_agitator (Bot)', value: '@cyber_agitator', platform: 'x' as PlatformType, mode: 'actor' as const },
+    { name: '@bot_amplifier9 (Buzzer)', value: '@bot_amplifier9', platform: 'x' as PlatformType, mode: 'actor' as const },
+    { name: 'Kemhan RI (X Status)', value: 'https://x.com/Kemhan_RI/status/1849372819203819201', platform: 'x' as PlatformType, mode: 'event' as const },
+    { name: 'YouTube Video Demo', value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', platform: 'youtube' as PlatformType, mode: 'event' as const },
   ];
 
   const handleModeChange = (newMode: 'actor' | 'event') => {
@@ -231,25 +231,33 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
         )}
 
         {/* Quick Preset Chips for Live Testing */}
-        <div className="flex items-center gap-2 pt-1 text-xs text-slate-400">
-          <span className="text-[10px] uppercase tracking-wider font-mono text-slate-500 shrink-0">Preset Demo:</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 text-xs text-slate-400">
+          <span className="text-[10px] uppercase tracking-wider font-mono text-slate-500 shrink-0">Preset Sasaran:</span>
           <div className="flex items-center gap-1.5 flex-wrap">
-            {presets.map((p, idx) => (
-              <button
-                key={idx}
-                type="button"
-                disabled={isLoading}
-                onClick={() => {
-                  setMode(p.mode);
-                  setPlatform(p.platform);
-                  setInputVal(p.label);
-                  setErrorMsg(null);
-                }}
-                className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm truncate max-w-xs"
-              >
-                {p.label}
-              </button>
-            ))}
+            {presets.map((p, idx) => {
+              const isSelected = inputVal === p.value;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => {
+                    setMode(p.mode);
+                    setPlatform(p.platform);
+                    setInputVal(p.value);
+                    setErrorMsg(null);
+                  }}
+                  className={`text-[11px] font-mono px-2.5 py-1 rounded-md border transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm ${
+                    isSelected
+                      ? 'bg-sky-500/15 border-sky-500/50 text-sky-300 font-semibold shadow-xs'
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
+                  }`}
+                  title={`Klik untuk mengisi: ${p.value}`}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
           </div>
         </div>
       </form>

@@ -33,6 +33,8 @@ import {
   Clock,
   ShieldCheck,
   AlertCircle,
+  FileCheck2,
+  FolderOpen,
 } from 'lucide-react';
 import type { PlatformType } from './types';
 
@@ -245,22 +247,29 @@ export const App: React.FC = () => {
             STATUS ENGINE FASTAPI
           </div>
           <div className="flex items-baseline justify-between mt-3">
-            <span
-              className={`text-sm font-semibold font-mono tabular-nums ${
-                backendStatus === 'online'
-                  ? 'text-emerald-400'
-                  : backendStatus === 'checking'
-                  ? 'text-amber-400'
-                  : 'text-rose-400'
-              }`}
-            >
-              {backendStatus === 'online'
-                ? 'ONLINE (PORT 8000)'
-                : backendStatus === 'checking'
-                ? 'CONNECTING...'
-                : 'STANDALONE'}
-            </span>
-            <span className="text-xs text-slate-400 font-mono">70/70 Passed</span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                  backendStatus === 'online'
+                    ? 'bg-emerald-400 animate-pulse'
+                    : backendStatus === 'checking'
+                    ? 'bg-amber-400 animate-ping'
+                    : 'bg-rose-400'
+                }`}
+              />
+              <span
+                className={`text-xl sm:text-2xl font-semibold tracking-tight font-mono ${
+                  backendStatus === 'online'
+                    ? 'text-emerald-400'
+                    : backendStatus === 'checking'
+                    ? 'text-amber-400'
+                    : 'text-rose-400'
+                }`}
+              >
+                {backendStatus === 'online' ? 'ONLINE' : backendStatus === 'checking' ? 'SYNC' : 'OFFLINE'}
+              </span>
+            </div>
+            <span className="text-xs text-slate-400 font-mono">Port 8000 &bull; 70/70</span>
           </div>
         </div>
       </div>
@@ -269,7 +278,7 @@ export const App: React.FC = () => {
           GROUP 2: MAIN WORKSPACE VIEW (One Primary Task Per View, Low Cognitive Load)
       ========================================================================= */}
       {activeTab === 'overview' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in duration-150">
           {/* Header Controls: Single Primary Action CTA + Secondary Outline Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
@@ -387,8 +396,16 @@ export const App: React.FC = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-12 text-center text-xs text-slate-500 font-mono">
-                            Belum ada kasus investigasi tercatat di database.
+                          <td colSpan={5} className="py-12 text-center">
+                            <div className="max-w-xs mx-auto space-y-2">
+                              <div className="w-8 h-8 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
+                                <FolderOpen className="w-4 h-4" />
+                              </div>
+                              <div className="text-xs font-semibold text-slate-300">Belum Ada Kasus Terdaftar</div>
+                              <p className="text-[11px] text-slate-500 leading-relaxed font-mono">
+                                Jalankan investigasi akun atau gunakan preset demo di atas.
+                              </p>
+                            </div>
                           </td>
                         </tr>
                       )}
@@ -446,22 +463,29 @@ export const App: React.FC = () => {
                   <div className="cyber-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 shadow-sm">
                     <div className="text-xs text-slate-300 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                      <span>Analisis forensik selesai. Buka visualisasi jejaring atau analisis circadian:</span>
+                      <span>Analisis forensik selesai. Buka visualisasi jejaring, circadian, atau laporan:</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => setActiveTab('network')}
-                        className="px-3.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-sky-400 hover:text-sky-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-sky-400 hover:text-sky-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
                       >
                         <Share2 className="w-3.5 h-3.5" />
-                        Buka Graf CIB
+                        Graf CIB
                       </button>
                       <button
                         onClick={() => setActiveTab('narrative')}
-                        className="px-3.5 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
                       >
                         <Clock className="w-3.5 h-3.5" />
-                        Buka Circadian &amp; Entropi
+                        Circadian &amp; Entropi
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('reports')}
+                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+                      >
+                        <FileCheck2 className="w-3.5 h-3.5 text-sky-400" />
+                        Dossier Resmi
                       </button>
                     </div>
                   </div>
@@ -477,7 +501,7 @@ export const App: React.FC = () => {
           Per DESIGN.md Section 2 (Chart Limit Per View)
       ========================================================================= */}
       {activeTab === 'narrative' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
               <h1 className="text-lg font-semibold tracking-tight text-white">
@@ -534,7 +558,7 @@ export const App: React.FC = () => {
           MODULE 3: NETWORK GRAPH (Cytoscape / React Flow SNA Topology)
       ========================================================================= */}
       {activeTab === 'network' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
               <h1 className="text-lg font-semibold tracking-tight text-white">
@@ -558,7 +582,7 @@ export const App: React.FC = () => {
           MODULE 4: TARGET DIRECTORY & WATCHLIST
       ========================================================================= */}
       {activeTab === 'targets' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
               <h1 className="text-lg font-semibold tracking-tight text-white">
@@ -675,7 +699,7 @@ export const App: React.FC = () => {
           MODULE 5: CASE REPORTS & DUAL-TIER LEDGER EXPORT
       ========================================================================= */}
       {activeTab === 'reports' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in duration-150">
           {/* Export Action & Certificate Panel */}
           <ExportActionPanel
             caseId={currentCaseId}

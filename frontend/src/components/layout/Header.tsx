@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Radio, Activity, UserCheck, LogOut } from 'lucide-react';
+import { Shield, Radio, Activity, UserCheck, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onToggleMobileMenu?: () => void;
+  isMobileMenuOpen?: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu, isMobileMenuOpen }) => {
   const { operatorName, operatorRole, logout } = useAuthStore();
   const [timeStr, setTimeStr] = useState<string>('');
 
@@ -29,7 +34,17 @@ export const Header: React.FC = () => {
   return (
     <header className="h-16 border-b border-slate-800/80 bg-[#0A0E17]/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 transition-colors">
       {/* Brand & Subtitle */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        {onToggleMobileMenu && (
+          <button
+            type="button"
+            onClick={onToggleMobileMenu}
+            className="md:hidden p-2 rounded-md bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            aria-label="Toggle Navigation Menu"
+          >
+            {isMobileMenuOpen ? <X className="w-4 h-4 text-sky-400" /> : <Menu className="w-4 h-4" />}
+          </button>
+        )}
         <div className="w-9 h-9 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-sky-400 shadow-sm shrink-0">
           <Shield className="w-4 h-4 text-sky-400" />
         </div>
@@ -61,8 +76,8 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Real-time System Clock */}
-        <div className="hidden lg:flex items-center gap-2 text-xs font-mono tabular-nums text-slate-300 bg-slate-900/60 px-3 py-1.5 rounded-md border border-slate-800/80 shadow-sm">
-          <Activity className="w-3.5 h-3.5 text-sky-400" />
+        <div className="hidden lg:flex items-center gap-2 text-xs font-mono tabular-nums text-slate-300 bg-slate-900/60 px-3 py-1.5 rounded-md border border-slate-800/80 shadow-sm min-w-[210px] justify-center">
+          <Activity className="w-3.5 h-3.5 text-sky-400 shrink-0" />
           <span>{timeStr || 'Memuat waktu...'}</span>
         </div>
 
