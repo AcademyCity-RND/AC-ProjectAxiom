@@ -576,6 +576,7 @@ export const App: React.FC = () => {
               }}
               title="DATABASE SASARAN AKTIF (POSTGRESQL)"
               emptyMessage="Belum ada target atau kasus terdaftar di database PostgreSQL."
+              showFilters={true}
             />
           )}
         </div>

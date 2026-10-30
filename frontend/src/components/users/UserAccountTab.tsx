@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users,
   UserPlus,
@@ -8,8 +8,11 @@ import {
   Trash2,
   RefreshCw,
   AlertCircle,
+  Search,
+  X,
 } from 'lucide-react';
 import { StatCard } from '../common/StatCard';
+import { Pagination } from '../common/Pagination';
 import { UserCreateModal } from './UserCreateModal';
 import { api } from '../../services/api';
 import type { UserAccount } from '../../types';
@@ -34,6 +37,11 @@ export const UserAccountTab: React.FC<UserAccountTabProps> = ({
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [togglingUserId, setTogglingUserId] = useState<number | null>(null);
   const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<number | null>(null);
+
+  // Search & Pagination states
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const PAGE_SIZE = 8;
 
   const handleToggleStatus = async (user: UserAccount) => {
     if (user.role === 'admin') {
@@ -79,6 +87,23 @@ export const UserAccountTab: React.FC<UserAccountTabProps> = ({
     }
   };
 
+  // Filter users by search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    const q = searchQuery.toLowerCase().trim();
+    return users.filter(
+      (u) =>
+        u.username.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q) ||
+        String(u.id).includes(q)
+    );
+  }, [users, searchQuery]);
+
+  // Paginated users slice
+  const paginatedUsers = useMemo(() => {
+    return filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  }, [filteredUsers, currentPage]);
+
   return (
     <div className="space-y-4">
       {/* Metrik Akun Menggunakan Shared StatCard */}
@@ -108,16 +133,36 @@ export const UserAccountTab: React.FC<UserAccountTabProps> = ({
         />
       </div>
 
-      {/* Action Bar */}
+      {/* Action Bar: Search Input & Controls */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950/60 border border-slate-800/80 p-3 rounded-lg">
-        <div className="text-xs text-slate-300 flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 text-sky-400 shrink-0" />
-          <span>
-            Pengaturan wewenang sistem: Akun baru dibuat dengan wewenang{' '}
-            <strong className="text-sky-300 font-mono">USER</strong> (Analis). Hak Administrator dikunci.
-          </span>
+        {/* Search Bar User */}
+        <div className="relative min-w-[220px] max-w-sm flex-1">
+          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Cari username akun atau UID..."
+            className="w-full bg-slate-900 border border-slate-800 rounded pl-8 pr-8 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 font-mono shadow-inner"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setCurrentPage(1);
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              title="Bersihkan pencarian"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
 
+        {/* Buttons */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
@@ -148,7 +193,7 @@ export const UserAccountTab: React.FC<UserAccountTabProps> = ({
             DAFTAR AKUN OPERATOR SISTEM (POSTGRESQL)
           </div>
           <span className="text-xs font-mono tabular-nums text-slate-400">
-            Total: {users.length} Akun
+            {searchQuery ? `Hasil: ${filteredUsers.length} dari ${users.length} Akun` : `Total: ${users.length} Akun`}
           </span>
         </div>
 
@@ -171,8 +216,8 @@ export const UserAccountTab: React.FC<UserAccountTabProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {users.length > 0 ? (
-                users.map((u) => {
+              {paginatedUsers.length > 0 ? (
+                paginatedUsers.map((u) => {
                   const isAdmin = u.role === 'admin';
                   return (
                     <tr key={u.id} className="hover:bg-slate-800/30 transition-colors duration-150">
@@ -297,13 +342,26 @@ export const UserAccountTab: React.FC<UserAccountTabProps> = ({
               ) : (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-xs text-slate-500 font-mono">
-                    {isLoading ? 'Memuat data akun pengguna...' : 'Belum ada data akun.'}
+                    {isLoading
+                      ? 'Memuat data akun pengguna...'
+                      : searchQuery
+                      ? 'Tidak ada akun yang sesuai dengan pencarian.'
+                      : 'Belum ada data akun.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Paginasi Akun Pengguna */}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredUsers.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
+          itemLabel="akun operator"
+        />
       </div>
 
       <UserCreateModal
