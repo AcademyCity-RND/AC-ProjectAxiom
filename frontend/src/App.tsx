@@ -762,7 +762,6 @@ export const App: React.FC = () => {
             caseId={currentCaseId}
             onInspectRow={handleOpenInspector}
             onExportCsv={() => currentCaseId && api.downloadReport(currentCaseId, 'csv')}
-            onExportHtml={() => currentCaseId && api.downloadReport(currentCaseId, 'html')}
           />
         </div>
       )}

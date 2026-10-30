@@ -172,8 +172,8 @@ export const api = {
     return response.data;
   },
 
-  // 7. URL Ekspor Berkas Laporan Resmi (HTML/PDF/CSV)
-  getExportReportUrl: (caseId: string, format: 'html' | 'pdf' | 'csv'): string => {
+  // 7. URL Ekspor Berkas Laporan Resmi (PDF/CSV)
+  getExportReportUrl: (caseId: string, format: 'pdf' | 'csv'): string => {
     const base = API_BASE_URL.startsWith('http')
       ? API_BASE_URL
       : `${window.location.origin}${API_BASE_URL}`;
@@ -185,25 +185,36 @@ export const api = {
   // 7b. Eksekusi Unduh / Buka Berkas Laporan Terotentikasi (Blob Streaming)
   downloadReport: async (
     caseId: string,
-    format: 'html' | 'csv',
+    format: 'pdf' | 'csv',
     action: 'download' | 'view' = 'download'
   ): Promise<void> => {
     const response = await apiClient.get(`/export/report/${caseId}?format=${format}`, {
       responseType: 'blob',
     });
-    const mimeType = format === 'html' ? 'text/html;charset=utf-8' : 'text/csv;charset=utf-8';
+    const mimeType = format === 'pdf' ? 'text/html;charset=utf-8' : 'text/csv;charset=utf-8';
     const blob = new Blob([response.data], { type: mimeType });
     const blobUrl = window.URL.createObjectURL(blob);
 
-    if (action === 'view') {
-      const win = window.open(blobUrl, '_blank');
-      if (!win) {
-        window.location.href = blobUrl;
+    if (format === 'pdf') {
+      const targetUrl = action === 'download' ? `${blobUrl}#print` : blobUrl;
+      const win = window.open(targetUrl, '_blank');
+      if (win) {
+        if (action === 'download') {
+          win.onload = () => {
+            try { win.print(); } catch {}
+          };
+          setTimeout(() => {
+            try { win.print(); } catch {}
+          }, 600);
+        }
+      } else {
+        window.location.href = targetUrl;
       }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 120000);
     } else {
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = format === 'html' ? `axiom_dossier_${caseId}.html` : `axiom_ledger_${caseId}.csv`;
+      a.download = `axiom_ledger_${caseId}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();

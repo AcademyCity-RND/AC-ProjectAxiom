@@ -20,7 +20,7 @@ interface DualTierLedgerTableProps {
   caseId: string;
   onInspectRow: (data: any) => void;
   onExportCsv: () => void;
-  onExportHtml: () => void;
+  onExportHtml?: () => void;
 }
 
 export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
@@ -29,7 +29,6 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
   caseId,
   onInspectRow,
   onExportCsv,
-  onExportHtml,
 }) => {
   const [activeTier, setActiveTier] = useState<'tier1' | 'tier2'>('tier1');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -99,22 +98,14 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
             </button>
           </div>
 
-          {/* Export Buttons */}
+          {/* Export Raw CSV Button */}
           <button
             onClick={onExportCsv}
             title="Download Raw Ledger CSV"
             className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
           >
             <FileDown className="w-3.5 h-3.5 text-emerald-400" />
-            <span>CSV</span>
-          </button>
-          <button
-            onClick={onExportHtml}
-            title="Cetak Dossier Resmi (A4)"
-            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50"
-          >
-            <FileDown className="w-3.5 h-3.5 text-sky-400" />
-            <span>Dossier HTML</span>
+            <span>Unduh CSV</span>
           </button>
         </div>
       </div>
