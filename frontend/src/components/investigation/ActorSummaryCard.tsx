@@ -184,7 +184,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
         <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
           <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-            Burstiness Parameter
+            Parameter Lonjakan (Burstiness)
           </div>
           <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
             B = {burstiness}
@@ -193,7 +193,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
         <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
           <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider">
-            Entropi Temporal
+            Entropi Waktu (Temporal H)
           </div>
           <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
             H = {temporalEntropy}

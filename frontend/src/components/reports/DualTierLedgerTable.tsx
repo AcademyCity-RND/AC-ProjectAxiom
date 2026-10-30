@@ -79,7 +79,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
           <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-md text-xs shadow-inner">
             <button
               onClick={() => setActiveTier('tier1')}
-              className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+              className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                 activeTier === 'tier1'
                   ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -89,7 +89,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
             </button>
             <button
               onClick={() => setActiveTier('tier2')}
-              className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+              className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                 activeTier === 'tier2'
                   ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -103,7 +103,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
           <button
             onClick={onExportCsv}
             title="Download Raw Ledger CSV"
-            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
           >
             <FileDown className="w-3.5 h-3.5 text-emerald-400" />
             <span>CSV</span>
@@ -111,7 +111,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
           <button
             onClick={onExportHtml}
             title="Cetak Dossier Resmi (A4)"
-            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+            className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50"
           >
             <FileDown className="w-3.5 h-3.5 text-sky-400" />
             <span>Dossier HTML</span>
@@ -236,10 +236,10 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
             </div>
 
             {/* Quick Filter Pills */}
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1.5 text-xs flex-wrap">
               <button
                 onClick={() => setClassFilter('ALL')}
-                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                   classFilter === 'ALL'
                     ? 'bg-slate-800 text-sky-400 font-semibold border border-slate-700/80 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -249,7 +249,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               </button>
               <button
                 onClick={() => setClassFilter('BUZZER')}
-                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50 ${
                   classFilter === 'BUZZER'
                     ? 'bg-amber-950/40 text-amber-400 font-semibold border border-amber-500/30 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -259,7 +259,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               </button>
               <button
                 onClick={() => setClassFilter('BOT')}
-                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-500/50 ${
                   classFilter === 'BOT'
                     ? 'bg-rose-950/40 text-rose-400 font-semibold border border-rose-500/30 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -269,7 +269,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
               </button>
               <button
                 onClick={() => setClassFilter('ORGANIC')}
-                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/50 ${
                   classFilter === 'ORGANIC'
                     ? 'bg-emerald-950/40 text-emerald-400 font-semibold border border-emerald-500/30 shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'

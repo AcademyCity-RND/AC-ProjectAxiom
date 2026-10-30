@@ -162,12 +162,12 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
         </div>
 
         <div className="flex items-center gap-1.5 text-xs flex-wrap">
-          <span className="text-[11px] text-slate-500 mr-1 flex items-center gap-1">
+          <span className="text-[11px] text-slate-500 mr-1 flex items-center gap-1 font-mono">
             <Filter className="w-3 h-3" /> Tag:
           </span>
           <button
             onClick={() => setSelectedTag('ALL')}
-            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
+            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
               selectedTag === 'ALL'
                 ? 'bg-slate-800 text-sky-400 font-semibold border border-slate-700/80 shadow-xs'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
@@ -177,7 +177,7 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
           </button>
           <button
             onClick={() => setSelectedTag('suspicious_cib')}
-            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
+            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50 ${
               selectedTag === 'suspicious_cib'
                 ? 'bg-amber-950/40 text-amber-400 font-semibold border border-amber-500/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
@@ -187,7 +187,7 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
           </button>
           <button
             onClick={() => setSelectedTag('propaganda_botnet')}
-            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
+            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-500/50 ${
               selectedTag === 'propaganda_botnet'
                 ? 'bg-rose-950/40 text-rose-400 font-semibold border border-rose-500/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
@@ -197,7 +197,7 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
           </button>
           <button
             onClick={() => setSelectedTag('buzzer_coordinator')}
-            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 ${
+            className={`px-2.5 py-1 rounded text-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 ${
               selectedTag === 'buzzer_coordinator'
                 ? 'bg-purple-950/40 text-purple-400 font-semibold border border-purple-500/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'

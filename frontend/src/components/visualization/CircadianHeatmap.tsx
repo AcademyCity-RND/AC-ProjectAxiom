@@ -84,11 +84,11 @@ export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
         </div>
 
         {/* Pattern Badge */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {data.pattern_type === 'STRUCTURED_OFFICE_HOURS' ? (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
               <AlertTriangle className="w-3 h-3" />
-              SINDINIKAT OPERATOR BUZZER (JAM KERJA)
+              SINDIKAT OPERATOR BUZZER (JAM KERJA)
             </span>
           ) : data.pattern_type === 'CONTINUOUS_24_7_AUTOMATION' ? (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
@@ -144,9 +144,10 @@ export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
                 return (
                   <div
                     key={hour}
+                    onClick={() => setHoveredCell({ day: days[dayIdx], hour, count })}
                     onMouseEnter={() => setHoveredCell({ day: days[dayIdx], hour, count })}
                     onMouseLeave={() => setHoveredCell(null)}
-                    className={`h-6 rounded-[2px] border text-[9px] tabular-nums flex items-center justify-center cursor-pointer transition-colors duration-100 ${cellColor}`}
+                    className={`h-6 rounded-[2px] border text-[9px] tabular-nums flex items-center justify-center cursor-pointer transition-colors duration-100 select-none ${cellColor}`}
                     title={`${days[dayIdx]} ${hour.toString().padStart(2, '0')}:00 - ${count} postingan`}
                   >
                     {count > 0 && count >= maxVal * 0.5 ? count : ''}

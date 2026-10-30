@@ -352,11 +352,11 @@ export const App: React.FC = () => {
                   <table className="w-full text-left text-[13px]">
                     <thead className="border-b border-slate-800/80 text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 bg-slate-950/40">
                       <tr>
-                        <th className="py-3 px-5">Target / Akun</th>
-                        <th className="py-3 px-5">Platform</th>
-                        <th className="py-3 px-5">Klasifikasi AI</th>
-                        <th className="py-3 px-5">Waktu</th>
-                        <th className="py-3 px-5 text-right">Aksi</th>
+                        <th className="py-3 px-3.5 sm:px-5">Target / Akun</th>
+                        <th className="py-3 px-3.5 sm:px-5">Platform</th>
+                        <th className="py-3 px-3.5 sm:px-5">Klasifikasi AI</th>
+                        <th className="py-3 px-3.5 sm:px-5">Waktu</th>
+                        <th className="py-3 px-3.5 sm:px-5 text-right">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/50">
@@ -370,16 +370,16 @@ export const App: React.FC = () => {
                             }}
                             className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                           >
-                            <td className="py-3.5 px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
+                            <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
                               {rc.target}
                             </td>
-                            <td className="py-3.5 px-5 font-mono text-xs uppercase text-slate-300">
+                            <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">
                               {rc.platform}
                             </td>
-                            <td className="py-3.5 px-5">
+                            <td className="py-3.5 px-3.5 sm:px-5">
                               <ThreatBadge type="class" value={rc.verdict || rc.status} />
                             </td>
-                            <td className="py-3.5 px-5 font-mono tabular-nums text-xs text-slate-400">
+                            <td className="py-3.5 px-3.5 sm:px-5 font-mono tabular-nums text-xs text-slate-400">
                               {(rc as any).created_at
                                 ? new Date((rc as any).created_at).toLocaleTimeString('id-ID', {
                                     hour: '2-digit',
@@ -387,7 +387,7 @@ export const App: React.FC = () => {
                                   })
                                 : (rc as any).date || '-'}
                             </td>
-                            <td className="py-3.5 px-5 text-right">
+                            <td className="py-3.5 px-3.5 sm:px-5 text-right">
                               <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
                                 Buka <ChevronRight className="w-3.5 h-3.5" />
                               </span>
@@ -463,26 +463,26 @@ export const App: React.FC = () => {
                   <div className="cyber-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 shadow-sm">
                     <div className="text-xs text-slate-300 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                      <span>Analisis forensik selesai. Buka visualisasi jejaring, circadian, atau laporan:</span>
+                      <span>Analisis forensik selesai. Buka visualisasi jejaring CIB, matriks sirkadian, atau berkas dossier:</span>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => setActiveTab('network')}
-                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-sky-400 hover:text-sky-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-sky-400 hover:text-sky-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
                       >
                         <Share2 className="w-3.5 h-3.5" />
                         Graf CIB
                       </button>
                       <button
                         onClick={() => setActiveTab('narrative')}
-                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50 cursor-pointer shadow-sm"
                       >
                         <Clock className="w-3.5 h-3.5" />
-                        Circadian &amp; Entropi
+                        Sirkadian &amp; Entropi
                       </button>
                       <button
                         onClick={() => setActiveTab('reports')}
-                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
                       >
                         <FileCheck2 className="w-3.5 h-3.5 text-sky-400" />
                         Dossier Resmi
@@ -513,20 +513,20 @@ export const App: React.FC = () => {
             </div>
 
             {/* Sub-View Switcher (Segmented Control) */}
-            <div className="flex items-center p-1 bg-slate-950 border border-slate-800/80 rounded-md text-xs shadow-inner">
+            <div className="flex items-center p-1 bg-slate-950 border border-slate-800/80 rounded-md text-xs shadow-inner overflow-x-auto max-w-full">
               <button
                 onClick={() => setNarrativeSubView('circadian_entropy')}
-                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                   narrativeSubView === 'circadian_entropy'
                     ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
-                Circadian 24x7 &amp; Entropi
+                Matriks Sirkadian (24x7) &amp; Entropi
               </button>
               <button
                 onClick={() => setNarrativeSubView('drift')}
-                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                   narrativeSubView === 'drift'
                     ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -565,7 +565,7 @@ export const App: React.FC = () => {
                 Graf Jejaring Sindikat CIB (Social Network Analysis)
               </h1>
               <p className="text-xs text-slate-400 mt-0.5">
-                Visualisasi keterpautan semantik MiniLM ({'{'}cosine{'}'} &ge; 0.85) dan sinkronisasi temporal akun penyerang.
+                Visualisasi keterpautan semantik MiniLM (Cosine &ge; 0.85) dan sinkronisasi temporal akun penyerang.
               </p>
             </div>
           </div>
@@ -594,10 +594,10 @@ export const App: React.FC = () => {
             </div>
 
             {/* Sub-View Switcher: Cases vs Watchlist */}
-            <div className="flex items-center p-1 bg-slate-950 border border-slate-800/80 rounded-md text-xs shadow-inner self-start sm:self-auto">
+            <div className="flex items-center p-1 bg-slate-950 border border-slate-800/80 rounded-md text-xs shadow-inner self-start sm:self-auto overflow-x-auto max-w-full">
               <button
                 onClick={() => setTargetsSubView('cases')}
-                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                   targetsSubView === 'cases'
                     ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -607,7 +607,7 @@ export const App: React.FC = () => {
               </button>
               <button
                 onClick={() => setTargetsSubView('watchlist')}
-                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer ${
+                className={`px-3 py-1 rounded transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 ${
                   targetsSubView === 'watchlist'
                     ? 'bg-slate-800 text-sky-400 border border-slate-700/80 font-medium shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
@@ -641,11 +641,11 @@ export const App: React.FC = () => {
                 <table className="w-full text-left text-[13px]">
                   <thead className="border-b border-slate-800/80 text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400 bg-slate-950/40">
                     <tr>
-                      <th className="py-3 px-5">Target / Akun</th>
-                      <th className="py-3 px-5">Platform</th>
-                      <th className="py-3 px-5">Klasifikasi AI</th>
-                      <th className="py-3 px-5">Case ID</th>
-                      <th className="py-3 px-5 text-right">Aksi</th>
+                      <th className="py-3 px-3.5 sm:px-5">Target / Akun</th>
+                      <th className="py-3 px-3.5 sm:px-5">Platform</th>
+                      <th className="py-3 px-3.5 sm:px-5">Klasifikasi AI</th>
+                      <th className="py-3 px-3.5 sm:px-5">Case ID</th>
+                      <th className="py-3 px-3.5 sm:px-5 text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
@@ -660,7 +660,7 @@ export const App: React.FC = () => {
                           }}
                           className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                         >
-                          <td className="py-3.5 px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
+                          <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
                             {rc.target}
                             {(rc as any).display_name && (
                               <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5">
@@ -668,12 +668,12 @@ export const App: React.FC = () => {
                               </span>
                             )}
                           </td>
-                          <td className="py-3.5 px-5 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
-                          <td className="py-3.5 px-5">
+                          <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">{rc.platform}</td>
+                          <td className="py-3.5 px-3.5 sm:px-5">
                             <ThreatBadge type="class" value={rc.verdict || rc.status} />
                           </td>
-                          <td className="py-3.5 px-5 font-mono text-xs text-slate-400">{rc.case_id}</td>
-                          <td className="py-3.5 px-5 text-right">
+                          <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs text-slate-400">{rc.case_id}</td>
+                          <td className="py-3.5 px-3.5 sm:px-5 text-right">
                             <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
                               Buka Dossier <ChevronRight className="w-3.5 h-3.5" />
                             </span>

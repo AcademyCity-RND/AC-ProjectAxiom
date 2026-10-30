@@ -58,6 +58,15 @@ table,
   font-variant-numeric: tabular-nums;
 }
 
+/* Typographic polish — balanced headings and pretty body wrapping (Butterick / Impeccable) */
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+p, li, .prose {
+  text-wrap: pretty;
+}
+
 /* Forensic Monospace strictly for identifiers, hashes, and timestamps */
 .font-forensic {
   font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;

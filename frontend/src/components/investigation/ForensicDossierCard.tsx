@@ -23,7 +23,7 @@ export const ForensicDossierCard: React.FC<ForensicDossierCardProps> = ({
       'Pola posting sinkron pada jam kerja terstruktur (Chi-Square p < 0.001)',
       'Tingkat kesamaan semantik embeddings MiniLM > 0.88 terhadap 18 akun klaster',
       'Entropi interval posting sangat rendah (H_norm = 0.24) mengindikasikan otomasi terjadwal',
-      'Distribusi rasio URL dan retweet melebihi batas batas wajar akun organik sipil',
+      'Distribusi rasio URL dan retweet melebihi batas wajar akun organik sipil',
     ],
     tactical_recommendation:
       'Lakukan isolasi klaster CIB pada sistem firewall pertahanan informasi, daftarkan seluruh 18 akun afiliasi ke Watchlist Prioritas, dan eskalasikan laporan forensik ke Satgas Penerangan PUSSIBERAD.',
@@ -84,7 +84,7 @@ export const ForensicDossierCard: React.FC<ForensicDossierCardProps> = ({
         <div className="bg-slate-950 border border-slate-800/80 p-3 rounded-md space-y-1 shadow-inner">
           <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider flex items-center gap-1.5">
             <FileText className="w-3.5 h-3.5 text-amber-400" />
-            Institusi / Sasaran Ditarget
+            Institusi / Entitas Sasaran
           </div>
           <div className="text-xs font-medium text-slate-200 leading-snug">
             {activeDossier.target_institution}
@@ -95,7 +95,7 @@ export const ForensicDossierCard: React.FC<ForensicDossierCardProps> = ({
       {/* Forensic Evidence Points */}
       <div className="space-y-2">
         <div className="text-[10px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-          FAKTA &amp; TITIK BUKTI FORENSIK TERVERIFIKASI
+          FAKTA &amp; BUKTI FORENSIK TERVERIFIKASI
         </div>
         <ul className="space-y-1.5">
           {activeDossier.evidence_points.map((pt, idx) => (

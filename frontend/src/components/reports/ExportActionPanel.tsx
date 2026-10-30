@@ -94,7 +94,7 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
               </span>
             </div>
             <h2 className="text-base font-semibold tracking-tight text-white mt-0.5">
-              Pusat Penerbitan &amp; Ekspor Berkas Barang Bukti Hukum
+              Pusat Penerbitan &amp; Ekspor Berkas Bukti Digital
             </h2>
           </div>
         </div>
