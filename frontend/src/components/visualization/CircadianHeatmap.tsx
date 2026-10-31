@@ -8,10 +8,13 @@ interface CircadianHeatmapProps {
   data?: CircadianHeatmapData | null;
 }
 
+const EMPTY_LEDGER: any[] = [];
+
 export const CircadianHeatmap: React.FC<CircadianHeatmapProps> = ({ data }) => {
   const [hoveredCell, setHoveredCell] = useState<{ day: string; hour: number; count: number } | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ day: string; dayIdx: number; hour: number; count: number } | null>(null);
-  const fullLedger = useCaseStore((s) => s.activeLedger?.full_ledger || []);
+  const activeLedger = useCaseStore((s) => s.activeLedger);
+  const fullLedger = activeLedger?.full_ledger ?? EMPTY_LEDGER;
 
   // Filter aktivitas komentator riil yang terjadi pada hari dan jam terpilih
   const cellActivities = useMemo(() => {

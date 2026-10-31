@@ -49,6 +49,7 @@ export const App: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<InspectorData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [showSearchForm, setShowSearchForm] = useState<boolean>(true);
+  const [overviewPage, setOverviewPage] = useState<number>(1);
   const [targetDirectoryPage, setTargetDirectoryPage] = useState<number>(1);
   const TARGET_PAGE_SIZE = 8;
 
@@ -138,6 +139,34 @@ export const App: React.FC = () => {
     } else {
       handleNewInvestigation();
     }
+  };
+
+  // Inspeksi sasaran langsung di halaman Target Directory tanpa redirect paksa
+  const handleInspectCaseFromDirectory = async (caseId: string, caseItem?: any) => {
+    try {
+      await loadCaseDetails(caseId);
+    } catch (err) {
+      console.warn('[LoadCaseDetails notice]:', err);
+    }
+    const current = useCaseStore.getState().activeCase || caseItem;
+    const verdict = current?.detection?.predicted_class || current?.verdict || 'TERVERIFIKASI';
+    const conf = current?.detection?.confidence || current?.confidence || 0.95;
+    const level = verdict === 'BOT' ? 'CRITICAL' : verdict === 'BUZZER' ? 'HIGH' : 'LOW';
+
+    handleOpenInspector({
+      title: current?.target?.startsWith('@') ? current.target : `@${current?.target || caseId}`,
+      subtitle: `Sasaran Terdaftar (${(current?.platform || 'X').toUpperCase()}) • ID Kasus: ${caseId.slice(0, 8)}`,
+      threatClass: verdict,
+      confidence: conf,
+      threatLevel: level,
+      indicators: [
+        { label: 'Platform Sasaran', value: (current?.platform || 'x').toUpperCase(), mono: true },
+        { label: 'Status Investigasi', value: (current?.status || 'completed').toUpperCase(), mono: true },
+        { label: 'Waktu Audit Awal', value: current?.created_at ? new Date(current.created_at).toLocaleString('id-ID') : 'N/A' },
+        { label: 'Status Ekstraksi CIB', value: 'Terpetakan di PostgreSQL' },
+      ],
+      rawMetadata: { case_id: caseId, ...current },
+    });
   };
 
   // Handler search dari ActorSearchForm
@@ -463,15 +492,15 @@ export const App: React.FC = () => {
               {/* Table of Past Cases Menggunakan Shared CasesTable */}
               <CasesTable
                 cases={displayCases}
-                currentPage={1}
+                currentPage={overviewPage}
                 pageSize={8}
-                onPageChange={() => {}}
+                onPageChange={setOverviewPage}
                 onSelectCase={(cid) => {
                   loadCaseDetails(cid);
                   setShowSearchForm(false);
                 }}
                 title="DAFTAR KASUS TERAKHIR DIPERIKSA (POSTGRESQL)"
-                emptyMessage="Belum ada kasus terdaftar. Jalankan investigasi akun atau gunakan preset di atas."
+                emptyMessage="Belum ada riwayat kasus terdaftar. Masukkan sasaran target akun atau link postingan di atas untuk memulai audit forensik."
               />
             </div>
           ) : (
@@ -719,10 +748,8 @@ export const App: React.FC = () => {
               currentPage={targetDirectoryPage}
               pageSize={TARGET_PAGE_SIZE}
               onPageChange={setTargetDirectoryPage}
-              onSelectCase={(cid) => {
-                loadCaseDetails(cid);
-                setActiveTab('overview');
-                setShowSearchForm(false);
+              onSelectCase={(cid, item) => {
+                handleInspectCaseFromDirectory(cid, item);
               }}
               title="DATABASE SASARAN AKTIF (POSTGRESQL)"
               emptyMessage="Belum ada target atau kasus terdaftar di database PostgreSQL."
@@ -772,6 +799,12 @@ export const App: React.FC = () => {
         isOpen={isDrawerOpen}
         onClose={handleCloseInspector}
         data={selectedItem}
+        onOpenCaseWorkspace={(caseId) => {
+          loadCaseDetails(caseId);
+          setActiveTab('overview');
+          setShowSearchForm(false);
+          setIsDrawerOpen(false);
+        }}
       />
     </Layout>
   );

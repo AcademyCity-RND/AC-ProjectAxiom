@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Radio, Video, Camera, AlertCircle, Sparkles } from 'lucide-react';
+import { Search, Radio, Video, Camera, AlertCircle, Sparkles, X } from 'lucide-react';
 import type { PlatformType } from '../../types';
 
 interface ActorSearchFormProps {
@@ -14,15 +14,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
   const [maxCount, setMaxCount] = useState<number>(150);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Quick preset targets for 1-click live demo testing across 6 channels
-  const presets = [
-    { name: 'X Aktor (@Kemhan_RI)', value: '@Kemhan_RI', platform: 'x' as PlatformType, mode: 'actor' as const },
-    { name: 'X Tweet (/status/)', value: 'https://x.com/Kemhan_RI/status/1849372819203819201', platform: 'x' as PlatformType, mode: 'event' as const },
-    { name: 'YT Video (HGgCE9a7BjU)', value: 'https://www.youtube.com/watch?v=HGgCE9a7BjU', platform: 'youtube' as PlatformType, mode: 'event' as const },
-    { name: 'YT Shorts (p66hnaKuB3o)', value: 'https://www.youtube.com/shorts/p66hnaKuB3o', platform: 'youtube' as PlatformType, mode: 'event' as const },
-    { name: 'IG Reel (DOFtzyCkzNq)', value: 'https://www.instagram.com/reel/DOFtzyCkzNq/', platform: 'instagram' as PlatformType, mode: 'event' as const },
-    { name: 'IG Post (DfCR3JPlK9F)', value: 'https://www.instagram.com/p/DfCR3JPlK9F/', platform: 'instagram' as PlatformType, mode: 'event' as const },
-  ];
+
 
   const detectPlatformFromUrl = (url: string): PlatformType => {
     const lower = url.toLowerCase();
@@ -149,12 +141,21 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
                   ? 'Contoh: @cyber_agitator atau nama target'
                   : 'Contoh: URL video YouTube, postingan IG, atau cuitan X (status)'
               }
-              className="w-full h-10 px-3.5 bg-slate-950 border border-slate-800 rounded-md text-xs font-forensic text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all shadow-inner"
+              className="w-full h-10 pl-3.5 pr-9 bg-slate-950 border border-slate-800 rounded-md text-xs font-forensic text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition-all shadow-inner"
             />
-            {mode === 'actor' && (
-              <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono select-none">
-                {platform.toUpperCase()}
-              </span>
+            {inputVal && !isLoading && (
+              <button
+                type="button"
+                onClick={() => {
+                  setInputVal('');
+                  setErrorMsg(null);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Bersihkan input sasaran"
+                aria-label="Bersihkan input sasaran"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
 
@@ -255,36 +256,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
           </div>
         )}
 
-        {/* Quick Preset Chips for Live Testing */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 text-xs text-slate-400">
-          <span className="text-[10px] uppercase tracking-wider font-mono text-slate-500 shrink-0">Preset Sasaran:</span>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {presets.map((p, idx) => {
-              const isSelected = inputVal === p.value;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => {
-                    setMode(p.mode);
-                    setPlatform(p.platform);
-                    setInputVal(p.value);
-                    setErrorMsg(null);
-                  }}
-                  className={`text-[11px] font-mono px-2.5 py-1 rounded-md border transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm ${
-                    isSelected
-                      ? 'bg-sky-500/15 border-sky-500/50 text-sky-300 font-semibold shadow-xs'
-                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
-                  }`}
-                  title={`Klik untuk mengisi: ${p.value}`}
-                >
-                  {p.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+
       </form>
     </div>
   );

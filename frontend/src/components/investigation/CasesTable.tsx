@@ -18,7 +18,7 @@ interface CasesTableProps {
   currentPage?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
-  onSelectCase: (caseId: string) => void;
+  onSelectCase: (caseId: string, caseItem?: CaseSummary) => void;
   title?: string;
   emptyMessage?: string;
   showFilters?: boolean;
@@ -117,10 +117,17 @@ export const CasesTable: React.FC<CasesTableProps> = ({
   emptyMessage = 'Belum ada target atau kasus terdaftar di database PostgreSQL.',
   showFilters = false,
 }) => {
-  // Internal pagination state if not controlled externally
+  // Internal pagination state with fallback
   const [internalPage, setInternalPage] = useState<number>(1);
   const page = externalPage !== undefined ? externalPage : internalPage;
-  const setPage = externalOnPageChange || setInternalPage;
+
+  const handlePageChange = (newPage: number) => {
+    setInternalPage(newPage);
+    if (externalOnPageChange) {
+      externalOnPageChange(newPage);
+    }
+  };
+  const setPage = handlePageChange;
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -267,7 +274,7 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                 paginatedCases.map((rc, idx) => (
                   <tr
                     key={rc.case_id || idx}
-                    onClick={() => onSelectCase(rc.case_id)}
+                    onClick={() => onSelectCase(rc.case_id, rc)}
                     className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                   >
                     {(() => {
@@ -309,7 +316,7 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                     </td>
                     <td className="py-3.5 px-3.5 sm:px-5 text-right">
                       <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
-                        Buka Kasus <ChevronRight className="w-3.5 h-3.5" />
+                        Inspeksi Detail <ChevronRight className="w-3.5 h-3.5" />
                       </span>
                     </td>
                   </tr>
@@ -331,7 +338,7 @@ export const CasesTable: React.FC<CasesTableProps> = ({
           currentPage={page}
           totalItems={filteredCases.length}
           pageSize={pageSize}
-          onPageChange={setPage}
+          onPageChange={handlePageChange}
           itemLabel="kasus"
         />
       </div>

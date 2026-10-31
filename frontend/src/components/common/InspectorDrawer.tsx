@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ShieldAlert, Check, ChevronRight } from 'lucide-react';
+import { X, ShieldAlert, Check, ChevronRight, ExternalLink } from 'lucide-react';
 import { ThreatBadge } from './ThreatBadge';
 import { useCaseStore } from '../../store/useCaseStore';
 
@@ -20,12 +20,14 @@ interface InspectorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   data: InspectorData | null;
+  onOpenCaseWorkspace?: (caseId: string) => void;
 }
 
 export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   isOpen,
   onClose,
   data,
+  onOpenCaseWorkspace,
 }) => {
   const [isAdded, setIsAdded] = useState<boolean>(false);
   const [isAdding, setIsAdding] = useState<boolean>(false);
@@ -262,7 +264,21 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
       </div>
 
       {/* Drawer Footer Actions */}
-      <div className="p-3.5 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between gap-2">
+      <div className="p-3.5 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between gap-2 flex-wrap">
+        {data.rawMetadata && Boolean((data.rawMetadata as any).case_id || (data.rawMetadata as any).id) && onOpenCaseWorkspace && (
+          <button
+            type="button"
+            onClick={() => {
+              const cid = String((data.rawMetadata as any).case_id || (data.rawMetadata as any).id);
+              onOpenCaseWorkspace(cid);
+            }}
+            className="px-3 py-1.5 rounded text-xs inline-flex items-center gap-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+            title="Muat seluruh data kasus ini ke dalam Workspace (Graf Jejaring, Sirkadian, Buku Besar)"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Buka di Workspace</span>
+          </button>
+        )}
         {isAccount ? (
           <button
             onClick={handleAddToWatchlist}
