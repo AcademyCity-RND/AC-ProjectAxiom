@@ -52,17 +52,18 @@ def export_case_report(
             evidence_hash = dossier_data.get("cryptographic_hash", "")
             target_account = dossier_data.get("case", {}).get("target", "unknown")
 
-            # Catat jejak audit pengunduhan dossier resmi untuk pelacakan kebocoran (leak tracing)
+            # Catat jejak audit pratinjau HTML atau unduh PDF resmi secara presisi
+            audit_action = "DOWNLOAD_DOSSIER_PDF" if fmt == "pdf" else "VIEW_DOSSIER_HTML"
             log_activity(
                 db=db,
                 username=current_user.sub or "anonymous",
                 role=current_user.role or "user",
-                action="DOWNLOAD_DOSSIER_PDF",
+                action=audit_action,
                 target=f"case:{case_id}",
                 details={
                     "case_id": case_id,
                     "target_account": target_account,
-                    "format": "pdf",
+                    "format": fmt,
                     "evidence_sha256": evidence_hash,
                     "document_code": f"DOSSIER-{case_id[:8]}",
                 },

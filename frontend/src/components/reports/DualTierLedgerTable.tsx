@@ -143,17 +143,38 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                   attackers.map((atk, idx) => (
                     <tr
                       key={idx}
-                      onClick={() =>
+                      onClick={() => {
+                        const rawScore = atk.risk_score ?? 0;
+                        const pctScore = rawScore <= 1.0 ? Math.round(rawScore * 100) : Math.round(rawScore);
+                        const computedLevel =
+                          atk.estimated_category === 'BOT' || pctScore >= 70
+                            ? 'CRITICAL'
+                            : atk.estimated_category === 'BUZZER' || pctScore >= 40
+                            ? 'HIGH'
+                            : 'LOW';
+
+                        const matchedComments = fullLedger
+                          .filter(
+                            (l) => l.username.toLowerCase() === atk.username.toLowerCase()
+                          )
+                          .map((l) => ({
+                            text: l.content,
+                            timestamp: l.published_at,
+                            likes: l.likes,
+                          }));
+
                         onInspectRow({
-                          title: atk.username,
-                          subtitle: `Top Attacker #${idx + 1} - Skor Risiko ${atk.risk_score}`,
+                          title: `@${atk.username.replace(/^@/, '')}`,
+                          subtitle: `Top Attacker #${idx + 1} • Skor Risiko ${pctScore}%`,
                           threatClass: atk.estimated_category,
-                          threatLevel: atk.risk_score >= 80 ? 'CRITICAL' : atk.risk_score >= 50 ? 'HIGH' : 'LOW',
+                          confidence: pctScore / 100,
+                          threatLevel: computedLevel,
+                          comments: matchedComments,
                           indicators: [
                             { label: 'Jumlah Komentar/Post', value: String(atk.comment_count), mono: true },
                             { label: 'Koneksi Klaster CIB', value: `${atk.cluster_connections || 0} Akun`, mono: true },
                             { label: 'Masuk Jendela Lonjakan (Burst)', value: atk.posted_in_burst_window ? 'Ya' : 'Tidak' },
-                            { label: 'Skor Risiko Terhitung', value: `${atk.risk_score} / 100`, mono: true },
+                            { label: 'Skor Risiko Terhitung', value: `${pctScore}%`, mono: true },
                             ...(atk.account_age_days_at_comment !== undefined
                               ? [{ label: 'Usia Akun Saat Komentar', value: `${atk.account_age_days_at_comment} hari`, mono: true }]
                               : []),
@@ -164,8 +185,9 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                               ? [{ label: 'Sinyal Anomali Forensik', value: atk.signals.join(' • ') }]
                               : []),
                           ],
-                        })
-                      }
+                          rawMetadata: atk,
+                        });
+                      }}
                       className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                     >
                       <td className="py-3 px-4 font-mono font-medium text-sky-400 group-hover:text-sky-300">
@@ -321,22 +343,40 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                   filteredLedger.map((item) => (
                     <tr
                       key={item.index}
-                      onClick={() =>
+                      onClick={() => {
+                        const rawScore = item.risk_score ?? 0;
+                        const pctScore = rawScore <= 1.0 ? Math.round(rawScore * 100) : Math.round(rawScore);
+                        const computedLevel =
+                          item.estimated_class === 'BOT' || pctScore >= 70
+                            ? 'CRITICAL'
+                            : item.estimated_class === 'BUZZER' || pctScore >= 40
+                            ? 'HIGH'
+                            : 'LOW';
+
                         onInspectRow({
-                          title: item.username,
-                          subtitle: `${item.platform} &bull; Diposting pada: ${item.published_at}`,
+                          title: `@${item.username.replace(/^@/, '')}`,
+                          subtitle: `${item.platform?.toUpperCase() || 'PLATFORM'} • Diposting: ${new Date(item.published_at).toLocaleString('id-ID')}`,
                           threatClass: item.estimated_class,
-                          threatLevel: item.risk_score >= 80 ? 'CRITICAL' : item.risk_score >= 50 ? 'HIGH' : 'LOW',
+                          confidence: pctScore / 100,
+                          threatLevel: computedLevel,
                           textSnippet: item.content,
+                          comments: [
+                            {
+                              text: item.content,
+                              timestamp: item.published_at,
+                              likes: item.likes,
+                            },
+                          ],
                           indicators: [
                             { label: 'Kesamaan Klaster CIB', value: item.cluster_similarity ? item.cluster_similarity.toFixed(3) : '0.00', mono: true },
                             { label: 'Terpaut Klaster CIB', value: item.in_cib_cluster ? 'Ya' : 'Tidak' },
                             { label: 'Terdeteksi Jendela Burst', value: item.in_burst_window ? 'Ya' : 'Tidak' },
                             { label: 'Jumlah Like & Reply', value: `${item.likes} Likes / ${item.replies} Replies`, mono: true },
+                            { label: 'Skor Risiko Terhitung', value: `${pctScore}%`, mono: true },
                           ],
                           rawMetadata: item,
-                        })
-                      }
+                        });
+                      }}
                       className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                     >
                       <td className="py-3 px-4 font-mono font-medium text-sky-400 group-hover:text-sky-300 truncate max-w-[150px]">

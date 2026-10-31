@@ -224,6 +224,10 @@ def list_investigation_cases(
     Mendukung paginasi dan filter platform / status.
     """
     query = db.query(InvestigationCase)
+    # Isolasi kasus: Operator biasa hanya dapat melihat kasus miliknya sendiri, Admin dapat melihat seluruhnya
+    if current_user.role != UserRole.ADMIN.value:
+        query = query.filter(InvestigationCase.created_by == current_user.sub)
+
     if platform:
         query = query.filter(InvestigationCase.platform == platform.lower())
     if status_filter:
@@ -252,10 +256,24 @@ def list_investigation_cases(
                 or creator.get("channel_title")
                 or creator.get("display_name")
             )
-            title = host_meta.get("title")
-            display_name = creator_name or (title[:40] if title else f"{c.platform.upper()} Content Event")
+            title = host_meta.get("title") or host_meta.get("caption")
+
+            # Khusus X (tweet / user): tulis username penulis saja
+            if "/status/" in c.target.lower():
+                try:
+                    after_domain = c.target.split("://")[1].split("/", 1)[1]
+                    author_handle = after_domain.split("/status/")[0].strip()
+                    display_name = f"@{author_handle}" if author_handle else (creator_name or f"{c.platform.upper()} Tweet")
+                except Exception:
+                    display_name = creator_name or f"{c.platform.upper()} Tweet"
+            else:
+                # Untuk 4 sisanya (YT Video, YT Shorts, IG Reel, IG Post): gunakan judul/caption
+                display_name = title or creator_name or f"{c.platform.upper()} Content Event"
         else:
-            display_name = actor.display_name if actor else None
+            if c.platform == "x" and not c.target.startswith("http"):
+                display_name = c.target if c.target.startswith("@") else f"@{c.target}"
+            else:
+                display_name = (actor.display_name or (f"@{actor.username}" if actor and actor.username else None)) if actor else None
 
         result.append({
             "case_id": c.id,

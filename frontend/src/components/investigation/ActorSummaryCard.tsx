@@ -352,13 +352,13 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
               <div className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-md shadow-inner">
                 <div className="text-[10px] uppercase font-semibold text-slate-400 font-mono tracking-wider flex items-center gap-1.5">
                   <ThumbsUp className="w-3 h-3 text-emerald-400" />
-                  <span>Suka / Dislike</span>
+                  <span>{platform === 'x' ? 'Total Suka (Likes)' : 'Suka / Dislike'}</span>
                 </div>
                 <div className="text-xs font-mono font-semibold tabular-nums text-slate-200 mt-1">
                   {hostMetadata.engagement.likes_count !== undefined
                     ? hostMetadata.engagement.likes_count.toLocaleString('id-ID')
                     : '0'}
-                  {hostMetadata.engagement.dislikes_count !== undefined && (
+                  {platform !== 'x' && hostMetadata.engagement.dislikes_count !== undefined && (
                     <span className="text-slate-500 text-[10px] ml-1">
                       ({hostMetadata.engagement.dislikes_count} RYD)
                     </span>
@@ -511,9 +511,9 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
             <button
               type="button"
               onClick={onInspectFeatures}
-              className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
+              className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm whitespace-nowrap shrink-0"
             >
-              <span>{isEvent ? 'Inspeksi Indikator Event & AI' : 'Inspeksi 21 Fitur XAI'}</span>
+              <span>{isEvent ? 'Inspeksi Indikator' : 'Inspeksi 21 Fitur'}</span>
               <ChevronRight className="w-3.5 h-3.5 text-sky-400" />
             </button>
           </div>

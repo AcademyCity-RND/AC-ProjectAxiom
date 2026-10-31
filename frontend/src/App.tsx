@@ -64,6 +64,7 @@ export const App: React.FC = () => {
     isPolling,
     error,
     clearError,
+    clearActiveCase,
     loadCases,
     loadStats,
     startActorInvestigation,
@@ -108,6 +109,35 @@ export const App: React.FC = () => {
 
   const handleCloseInspector = () => {
     setIsDrawerOpen(false);
+  };
+
+  // Handle pembersihan state dan membuka form pencarian baru
+  const handleNewInvestigation = () => {
+    clearActiveCase();
+    setShowSearchForm(true);
+    clearError();
+    loadCases();
+    loadStats();
+  };
+
+  // Handle Segarkan 2-arah (Dual-handle per screenshot & user request):
+  // 1. Belum investigasi: segarkan data dan bersihkan tampilan seperti baru login
+  // 2. Sudah investigasi (selesai atau gagal): jalankan ulang investigasi pada sasaran aktif tersebut
+  const handleRefresh = async () => {
+    if (activeCase && activeCase.target) {
+      try {
+        await handleStartInvestigation(
+          activeCase.target,
+          activeCase.platform as PlatformType,
+          activeCase.max_interactions || 50,
+          isEventTarget
+        );
+      } catch (err) {
+        console.error('[Rerun investigation error]:', err);
+      }
+    } else {
+      handleNewInvestigation();
+    }
   };
 
   // Handler search dari ActorSearchForm
@@ -171,7 +201,7 @@ export const App: React.FC = () => {
             mono: true,
           });
         }
-        if (hostMeta.engagement?.dislikes_count !== undefined) {
+        if (activeCase.platform !== 'x' && hostMeta.engagement?.dislikes_count !== undefined) {
           indicatorList.push({
             label: 'Estimasi Dislikes (RYD API)',
             value: String(hostMeta.engagement.dislikes_count),
@@ -245,12 +275,23 @@ export const App: React.FC = () => {
 
   // Handle node selection in NetworkGraph
   const handleGraphNodeSelect = (nodeRaw: any) => {
+    const cleanHandle = (nodeRaw.label || nodeRaw.id || '').replace(/^@/, '').toLowerCase();
+    const matchedComments =
+      activeLedger?.full_ledger
+        ?.filter((item) => item.username.replace(/^@/, '').toLowerCase() === cleanHandle)
+        .map((item) => ({
+          text: item.content,
+          timestamp: item.published_at,
+          likes: item.likes,
+        })) || [];
+
     handleOpenInspector({
-      title: nodeRaw.label || nodeRaw.id,
+      title: nodeRaw.label?.startsWith('@') ? nodeRaw.label : `@${nodeRaw.label || nodeRaw.id}`,
       subtitle: `Node Jaringan: ${nodeRaw.type === 'target' ? 'Target Inti' : 'Anggota Klaster CIB'}`,
       threatClass: nodeRaw.category,
       confidence: nodeRaw.confidence,
       threatLevel: nodeRaw.category === 'BOT' ? 'CRITICAL' : nodeRaw.category === 'BUZZER' ? 'HIGH' : 'LOW',
+      comments: matchedComments,
       indicators: [
         { label: 'Tipe Node', value: nodeRaw.type === 'target' ? 'Target Kasus' : 'Afiliasi Sindikat' },
         { label: 'Skor Keyakinan AI', value: nodeRaw.confidence ? `${Math.round(nodeRaw.confidence * 100)}%` : 'N/A', mono: true },
@@ -370,7 +411,7 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-2">
               {!showSearchForm && (
                 <button
-                  onClick={() => setShowSearchForm(true)}
+                  onClick={handleNewInvestigation}
                   className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-4 py-2 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 shadow-sm cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -379,11 +420,17 @@ export const App: React.FC = () => {
               )}
 
               <button
-                onClick={() => window.location.reload()}
-                className="border border-slate-800 hover:border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-2 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 shadow-sm cursor-pointer"
+                onClick={handleRefresh}
+                disabled={isAnalyzing || isPolling}
+                className="border border-slate-800 hover:border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-2 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 shadow-sm cursor-pointer disabled:opacity-50"
+                title={
+                  activeCase
+                    ? 'Jalankan ulang investigasi target aktif'
+                    : 'Segarkan data & bersihkan form seperti baru login'
+                }
               >
-                <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-                Segarkan
+                <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isAnalyzing || isPolling ? 'animate-spin text-sky-400' : ''}`} />
+                <span>{activeCase ? 'Jalankan Ulang' : 'Segarkan'}</span>
               </button>
             </div>
           </div>
@@ -433,7 +480,7 @@ export const App: React.FC = () => {
               {/* Back button to search form */}
               <button
                 type="button"
-                onClick={() => setShowSearchForm(true)}
+                onClick={handleNewInvestigation}
                 className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer py-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />

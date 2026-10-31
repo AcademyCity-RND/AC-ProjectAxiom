@@ -25,67 +25,83 @@ interface CasesTableProps {
 }
 
 // Helper to format clean 6-channel display labels & badges
-const formatTargetDisplay = (target: string, platform: string) => {
+// Rule: Untuk X tweet maupun user ditulis username penulis saja, untuk 4 sisanya (YT Video, YT Shorts, IG Reel, IG Post) gunakan judul
+const formatTargetDisplay = (target: string, platform: string, displayName?: string | null) => {
   const lower = target.toLowerCase();
   const isUrl = target.startsWith('http://') || target.startsWith('https://');
 
+  // Channel 1: X User / Aktor
   if (!isUrl) {
     return {
       label: target.startsWith('@') ? target : `@${target}`,
+      subLabel: displayName && displayName !== target ? displayName : null,
       badge: 'X Aktor',
       badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
     };
   }
 
-  if (lower.includes('/shorts/')) {
-    const parts = target.split('/shorts/')[1]?.split('?')[0] || '';
-    return {
-      label: `Shorts: ${parts.slice(0, 11)}`,
-      badge: 'YT Shorts',
-      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
-    };
-  }
-
-  if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
-    const vid = target.includes('v=')
-      ? target.split('v=')[1]?.split('&')[0]
-      : target.split('/').pop()?.split('?')[0] || '';
-    return {
-      label: `Video: ${vid.slice(0, 11)}`,
-      badge: 'YT Video',
-      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
-    };
-  }
-
-  if (lower.includes('/reel/') || lower.includes('/reels/')) {
-    const parts = target.split('/reel')[1]?.replace(/^s?\//, '').split('/')[0] || '';
-    return {
-      label: `Reel: ${parts.slice(0, 11)}`,
-      badge: 'IG Reel',
-      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-    };
-  }
-
-  if (lower.includes('instagram.com/p/')) {
-    const parts = target.split('/p/')[1]?.split('/')[0] || '';
-    return {
-      label: `Post: ${parts.slice(0, 11)}`,
-      badge: 'IG Post',
-      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-    };
-  }
-
+  // Channel 2: X Tweet
   if (lower.includes('/status/')) {
-    const parts = target.split('/status/')[1]?.split('?')[0] || '';
+    let authorHandle = '';
+    try {
+      const match = target.match(/(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status/i);
+      if (match && match[1]) {
+        authorHandle = `@${match[1]}`;
+      }
+    } catch {}
+
+    const label = authorHandle || (displayName?.startsWith('@') ? displayName : null) || `@${target.split('/status/')[0].split('/').pop()}`;
     return {
-      label: `Tweet: ${parts.slice(0, 12)}`,
+      label,
+      subLabel: null,
       badge: 'X Tweet',
       badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
     };
   }
 
+  // Channel 3: YouTube Shorts (Judul Konten)
+  if (lower.includes('/shorts/')) {
+    return {
+      label: displayName || 'Video YouTube Shorts',
+      subLabel: null,
+      badge: 'YT Shorts',
+      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+    };
+  }
+
+  // Channel 4: YouTube Video (Judul Konten)
+  if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+    return {
+      label: displayName || 'Video YouTube Publik',
+      subLabel: null,
+      badge: 'YT Video',
+      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+    };
+  }
+
+  // Channel 5: Instagram Reel (Judul / Keterangan Reel)
+  if (lower.includes('/reel/') || lower.includes('/reels/')) {
+    return {
+      label: displayName || 'Instagram Reels Video',
+      subLabel: null,
+      badge: 'IG Reel',
+      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    };
+  }
+
+  // Channel 6: Instagram Post (Judul / Keterangan Postingan)
+  if (lower.includes('instagram.com/p/')) {
+    return {
+      label: displayName || 'Instagram Feed Post',
+      subLabel: null,
+      badge: 'IG Post',
+      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    };
+  }
+
   return {
-    label: target,
+    label: displayName || target,
+    subLabel: null,
     badge: `${platform.toUpperCase()} Event`,
     badgeColor: 'text-slate-400 bg-slate-800 border-slate-700',
   };
@@ -255,16 +271,18 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                     className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                   >
                     {(() => {
-                      const formatted = formatTargetDisplay(rc.target, rc.platform);
+                      const formatted = formatTargetDisplay(rc.target, rc.platform, (rc as any).display_name);
                       return (
                         <>
-                          <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
+                          <td className="py-3.5 px-3.5 sm:px-5 font-medium text-sky-400 group-hover:text-sky-300">
                             <div className="flex items-center gap-2">
-                              <span className="truncate block max-w-xs">{formatted.label}</span>
+                              <span className="truncate block max-w-xs md:max-w-sm text-xs font-semibold text-white">
+                                {formatted.label}
+                              </span>
                             </div>
-                            {(rc as any).display_name && (
+                            {formatted.subLabel && (
                               <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5 truncate max-w-xs">
-                                {(rc as any).display_name}
+                                {formatted.subLabel}
                               </span>
                             )}
                           </td>

@@ -50,6 +50,8 @@ interface CaseState {
   loadCaseDetails: (caseId: string) => Promise<void>;
   pollCaseStatus: (caseId: string) => Promise<void>;
   clearError: () => void;
+  clearActiveCase: () => void;
+  resetStore: () => void;
 }
 
 export const useCaseStore = create<CaseState>((set, get) => {
@@ -75,6 +77,37 @@ export const useCaseStore = create<CaseState>((set, get) => {
 
     setActiveCase: (c) => set({ activeCase: c }),
     clearError: () => set({ error: null }),
+
+    clearActiveCase: () =>
+      set({
+        activeCase: null,
+        activeGraph: null,
+        activeAnalytics: null,
+        activeLedger: null,
+        isAnalyzing: false,
+        isPolling: false,
+        error: null,
+      }),
+
+    resetStore: () => {
+      localStorage.removeItem('axiom_recent_cases');
+      set({
+        activeCase: null,
+        activeGraph: null,
+        activeAnalytics: null,
+        activeLedger: null,
+        cases: [],
+        stats: null,
+        watchlist: [],
+        recentCases: [],
+        isAnalyzing: false,
+        isPolling: false,
+        isLoadingCases: false,
+        isLoadingStats: false,
+        isLoadingWatchlist: false,
+        error: null,
+      });
+    },
 
     // Mengambil daftar riwayat kasus resmi dari PostgreSQL
     loadCases: async (limit = 50, offset = 0) => {

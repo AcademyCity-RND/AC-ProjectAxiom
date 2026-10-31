@@ -182,6 +182,8 @@ export interface InvestigationCase {
   target: string;
   platform: PlatformType;
   status: 'queued' | 'in_progress' | 'completed' | 'failed';
+  max_interactions?: number;
+  depth_level?: number;
   created_at?: string;
   completed_at?: string;
   actor?: ActorSummary;
