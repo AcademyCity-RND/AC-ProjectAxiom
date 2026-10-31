@@ -327,9 +327,18 @@ async def run_event_investigation_pipeline(
             "analytics": analytics_data
         }
 
+        def serialize_for_json(obj: Any) -> Any:
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            if isinstance(obj, dict):
+                return {k: serialize_for_json(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [serialize_for_json(v) for v in obj]
+            return obj
+
         case.status = "completed"
         case.completed_at = datetime.now(timezone.utc)
-        case.result_summary = summary
+        case.result_summary = serialize_for_json(summary)
         db.commit()
 
         logger.info(

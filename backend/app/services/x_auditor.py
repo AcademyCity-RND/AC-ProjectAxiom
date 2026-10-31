@@ -115,7 +115,8 @@ async def fetch_tweet_metadata(tweet_id: int, url: str = "") -> Dict[str, Any]:
                 metadata["quotes_count"] = getattr(tw, "quoteCount", 0) or 0
                 metadata["views_count"] = getattr(tw, "viewCount", 0) or 0
                 if getattr(tw, "date", None):
-                    metadata["published_at"] = parse_datetime(tw.date)
+                    p_dt = parse_datetime(tw.date)
+                    metadata["published_at"] = p_dt.isoformat() if hasattr(p_dt, "isoformat") else str(p_dt)
 
                 u = getattr(tw, "user", None)
                 if u:
@@ -125,7 +126,8 @@ async def fetch_tweet_metadata(tweet_id: int, url: str = "") -> Dict[str, Any]:
                     metadata["author_following"] = getattr(u, "friendsCount", 0) or 0
                     metadata["author_verified"] = getattr(u, "verified", False) or False
                     if getattr(u, "created", None):
-                        metadata["author_created_at"] = parse_datetime(u.created)
+                        c_dt = parse_datetime(u.created)
+                        metadata["author_created_at"] = c_dt.isoformat() if hasattr(c_dt, "isoformat") else str(c_dt)
                     return metadata
     except Exception as e:
         logger.debug(f"Twscrape tweet_details gagal/akun belum aktif ({e})")
@@ -274,7 +276,15 @@ async def fetch_x_tweet_replies(
                 display_name = getattr(user_obj, "displayname", username) if user_obj else username
                 followers = getattr(user_obj, "followersCount", 0) if user_obj else 0
                 following = getattr(user_obj, "friendsCount", 0) if user_obj else 0
-                created_date = parse_datetime(user_obj.created) if (user_obj and getattr(user_obj, "created", None)) else None
+                created_date = None
+                if user_obj and getattr(user_obj, "created", None):
+                    c_dt = parse_datetime(user_obj.created)
+                    created_date = c_dt.isoformat() if hasattr(c_dt, "isoformat") else str(c_dt)
+
+                pub_date = datetime.now(timezone.utc).isoformat()
+                if getattr(rep, "date", None):
+                    p_dt = parse_datetime(rep.date)
+                    pub_date = p_dt.isoformat() if hasattr(p_dt, "isoformat") else str(p_dt)
 
                 replies.append({
                     "comment_id": cid,
@@ -287,7 +297,7 @@ async def fetch_x_tweet_replies(
                     "author_following": following,
                     "author_created_at": created_date,
                     "text": text,
-                    "published_at": parse_datetime(rep.date),
+                    "published_at": pub_date,
                     "likes": getattr(rep, "likeCount", 0) or 0,
                     "retweets_count": getattr(rep, "retweetCount", 0) or 0,
                     "replies_count": getattr(rep, "replyCount", 0) or 0,
@@ -340,6 +350,8 @@ async def audit_x_tweet_event(
     user_mapping: Dict[str, Dict[str, Any]] = {}
     for r in replies:
         uname = r.get("author_username") or "unknown"
+        pub_str = str(r.get("published_at")) if r.get("published_at") else datetime.now(timezone.utc).isoformat()
+        acc_str = str(r.get("author_created_at")) if r.get("author_created_at") else None
         if uname not in user_mapping:
             user_mapping[uname] = {
                 "author_name": uname,
@@ -347,9 +359,9 @@ async def audit_x_tweet_event(
                 "comment_frequency": 0,
                 "comments_list": [],
                 "total_likes_received": 0,
-                "first_comment_time": r.get("published_at"),
-                "last_comment_time": r.get("published_at"),
-                "account_created_at": r.get("author_created_at"),
+                "first_comment_time": pub_str,
+                "last_comment_time": pub_str,
+                "account_created_at": acc_str,
                 "is_top_attacker": False
             }
         

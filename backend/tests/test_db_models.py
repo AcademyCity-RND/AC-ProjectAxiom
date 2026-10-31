@@ -135,4 +135,24 @@ def test_database_connection_and_crud():
         assert watch.id is not None
 
     finally:
+        try:
+            if 'watch' in locals() and watch.id:
+                db.delete(watch)
+            if 'link' in locals() and link.id:
+                db.delete(link)
+            if 'detection' in locals() and detection.id:
+                db.delete(detection)
+            if 'activity' in locals() and activity.id:
+                db.delete(activity)
+            if 'actor' in locals() and actor.id:
+                db.delete(actor)
+            if 'case' in locals() and case.id:
+                db.delete(case)
+            if 'audit' in locals() and audit.id:
+                db.delete(audit)
+            if 'user' in locals() and user.id:
+                db.delete(user)
+            db.commit()
+        except Exception:
+            db.rollback()
         db.close()

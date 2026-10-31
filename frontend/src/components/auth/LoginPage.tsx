@@ -116,15 +116,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ backendStatus = 'online' }
 
                 <button
                   type="button"
-                  onClick={() => handleSelectPreset('user01', 'AxiomUser2026!')}
+                  onClick={() => handleSelectPreset('user', 'AxiomUser2026!')}
                   className={`p-3 rounded-md border text-left transition-all duration-150 ease-out active:scale-[0.98] cursor-pointer shadow-sm ${
-                    username === 'user01'
+                    username === 'user'
                       ? 'border-sky-500/80 bg-sky-500/10 text-sky-300'
                       : 'border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <div className="text-xs font-semibold text-white flex items-center justify-between">
-                    <span>user01</span>
+                    <span>user</span>
                     <span className="text-[10px] font-mono text-amber-400 px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded">
                       OPERATOR
                     </span>

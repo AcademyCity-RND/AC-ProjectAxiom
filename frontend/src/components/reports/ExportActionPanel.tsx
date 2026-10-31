@@ -246,7 +246,7 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
             <button
               onClick={handleExportCsv}
               disabled={!caseId || isExportingCsv}
-              className="flex-1 border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white font-semibold py-2.5 rounded-md text-xs flex items-center justify-center gap-2 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+              className="w-full border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white font-semibold py-2.5 rounded-md text-xs flex items-center justify-center gap-2 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
             >
               {isExportingCsv ? (
                 <>
@@ -260,16 +260,7 @@ export const ExportActionPanel: React.FC<ExportActionPanelProps> = ({
                 </>
               )}
             </button>
-            {caseId && (
-              <a
-                href={csvUrl}
-                download={`axiom_ledger_${caseId}.csv`}
-                title="Tautan unduh langsung"
-                className="border border-slate-800 hover:border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white p-2.5 rounded-md text-xs flex items-center justify-center transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
-              >
-                <FileDown className="w-3.5 h-3.5 text-emerald-400" />
-              </a>
-            )}
+            
           </div>
         </div>
       </div>
