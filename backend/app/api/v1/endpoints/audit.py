@@ -19,7 +19,7 @@ def list_audit_logs(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    current_user: TokenPayload = Depends(require_roles([UserRole.ADMIN])),
+    current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN])),
 ):
     """
     Mengambil jejak audit aktivitas seluruh operator (admin dan user).
@@ -29,7 +29,10 @@ def list_audit_logs(
     """
     stmt = select(AuditLog)
 
-    if operator and operator.strip():
+    # Pemisahan jejak log: user biasa hanya mengakses log miliknya sendiri, admin mengakses seluruh log
+    if current_user.role != UserRole.ADMIN.value:
+        stmt = stmt.where(AuditLog.operator_username == current_user.sub)
+    elif operator and operator.strip():
         stmt = stmt.where(AuditLog.operator_username == operator.strip())
 
     if action and action.strip():
@@ -53,18 +56,30 @@ def list_audit_logs(
 @router.get("/summary", summary="Ringkasan Statistik Aktivitas Operasional (Admin Only)")
 def get_audit_summary(
     db: Session = Depends(get_db),
-    current_user: TokenPayload = Depends(require_roles([UserRole.ADMIN])),
+    current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN])),
 ):
     """
     Statistik agregat aktivitas untuk dasbor pengawasan intelijen.
     """
-    total_logs = db.execute(select(func.count(AuditLog.id))).scalar_one()
-    total_scrapes = db.execute(
-        select(func.count(AuditLog.id)).where(AuditLog.action.ilike("%SCRAPE%"))
-    ).scalar_one()
-    total_downloads = db.execute(
-        select(func.count(AuditLog.id)).where(AuditLog.action.ilike("%DOWNLOAD%"))
-    ).scalar_one()
+    is_admin = current_user.role == UserRole.ADMIN.value
+
+    if is_admin:
+        total_logs = db.execute(select(func.count(AuditLog.id))).scalar_one()
+        total_scrapes = db.execute(
+            select(func.count(AuditLog.id)).where(AuditLog.action.ilike("%SCRAPE%"))
+        ).scalar_one()
+        total_downloads = db.execute(
+            select(func.count(AuditLog.id)).where(AuditLog.action.ilike("%DOWNLOAD%"))
+        ).scalar_one()
+    else:
+        user_cond = AuditLog.operator_username == current_user.sub
+        total_logs = db.execute(select(func.count(AuditLog.id)).where(user_cond)).scalar_one()
+        total_scrapes = db.execute(
+            select(func.count(AuditLog.id)).where(user_cond, AuditLog.action.ilike("%SCRAPE%"))
+        ).scalar_one()
+        total_downloads = db.execute(
+            select(func.count(AuditLog.id)).where(user_cond, AuditLog.action.ilike("%DOWNLOAD%"))
+        ).scalar_one()
 
     return {
         "total_activities": total_logs,

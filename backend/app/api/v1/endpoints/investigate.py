@@ -180,22 +180,52 @@ def get_investigation_stats(
     current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN]))
 ):
     """
-    Mengembalikan metrik statistik agregat sistem secara real-time dari database PostgreSQL:
-    - Total kasus terdaftar
-    - Total aktor teridentifikasi
-    - Jumlah klasifikasi BOT, BUZZER, HUMAN
-    - Rata-rata confidence score
-    - Estimasi akurasi tri-class model
+    Mengembalikan metrik statistik agregat secara real-time dari database PostgreSQL:
+    - Admin: Mengakses seluruh log dan akumulasi kasus di sistem
+    - User (Operator): Hanya mengakses log statistik dari kasus yang diinvestigasi oleh dirinya sendiri
     """
-    total_cases = db.query(func.count(InvestigationCase.id)).scalar() or 0
-    completed_cases = db.query(func.count(InvestigationCase.id)).filter(InvestigationCase.status == "completed").scalar() or 0
-    total_actors = db.query(func.count(ActorProfile.id)).scalar() or 0
+    is_admin = current_user.role == UserRole.ADMIN.value
 
-    bot_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "BOT").scalar() or 0
-    buzzer_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "BUZZER").scalar() or 0
-    human_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "HUMAN").scalar() or 0
+    if is_admin:
+        total_cases = db.query(func.count(InvestigationCase.id)).scalar() or 0
+        completed_cases = db.query(func.count(InvestigationCase.id)).filter(InvestigationCase.status == "completed").scalar() or 0
+        total_actors = db.query(func.count(ActorProfile.id)).scalar() or 0
 
-    avg_conf = db.query(func.avg(DetectionResult.confidence)).scalar() or 0.94
+        bot_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "BOT").scalar() or 0
+        buzzer_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "BUZZER").scalar() or 0
+        human_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "HUMAN").scalar() or 0
+
+        avg_conf = db.query(func.avg(DetectionResult.confidence)).scalar() or 0.94
+    else:
+        # Isolasi: Filter kasus milik operator yang sedang login saja
+        user_cases_q = db.query(InvestigationCase).filter(InvestigationCase.created_by == current_user.sub)
+        total_cases = user_cases_q.count()
+        completed_cases = user_cases_q.filter(InvestigationCase.status == "completed").count()
+
+        user_case_ids = [c.id for c in user_cases_q.all()]
+        if user_case_ids:
+            total_actors = db.query(func.count(ActorProfile.id)).filter(ActorProfile.case_id.in_(user_case_ids)).scalar() or 0
+            bot_count = db.query(func.count(DetectionResult.id)).filter(
+                DetectionResult.case_id.in_(user_case_ids),
+                DetectionResult.predicted_class == "BOT"
+            ).scalar() or 0
+            buzzer_count = db.query(func.count(DetectionResult.id)).filter(
+                DetectionResult.case_id.in_(user_case_ids),
+                DetectionResult.predicted_class == "BUZZER"
+            ).scalar() or 0
+            human_count = db.query(func.count(DetectionResult.id)).filter(
+                DetectionResult.case_id.in_(user_case_ids),
+                DetectionResult.predicted_class == "HUMAN"
+            ).scalar() or 0
+            avg_conf = db.query(func.avg(DetectionResult.confidence)).filter(
+                DetectionResult.case_id.in_(user_case_ids)
+            ).scalar() or 0.94
+        else:
+            total_actors = 0
+            bot_count = 0
+            buzzer_count = 0
+            human_count = 0
+            avg_conf = 0.94
 
     return {
         "total_cases": total_cases,
@@ -306,7 +336,7 @@ def get_investigation_case(
     serta faktor penjelas XAI.
     """
     case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
-    if not case:
+    if not case or (current_user.role != UserRole.ADMIN.value and case.created_by != current_user.sub):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
@@ -400,7 +430,7 @@ def get_case_graph(
     dalam format Cytoscape.js yang siap divisualisasikan pada frontend.
     """
     case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
-    if not case:
+    if not case or (current_user.role != UserRole.ADMIN.value and case.created_by != current_user.sub):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
@@ -608,7 +638,7 @@ def get_case_analytics(
     3. Narrative Drift (Pergeseran fokus narasi temporal sliding window)
     """
     case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
-    if not case:
+    if not case or (current_user.role != UserRole.ADMIN.value and case.created_by != current_user.sub):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."

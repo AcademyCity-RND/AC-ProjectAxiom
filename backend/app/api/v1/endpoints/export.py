@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.schemas.auth import TokenPayload, UserRole
+from app.models.case import InvestigationCase
 from app.api.v1.deps import require_roles
 from app.services.report_exporter import (
     build_case_dossier_data,
@@ -30,6 +31,14 @@ def export_case_report(
     - `format=html` atau `pdf`: Berkas dossier Jinja2 lengkap siap cetak (@media print A4) dengan kop militer PUSSIBERAD dan hash SHA-256.
     - `format=csv`: Berkas spreadsheet RFC 4180 berisi 100% data lengkap seluruh komentator (Dual-Tier Part B).
     """
+    # Isolasi kasus: operator hanya dapat mengekspor kasus miliknya sendiri, admin dapat mengekspor semua
+    case_check = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
+    if not case_check or (current_user.role != UserRole.ADMIN.value and case_check.created_by != current_user.sub):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
+        )
+
     try:
         dossier_data = build_case_dossier_data(case_id, db)
     except ValueError as ve:
@@ -142,6 +151,14 @@ def get_case_audit_ledger(
     - Tier 2: Full Comprehensive Commenter Audit Ledger (100% komentator)
     - Hash Integritas Kriptografis SHA-256
     """
+    # Isolasi ledger: operator hanya dapat mengakses ledger kasus miliknya sendiri, admin dapat mengakses semua
+    case_check = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
+    if not case_check or (current_user.role != UserRole.ADMIN.value and case_check.created_by != current_user.sub):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
+        )
+
     try:
         return get_dual_tier_ledger(case_id, db)
     except ValueError as ve:
