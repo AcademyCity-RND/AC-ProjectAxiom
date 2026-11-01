@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Radio, Video, Camera, AlertCircle, Sparkles, X } from 'lucide-react';
+import { Search, AlertCircle, Sparkles, X } from 'lucide-react';
+import { PlatformIcon } from '../common/PlatformIcon';
 import type { PlatformType } from '../../types';
 
 interface ActorSearchFormProps {
@@ -13,8 +14,6 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
   const [platform, setPlatform] = useState<PlatformType>('x');
   const [maxCount, setMaxCount] = useState<number>(150);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-
 
   const detectPlatformFromUrl = (url: string): PlatformType => {
     const lower = url.toLowerCase();
@@ -171,7 +170,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
-                <Radio className="w-3.5 h-3.5" />
+                <PlatformIcon platform="x" className="w-3.5 h-3.5" />
                 X / Twitter
               </button>
             </div>
@@ -186,7 +185,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
-                <Video className="w-3.5 h-3.5" />
+                <PlatformIcon platform="youtube" className="w-3.5 h-3.5" />
                 YouTube
               </button>
               <button
@@ -198,7 +197,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
-                <Camera className="w-3.5 h-3.5" />
+                <PlatformIcon platform="instagram" className="w-3.5 h-3.5" />
                 Instagram
               </button>
               <button
@@ -210,7 +209,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
                     : 'text-slate-400 hover:text-slate-200 border border-transparent'
                 }`}
               >
-                <Radio className="w-3.5 h-3.5" />
+                <PlatformIcon platform="x" className="w-3.5 h-3.5" />
                 X (Tweet)
               </button>
             </div>
@@ -255,8 +254,6 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
             <span>{errorMsg}</span>
           </div>
         )}
-
-
       </form>
     </div>
   );
