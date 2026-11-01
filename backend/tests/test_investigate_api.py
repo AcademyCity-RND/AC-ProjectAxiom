@@ -180,6 +180,7 @@ def test_get_investigation_case_detail_and_graph(auth_headers):
             target="relawan_buzzer_1",
             platform="x",
             status="completed",
+            created_by="investigator_tester",
             created_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
             result_summary={"predicted_class": "BUZZER", "confidence": 0.95}

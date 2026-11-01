@@ -162,6 +162,7 @@ def test_export_report_api_endpoints():
         target="target_api_export",
         platform="youtube",
         status="completed",
+        created_by="analis_pusat",
         result_summary={"dossier": {"threat_level": "HIGH"}}
     )
     db.add(case)

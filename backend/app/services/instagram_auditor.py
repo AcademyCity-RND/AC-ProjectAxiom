@@ -97,6 +97,58 @@ def detect_instagram_content_type(url_or_code: str) -> str:
     return "post"
 
 
+def get_instagrapi_client(require_auth: bool = False) -> Optional[Any]:
+    """
+    Menginisialisasi klien instagrapi (Mobile Android API emulation).
+    Mendukung:
+    1. INSTAGRAM_SETTINGS_PATH (file dump sesi JSON)
+    2. INSTAGRAM_SESSIONID di ENV
+    3. INSTAGRAM_USERNAME & INSTAGRAM_PASSWORD di ENV
+    """
+    try:
+        from instagrapi import Client
+        import urllib.parse
+        from dotenv import load_dotenv
+        load_dotenv(".env")
+        load_dotenv("/app/.env")
+
+        cl = Client()
+        cl.delay_range = [1, 2]
+
+        # 1. Coba session file jika ada
+        session_file = os.getenv("INSTAGRAM_SETTINGS_PATH", "data/sessions/ig_settings.json")
+        if os.path.exists(session_file):
+            try:
+                cl.load_settings(session_file)
+                logger.info(f"Berhasil memuat pengaturan sesi instagrapi dari {session_file}")
+                return cl
+            except Exception as se:
+                logger.warning(f"Gagal memuat session file instagrapi ({se})")
+
+        # 2. Coba INSTAGRAM_SESSIONID dari ENV
+        env_session = os.getenv("INSTAGRAM_SESSIONID")
+        if env_session and env_session.strip():
+            raw_sid = urllib.parse.unquote(env_session.strip())
+            cl.login_by_sessionid(raw_sid)
+            logger.info("Berhasil autentikasi instagrapi via INSTAGRAM_SESSIONID")
+            return cl
+
+        # 3. Coba kredensial user & pass jika ada
+        u = os.getenv("INSTAGRAM_USERNAME")
+        p = os.getenv("INSTAGRAM_PASSWORD")
+        if u and p:
+            cl.login(u.strip(), p.strip())
+            logger.info(f"Berhasil login instagrapi sebagai @{u}")
+            return cl
+
+        if require_auth:
+            return None
+        return cl
+    except Exception as e:
+        logger.warning(f"Inisialisasi instagrapi client gagal ({e})")
+        return None
+
+
 def fetch_instagram_metadata(shortcode: str) -> Dict[str, Any]:
     """
     Mengambil metadata postingan/reels Instagram:
@@ -119,6 +171,28 @@ def fetch_instagram_metadata(shortcode: str) -> Dict[str, Any]:
         "is_verified": False
     }
 
+    # 1. Lapisan Primer: instagrapi (Mobile API / GQL unauthenticated)
+    try:
+        cl = get_instagrapi_client(require_auth=False)
+        if cl:
+            media_pk = cl.media_pk_from_code(shortcode)
+            info = cl.media_info_gql(media_pk)
+            if info and info.user:
+                metadata["owner_username"] = info.user.username
+                metadata["owner_full_name"] = info.user.full_name or info.user.username.replace("_", " ").title()
+                metadata["caption"] = info.caption_text or ""
+                metadata["likes_count"] = int(info.like_count or 0)
+                metadata["comments_count"] = int(info.comment_count or 0)
+                if info.taken_at:
+                    metadata["published_at"] = info.taken_at.replace(tzinfo=timezone.utc).isoformat()
+                if info.thumbnail_url:
+                    metadata["thumbnail_url"] = str(info.thumbnail_url)
+                logger.info(f"Metadata Instagram untuk '{shortcode}' berhasil ditarik via instagrapi (100% Live).")
+                return metadata
+    except Exception as e:
+        logger.info(f"Instagrapi metadata check lewat ({e}), mencoba fallback instaloader...")
+
+    # 2. Lapisan Sekunder: instaloader
     try:
         import instaloader
         L = instaloader.Instaloader(
@@ -146,9 +220,11 @@ def fetch_instagram_metadata(shortcode: str) -> Dict[str, Any]:
             metadata["published_at"] = post.date_utc.replace(tzinfo=timezone.utc).isoformat()
         if post.url:
             metadata["thumbnail_url"] = post.url
+        return metadata
 
     except Exception as e:
         logger.warning(f"Instaloader metadata check gagal untuk '{shortcode}' ({e}). Mencoba fallback embed...")
+        # 3. Lapisan Tersier: Embed Scraper
         try:
             embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
             with httpx.Client(timeout=8.0, headers=STANDARD_BROWSER_HEADERS) as client:
@@ -312,8 +388,10 @@ def fetch_instagram_comments(
 ) -> List[Dict[str, Any]]:
     """
     Mengambil daftar komentar Instagram (hingga max_comments).
-    Mendukung sesi login instaloader via file atau INSTAGRAM_SESSIONID di environment,
-    dan fallback kontekstual anti-crash jika terkena LoginRequired.
+    Mendukung:
+    1. Mesin Primer: instagrapi (Mobile App API Emulation)
+    2. Mesin Sekunder: instaloader
+    3. Fallback Keselamatan: Contextual Forensics Fallback anti-crash jika terkena blokir Meta.
     """
     shortcode = extract_instagram_shortcode(url_or_shortcode)
     if not shortcode:
@@ -321,6 +399,50 @@ def fetch_instagram_comments(
 
     comments: List[Dict[str, Any]] = []
 
+    # -------------------------------------------------------------
+    # 1. MESIN PRIMER: instagrapi (Mobile Android API)
+    # -------------------------------------------------------------
+    try:
+        cl = get_instagrapi_client()
+        if cl:
+            media_pk = cl.media_pk_from_code(shortcode)
+            cl_comments = cl.media_comments(media_pk, amount=max_comments)
+            if cl_comments:
+                for c in cl_comments:
+                    cid = str(c.pk)
+                    text = str(c.text or "").strip()
+                    owner_u = str(c.user.username if c.user else "unknown")
+                    created_utc = c.created_at_utc.replace(tzinfo=timezone.utc).isoformat() if c.created_at_utc else datetime.now(timezone.utc).isoformat()
+                    disp_name = getattr(c.user, "full_name", "") or owner_u.replace("_", " ").title()
+
+                    comments.append({
+                        "comment_id": cid,
+                        "shortcode": shortcode,
+                        "username": f"@{owner_u}",
+                        "author_username": f"@{owner_u}",
+                        "author_name": f"@{owner_u}",
+                        "author_display_name": disp_name,
+                        "author_id": f"ig_{owner_u}",
+                        "text": text,
+                        "created_at": created_utc,
+                        "published_at": created_utc,
+                        "likes": int(getattr(c, "like_count", 0) or 0),
+                        "replies_count": 0,
+                        "is_reply": False,
+                        "platform": "instagram"
+                    })
+                    if len(comments) >= max_comments:
+                        break
+
+                if comments:
+                    logger.info(f"Berhasil menarik {len(comments)} komentar live Instagram via instagrapi (Mobile API).")
+                    return comments
+    except Exception as e:
+        logger.info(f"Ekstraksi instagrapi lewat ({type(e).__name__}: {e}). Mencoba fallback instaloader...")
+
+    # -------------------------------------------------------------
+    # 2. MESIN SEKUNDER: instaloader
+    # -------------------------------------------------------------
     try:
         import instaloader
         loader = instaloader.Instaloader(
@@ -386,6 +508,9 @@ def fetch_instagram_comments(
             f"Mengaktifkan Contextual Forensics Fallback..."
         )
 
+    # -------------------------------------------------------------
+    # 3. MESIN TERSIER: Contextual Forensics Fallback (Anti-Crash)
+    # -------------------------------------------------------------
     if not comments:
         comments = generate_contextual_instagram_comments(shortcode, caption=caption_context, count=min(50, max_comments))
 

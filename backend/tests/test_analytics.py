@@ -171,6 +171,7 @@ def test_get_case_analytics_api():
         target="target_analytics",
         platform="x",
         status="completed",
+        created_by="operator_siber",
         result_summary={"analytics": {"status": "precomputed"}}
     )
     db.add(case)
