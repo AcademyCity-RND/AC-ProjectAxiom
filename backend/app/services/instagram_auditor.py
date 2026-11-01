@@ -99,51 +99,89 @@ def detect_instagram_content_type(url_or_code: str) -> str:
 
 def get_instagrapi_client(require_auth: bool = False) -> Optional[Any]:
     """
-    Menginisialisasi klien instagrapi (Mobile Android API emulation).
-    Mendukung:
-    1. INSTAGRAM_SETTINGS_PATH (file dump sesi JSON)
-    2. INSTAGRAM_SESSIONID di ENV
-    3. INSTAGRAM_USERNAME & INSTAGRAM_PASSWORD di ENV
+    Menginisialisasi klien instagrapi dengan Session-First Architecture
+    untuk mencegah pembatasan IP & Checkpoint/Ban dari Meta.
+
+    Prioritas:
+    1. UTAMA (Paling Aman): Muat session settings dari file JSON (INSTAGRAM_SETTINGS_PATH).
+       Tidak mengirim event login baru ke Meta; memelihara device fingerprint & token kriptografi.
+    2. SEKUNDER: Autentikasi via INSTAGRAM_SESSIONID (cookie browser), lalu otomatis
+       melakukan dump_settings() ke session file agar request berikutnya 100% lokal.
+    3. DARURAT / MANUAL: Login raw credential (User/Pass). Hanya dieksekusi jika:
+       - require_auth=True ATAU INSTAGRAM_ALLOW_RAW_LOGIN=true
+       - Langsung di-dump ke file JSON untuk mencegah login ulang di request berikutnya.
     """
     try:
-        from instagrapi import Client
+        from instagrapi import Client  # type: ignore
         import urllib.parse
         from dotenv import load_dotenv
         load_dotenv(".env")
         load_dotenv("/app/.env")
 
         cl = Client()
-        cl.delay_range = [1, 2]
+        # Tingkatkan delay bawaan (2 - 5 detik) agar request menyerupai perilaku manusia
+        cl.delay_range = [2, 5]
 
-        # 1. Coba session file jika ada
         session_file = os.getenv("INSTAGRAM_SETTINGS_PATH", "data/sessions/ig_settings.json")
+        abs_session_file = os.path.abspath(session_file)
+
+        # 1. UTAMA: Coba load session file jika ada (Paling Aman, 0 Login Handshake)
         if os.path.exists(session_file):
             try:
                 cl.load_settings(session_file)
                 logger.info(f"Berhasil memuat pengaturan sesi instagrapi dari {session_file}")
                 return cl
             except Exception as se:
-                logger.warning(f"Gagal memuat session file instagrapi ({se})")
+                logger.warning(f"Gagal memuat session file instagrapi ({se}). Mencoba metode sekunder...")
 
-        # 2. Coba INSTAGRAM_SESSIONID dari ENV
+        # 2. SEKUNDER: Coba INSTAGRAM_SESSIONID dari ENV (Aman via Browser Cookie)
         env_session = os.getenv("INSTAGRAM_SESSIONID")
         if env_session and env_session.strip():
-            raw_sid = urllib.parse.unquote(env_session.strip())
-            cl.login_by_sessionid(raw_sid)
-            logger.info("Berhasil autentikasi instagrapi via INSTAGRAM_SESSIONID")
-            return cl
+            try:
+                raw_sid = urllib.parse.unquote(env_session.strip())
+                cl.login_by_sessionid(raw_sid)
 
-        # 3. Coba kredensial user & pass jika ada
+                # Simpan settings agar request berikutnya cukup load_settings
+                try:
+                    session_dir = os.path.dirname(abs_session_file)
+                    if session_dir:
+                        os.makedirs(session_dir, exist_ok=True)
+                    cl.dump_settings(session_file)
+                    logger.info(f"Berhasil autentikasi via INSTAGRAM_SESSIONID & menyimpan session settings ke {session_file}")
+                except Exception as de:
+                    logger.warning(f"Gagal menyimpan dump settings instagrapi ({de})")
+
+                return cl
+            except Exception as se:
+                logger.warning(f"SessionID instagrapi tidak valid / expired: {se}")
+
+        # 3. DARURAT: Login User/Pass (Hanya jika diizinkan eksplisit & Otomatis Dump Session)
+        allow_raw = os.getenv("INSTAGRAM_ALLOW_RAW_LOGIN", "false").strip().lower() in ("true", "1", "yes")
         u = os.getenv("INSTAGRAM_USERNAME")
         p = os.getenv("INSTAGRAM_PASSWORD")
-        if u and p:
+
+        if u and p and (require_auth or allow_raw):
+            logger.warning("Melakukan raw credential login instagrapi (Berisiko memicu Checkpoint Meta)...")
             cl.login(u.strip(), p.strip())
-            logger.info(f"Berhasil login instagrapi sebagai @{u}")
+
+            # WAJIB DUMP SETTINGS BIAR TIDAK RE-LOGIN DI REQUEST BERIKUTNYA
+            try:
+                session_dir = os.path.dirname(abs_session_file)
+                if session_dir:
+                    os.makedirs(session_dir, exist_ok=True)
+                cl.dump_settings(session_file)
+                logger.info(f"Berhasil login instagrapi sebagai @{u} dan menyimpan sesi ke {session_file}")
+            except Exception as de:
+                logger.warning(f"Gagal menyimpan dump settings instagrapi ({de})")
+
             return cl
 
         if require_auth:
             return None
+
+        # Jika tanpa auth, kembalikan client polosan (beberapa endpoint GQL/oEmbed bisa tanpa login)
         return cl
+
     except Exception as e:
         logger.warning(f"Inisialisasi instagrapi client gagal ({e})")
         return None
