@@ -1,3 +1,4 @@
+import { useCaseStore } from './useCaseStore';
 import { create } from 'zustand';
 import { api } from '../services/api';
 
@@ -97,6 +98,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const res = await api.login(username, password);
         const normalizedRole = (res.role || 'user').toLowerCase();
+        // Bersihkan state investigasi sesi sebelumnya agar tidak bocor antar-akun
+        useCaseStore.getState().resetStore();
         localStorage.setItem('axiom_token', res.access_token);
         localStorage.setItem('axiom_operator', res.username);
         localStorage.setItem('axiom_role', normalizedRole);
@@ -124,9 +127,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
     // Logout resmi: hapus sesi & tendang langsung ke landing/login page
     logout: () => {
+      // Bersihkan seluruh data kerja dan kasus investigasi saat logout
+      useCaseStore.getState().resetStore();
       localStorage.removeItem('axiom_token');
       localStorage.removeItem('axiom_operator');
       localStorage.removeItem('axiom_role');
+      localStorage.removeItem('axiom_recent_cases');
       set({
         token: null,
         user: null,

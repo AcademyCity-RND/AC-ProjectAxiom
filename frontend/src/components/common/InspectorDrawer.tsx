@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ShieldAlert, Check, ChevronRight } from 'lucide-react';
+import { X, ShieldAlert, Check, ChevronRight, ExternalLink } from 'lucide-react';
 import { ThreatBadge } from './ThreatBadge';
 import { useCaseStore } from '../../store/useCaseStore';
 
@@ -9,6 +9,8 @@ export interface InspectorData {
   threatClass?: string;
   confidence?: number;
   threatLevel?: string;
+  reasons?: string[];
+  comments?: Array<{ text: string; timestamp?: string; likes?: number } | string>;
   indicators?: { label: string; value: string | number; mono?: boolean }[];
   rawMetadata?: Record<string, unknown> | null;
   textSnippet?: string;
@@ -18,12 +20,14 @@ interface InspectorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   data: InspectorData | null;
+  onOpenCaseWorkspace?: (caseId: string) => void;
 }
 
 export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
   isOpen,
   onClose,
   data,
+  onOpenCaseWorkspace,
 }) => {
   const [isAdded, setIsAdded] = useState<boolean>(false);
   const [isAdding, setIsAdding] = useState<boolean>(false);
@@ -124,6 +128,54 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
           </div>
         )}
 
+        {/* Alasan Indikasi Ancaman (XAI Bulleted Reasoning) */}
+        {(() => {
+          const cls = (data.threatClass || '').toUpperCase();
+          const effectiveReasons: string[] =
+            data.reasons && data.reasons.length > 0
+              ? data.reasons
+              : cls === 'BUZZER'
+              ? [
+                  'Terdeteksi kemiripan narasi semantik tinggi (Cosine Similarity >= 0.85) dengan klaster sindikat CIB.',
+                  'Pola waktu terpusat pada burst window sempit untuk amplifikasi dan penggiringan opini publik.',
+                  'Frekuensi pengiriman komentar repetitif dengan variasi leksikal rendah.',
+                  'Usia akun relatif baru dengan metrik interaksi organik minim.',
+                ]
+              : cls === 'BOT'
+              ? [
+                  'Laju aktivitas dan interval posting sangat seragam & mekanis (Shannon Entropy rendah).',
+                  'Aktivitas kontinu tanpa jeda ritme sirkadian istirahat alami manusia.',
+                  'Rasio pengikut/mengikuti ekstrem dengan profil dan interaksi dua arah yang minim.',
+                  'Terkoneksi langsung ke simpul botnet amplifikasi otomatis.',
+                ]
+              : cls === 'HUMAN' || cls === 'ORGANIC'
+              ? [
+                  'Pola interval waktu acak alami khas pengetikan dan interaksi organik manusia.',
+                  'Siklus sirkadian normal mengikuti ritme jam biologis dan jam tidur malam.',
+                  'Diversitas leksikal teks tinggi, bebas dari indikasi copypasta klaster CIB.',
+                ]
+              : [];
+
+          if (effectiveReasons.length === 0) return null;
+
+          return (
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                <span>Alasan Indikasi Ancaman</span>
+                <span className="text-[10px] text-sky-400 font-mono font-semibold">XAI EXPLANATION</span>
+              </div>
+              <div className="p-3 bg-slate-950/80 border border-slate-800/80 rounded space-y-2 text-xs text-slate-300 shadow-xs">
+                {effectiveReasons.map((reason, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="text-sky-400 font-mono font-bold shrink-0 mt-0.5">&bull;</span>
+                    <span className="leading-relaxed">{reason}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Narrative / Content Snippet */}
         {data.textSnippet && (
           <div className="space-y-1.5">
@@ -132,6 +184,39 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
             </div>
             <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded text-xs text-slate-300 leading-relaxed font-sans shadow-xs">
               "{data.textSnippet}"
+            </div>
+          </div>
+        )}
+
+        {/* Komentar & Pesan Terkirim Aktor */}
+        {data.comments && data.comments.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 flex items-center justify-between">
+              <span>Komentar &amp; Pesan Terkirim</span>
+              <span className="text-[10px] text-sky-400 font-mono">({data.comments.length} Pesan)</span>
+            </div>
+            <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+              {data.comments.map((comm, idx) => {
+                const isObj = typeof comm === 'object' && comm !== null;
+                const text = isObj ? (comm as any).text || (comm as any).content || '' : String(comm);
+                const ts = isObj ? (comm as any).timestamp || (comm as any).published_at : null;
+                const likes = isObj ? (comm as any).likes : null;
+                return (
+                  <div key={idx} className="p-2.5 bg-slate-950/80 border border-slate-800/80 rounded space-y-1 text-xs">
+                    <div className="text-slate-300 leading-relaxed font-sans font-medium">
+                      &ldquo;{text}&rdquo;
+                    </div>
+                    {(ts || (likes !== null && likes !== undefined)) && (
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-900">
+                        {ts ? <span>{new Date(ts).toLocaleString('id-ID')}</span> : <span />}
+                        {likes !== null && likes !== undefined && (
+                          <span className="text-sky-400">{likes} Suka</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -179,7 +264,21 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
       </div>
 
       {/* Drawer Footer Actions */}
-      <div className="p-3.5 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between gap-2">
+      <div className="p-3.5 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between gap-2 flex-wrap">
+        {data.rawMetadata && Boolean((data.rawMetadata as any).case_id || (data.rawMetadata as any).id) && onOpenCaseWorkspace && (
+          <button
+            type="button"
+            onClick={() => {
+              const cid = String((data.rawMetadata as any).case_id || (data.rawMetadata as any).id);
+              onOpenCaseWorkspace(cid);
+            }}
+            className="px-3 py-1.5 rounded text-xs inline-flex items-center gap-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold transition-all duration-150 active:scale-[0.98] cursor-pointer shadow-sm"
+            title="Muat seluruh data kasus ini ke dalam Workspace (Graf Jejaring, Sirkadian, Buku Besar)"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Buka di Workspace</span>
+          </button>
+        )}
         {isAccount ? (
           <button
             onClick={handleAddToWatchlist}

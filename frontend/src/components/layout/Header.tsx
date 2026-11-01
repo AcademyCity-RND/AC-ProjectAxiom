@@ -114,23 +114,26 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
           ) : (
-            /* Profil Standar Operator Analis */
+            /* Profil Standar Operator Analis Berstandar Militer Cyber PUSSIBERAD */
             <div
-              className="flex items-center gap-2.5 bg-slate-900/80 border border-slate-800/90 px-3 py-1.5 rounded-md shadow-sm transition-all"
+              className="flex items-center gap-2.5 bg-gradient-to-r from-sky-950/40 via-slate-900/90 to-slate-900/90 border border-sky-500/35 px-3 py-1.5 rounded-md shadow-sm transition-all"
               title="Akses: Analis Operasional (Penyelidikan & Analitik)"
             >
-              <div className="w-6 h-6 rounded-full bg-sky-950/80 flex items-center justify-center text-sky-300 text-xs font-semibold border border-sky-500/30 shadow-inner">
+              <div className="w-6 h-6 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-300 text-xs font-semibold border border-sky-500/50 shadow-inner">
                 <UserCheck className="w-3.5 h-3.5 text-sky-400" />
               </div>
               <div className="text-left">
-                <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
+                <div className="text-xs font-semibold text-slate-100 flex items-center gap-1.5">
                   <span className="tracking-tight">{operatorName || 'Operator'}</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                  </span>
                 </div>
                 <div className="text-[10px] font-mono tracking-tight flex items-center gap-1">
                   <span className="text-slate-400">ROLE:</span>
-                  <span className="text-sky-400 font-semibold uppercase">{operatorRole || 'USER'}</span>
-                  <span className="text-[8px] px-1 py-0.2 bg-slate-800 text-slate-400 rounded border border-slate-700 font-medium">
+                  <span className="text-sky-400 font-bold uppercase">{operatorRole || 'USER'}</span>
+                  <span className="text-[8px] px-1 py-0.2 bg-sky-500/20 text-sky-300 rounded border border-sky-500/30 font-semibold tracking-wider">
                     ANALIS
                   </span>
                 </div>

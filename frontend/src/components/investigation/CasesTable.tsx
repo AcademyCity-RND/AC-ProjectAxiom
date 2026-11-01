@@ -18,11 +18,94 @@ interface CasesTableProps {
   currentPage?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
-  onSelectCase: (caseId: string) => void;
+  onSelectCase: (caseId: string, caseItem?: CaseSummary) => void;
   title?: string;
   emptyMessage?: string;
   showFilters?: boolean;
 }
+
+// Helper to format clean 6-channel display labels & badges
+// Rule: Untuk X tweet maupun user ditulis username penulis saja, untuk 4 sisanya (YT Video, YT Shorts, IG Reel, IG Post) gunakan judul
+const formatTargetDisplay = (target: string, platform: string, displayName?: string | null) => {
+  const lower = target.toLowerCase();
+  const isUrl = target.startsWith('http://') || target.startsWith('https://');
+
+  // Channel 1: X User / Aktor
+  if (!isUrl) {
+    return {
+      label: target.startsWith('@') ? target : `@${target}`,
+      subLabel: displayName && displayName !== target ? displayName : null,
+      badge: 'X Aktor',
+      badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
+    };
+  }
+
+  // Channel 2: X Tweet
+  if (lower.includes('/status/')) {
+    let authorHandle = '';
+    try {
+      const match = target.match(/(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status/i);
+      if (match && match[1]) {
+        authorHandle = `@${match[1]}`;
+      }
+    } catch {}
+
+    const label = authorHandle || (displayName?.startsWith('@') ? displayName : null) || `@${target.split('/status/')[0].split('/').pop()}`;
+    return {
+      label,
+      subLabel: null,
+      badge: 'X Tweet',
+      badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
+    };
+  }
+
+  // Channel 3: YouTube Shorts (Judul Konten)
+  if (lower.includes('/shorts/')) {
+    return {
+      label: displayName || 'Video YouTube Shorts',
+      subLabel: null,
+      badge: 'YT Shorts',
+      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+    };
+  }
+
+  // Channel 4: YouTube Video (Judul Konten)
+  if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+    return {
+      label: displayName || 'Video YouTube Publik',
+      subLabel: null,
+      badge: 'YT Video',
+      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+    };
+  }
+
+  // Channel 5: Instagram Reel (Judul / Keterangan Reel)
+  if (lower.includes('/reel/') || lower.includes('/reels/')) {
+    return {
+      label: displayName || 'Instagram Reels Video',
+      subLabel: null,
+      badge: 'IG Reel',
+      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    };
+  }
+
+  // Channel 6: Instagram Post (Judul / Keterangan Postingan)
+  if (lower.includes('instagram.com/p/')) {
+    return {
+      label: displayName || 'Instagram Feed Post',
+      subLabel: null,
+      badge: 'IG Post',
+      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    };
+  }
+
+  return {
+    label: displayName || target,
+    subLabel: null,
+    badge: `${platform.toUpperCase()} Event`,
+    badgeColor: 'text-slate-400 bg-slate-800 border-slate-700',
+  };
+};
 
 export const CasesTable: React.FC<CasesTableProps> = ({
   cases,
@@ -34,10 +117,17 @@ export const CasesTable: React.FC<CasesTableProps> = ({
   emptyMessage = 'Belum ada target atau kasus terdaftar di database PostgreSQL.',
   showFilters = false,
 }) => {
-  // Internal pagination state if not controlled externally
+  // Internal pagination state with fallback
   const [internalPage, setInternalPage] = useState<number>(1);
   const page = externalPage !== undefined ? externalPage : internalPage;
-  const setPage = externalOnPageChange || setInternalPage;
+
+  const handlePageChange = (newPage: number) => {
+    setInternalPage(newPage);
+    if (externalOnPageChange) {
+      externalOnPageChange(newPage);
+    }
+  };
+  const setPage = handlePageChange;
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -184,20 +274,33 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                 paginatedCases.map((rc, idx) => (
                   <tr
                     key={rc.case_id || idx}
-                    onClick={() => onSelectCase(rc.case_id)}
+                    onClick={() => onSelectCase(rc.case_id, rc)}
                     className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                   >
-                    <td className="py-3.5 px-3.5 sm:px-5 font-mono font-medium text-sky-400 group-hover:text-sky-300">
-                      <span className="truncate block max-w-xs">{rc.target}</span>
-                      {(rc as any).display_name && (
-                        <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5 truncate max-w-xs">
-                          {(rc as any).display_name}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">
-                      {rc.platform}
-                    </td>
+                    {(() => {
+                      const formatted = formatTargetDisplay(rc.target, rc.platform, (rc as any).display_name);
+                      return (
+                        <>
+                          <td className="py-3.5 px-3.5 sm:px-5 font-medium text-sky-400 group-hover:text-sky-300">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate block max-w-xs md:max-w-sm text-xs font-semibold text-white">
+                                {formatted.label}
+                              </span>
+                            </div>
+                            {formatted.subLabel && (
+                              <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5 truncate max-w-xs">
+                                {formatted.subLabel}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs">
+                            <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold ${formatted.badgeColor}`}>
+                              {formatted.badge}
+                            </span>
+                          </td>
+                        </>
+                      );
+                    })()}
                     <td className="py-3.5 px-3.5 sm:px-5">
                       <ThreatBadge type="class" value={rc.verdict || rc.status} />
                     </td>
@@ -213,7 +316,7 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                     </td>
                     <td className="py-3.5 px-3.5 sm:px-5 text-right">
                       <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
-                        Buka Kasus <ChevronRight className="w-3.5 h-3.5" />
+                        Inspeksi Detail <ChevronRight className="w-3.5 h-3.5" />
                       </span>
                     </td>
                   </tr>
@@ -235,7 +338,7 @@ export const CasesTable: React.FC<CasesTableProps> = ({
           currentPage={page}
           totalItems={filteredCases.length}
           pageSize={pageSize}
-          onPageChange={setPage}
+          onPageChange={handlePageChange}
           itemLabel="kasus"
         />
       </div>

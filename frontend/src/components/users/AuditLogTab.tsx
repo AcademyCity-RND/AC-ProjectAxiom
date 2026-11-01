@@ -54,6 +54,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({
       }
       if (actionFilter !== 'ALL') {
         if (actionFilter === 'SCRAPE' && log.action !== 'SCRAPE_INVESTIGATION') return false;
+        if (actionFilter === 'VIEW_HTML' && log.action !== 'VIEW_DOSSIER_HTML') return false;
         if (actionFilter === 'DOWNLOAD_PDF' && log.action !== 'DOWNLOAD_DOSSIER_PDF') return false;
         if (actionFilter === 'DOWNLOAD_CSV' && log.action !== 'DOWNLOAD_LEDGER_CSV') return false;
         if (actionFilter === 'USER_MUTATION' && !log.action.startsWith('USER_')) return false;
@@ -183,6 +184,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({
           >
             <option value="ALL">Semua Kategori Aksi</option>
             <option value="SCRAPE">Scrapping / Investigasi</option>
+            <option value="VIEW_HTML">Lihat Pratinjau Dossier (HTML)</option>
             <option value="DOWNLOAD_PDF">Unduh Dossier PDF</option>
             <option value="DOWNLOAD_CSV">Unduh Dataset CSV</option>
             <option value="USER_MUTATION">Manajemen Akun</option>
@@ -235,6 +237,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({
               {paginatedLogs.length > 0 ? (
                 paginatedLogs.map((log) => {
                   const isScrape = log.action === 'SCRAPE_INVESTIGATION';
+                  const isHtml = log.action === 'VIEW_DOSSIER_HTML';
                   const isPdf = log.action === 'DOWNLOAD_DOSSIER_PDF';
                   const isCsv = log.action === 'DOWNLOAD_LEDGER_CSV';
                   const isUserMutation = log.action.startsWith('USER_');
@@ -280,6 +283,12 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({
                             SCRAPE
                           </span>
                         )}
+                        {isHtml && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-sky-500/10 text-sky-300 border border-sky-500/30">
+                            <FileText className="w-3 h-3 text-sky-400" />
+                            LIHAT DOSSIER
+                          </span>
+                        )}
                         {isPdf && (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-rose-500/10 text-rose-300 border border-rose-500/25">
                             <FileText className="w-3 h-3 text-rose-400" />
@@ -298,7 +307,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({
                             USER MGMT
                           </span>
                         )}
-                        {!isScrape && !isPdf && !isCsv && !isUserMutation && (
+                        {!isScrape && !isHtml && !isPdf && !isCsv && !isUserMutation && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 text-slate-300 border border-slate-700">
                             {log.action}
                           </span>

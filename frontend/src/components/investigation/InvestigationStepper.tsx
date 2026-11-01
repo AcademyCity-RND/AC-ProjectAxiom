@@ -103,10 +103,11 @@ export const InvestigationStepper: React.FC<InvestigationStepperProps> = ({
             </span>
             <span className="text-xs font-mono text-slate-500">&bull; ID: {caseId}</span>
           </div>
-          <div className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
-            Target: <span className="font-mono text-sky-400">{target}</span>
-            <span className="text-xs uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
-              {platform}
+          <div className="text-sm font-semibold tracking-tight text-white flex items-center gap-2 flex-wrap">
+            <span>Target:</span>
+            <span className="font-mono text-sky-400">{target}</span>
+            <span className="text-[10px] uppercase px-2 py-0.5 rounded font-mono font-semibold tracking-wider bg-sky-500/10 text-sky-300 border border-sky-500/30">
+              {platform?.toLowerCase() === 'x' ? 'X (TWITTER)' : platform?.toUpperCase() || 'UNKNOWN'}
             </span>
           </div>
         </div>

@@ -49,6 +49,7 @@ export const App: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<InspectorData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [showSearchForm, setShowSearchForm] = useState<boolean>(true);
+  const [overviewPage, setOverviewPage] = useState<number>(1);
   const [targetDirectoryPage, setTargetDirectoryPage] = useState<number>(1);
   const TARGET_PAGE_SIZE = 8;
 
@@ -64,6 +65,7 @@ export const App: React.FC = () => {
     isPolling,
     error,
     clearError,
+    clearActiveCase,
     loadCases,
     loadStats,
     startActorInvestigation,
@@ -72,6 +74,11 @@ export const App: React.FC = () => {
   } = useCaseStore();
   const { isAuthenticated, isInitialized, initAuth, operatorRole } = useAuthStore();
   const isAdmin = operatorRole?.toLowerCase() === 'admin';
+  const isEventTarget = Boolean(
+    activeCase?.target?.startsWith('http://') ||
+    activeCase?.target?.startsWith('https://') ||
+    (activeCase?.platform && ['youtube', 'instagram'].includes(activeCase.platform))
+  );
 
   useEffect(() => {
     // Guard RBAC: jika operator bukan admin namun berada di tab 'users', kembalikan ke overview
@@ -105,6 +112,63 @@ export const App: React.FC = () => {
     setIsDrawerOpen(false);
   };
 
+  // Handle pembersihan state dan membuka form pencarian baru
+  const handleNewInvestigation = () => {
+    clearActiveCase();
+    setShowSearchForm(true);
+    clearError();
+    loadCases();
+    loadStats();
+  };
+
+  // Handle Segarkan 2-arah (Dual-handle per screenshot & user request):
+  // 1. Belum investigasi: segarkan data dan bersihkan tampilan seperti baru login
+  // 2. Sudah investigasi (selesai atau gagal): jalankan ulang investigasi pada sasaran aktif tersebut
+  const handleRefresh = async () => {
+    if (activeCase && activeCase.target) {
+      try {
+        await handleStartInvestigation(
+          activeCase.target,
+          activeCase.platform as PlatformType,
+          activeCase.max_interactions || 50,
+          isEventTarget
+        );
+      } catch (err) {
+        console.error('[Rerun investigation error]:', err);
+      }
+    } else {
+      handleNewInvestigation();
+    }
+  };
+
+  // Inspeksi sasaran langsung di halaman Target Directory tanpa redirect paksa
+  const handleInspectCaseFromDirectory = async (caseId: string, caseItem?: any) => {
+    try {
+      await loadCaseDetails(caseId);
+    } catch (err) {
+      console.warn('[LoadCaseDetails notice]:', err);
+    }
+    const current = useCaseStore.getState().activeCase || caseItem;
+    const verdict = current?.detection?.predicted_class || current?.verdict || 'TERVERIFIKASI';
+    const conf = current?.detection?.confidence || current?.confidence || 0.95;
+    const level = verdict === 'BOT' ? 'CRITICAL' : verdict === 'BUZZER' ? 'HIGH' : 'LOW';
+
+    handleOpenInspector({
+      title: current?.target?.startsWith('@') ? current.target : `@${current?.target || caseId}`,
+      subtitle: `Sasaran Terdaftar (${(current?.platform || 'X').toUpperCase()}) • ID Kasus: ${caseId.slice(0, 8)}`,
+      threatClass: verdict,
+      confidence: conf,
+      threatLevel: level,
+      indicators: [
+        { label: 'Platform Sasaran', value: (current?.platform || 'x').toUpperCase(), mono: true },
+        { label: 'Status Investigasi', value: (current?.status || 'completed').toUpperCase(), mono: true },
+        { label: 'Waktu Audit Awal', value: current?.created_at ? new Date(current.created_at).toLocaleString('id-ID') : 'N/A' },
+        { label: 'Status Ekstraksi CIB', value: 'Terpetakan di PostgreSQL' },
+      ],
+      rawMetadata: { case_id: caseId, ...current },
+    });
+  };
+
   // Handler search dari ActorSearchForm
   const handleStartInvestigation = async (
     target: string,
@@ -124,7 +188,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // Inspect 21 XAI Features in Inspector Drawer
+  // Inspect 21 XAI Features or Event Forensic Signals in Inspector Drawer
   const handleInspect21Features = () => {
     if (!activeCase || !activeCase.detection) return;
     const features = activeCase.detection.extracted_features || {};
@@ -136,17 +200,73 @@ export const App: React.FC = () => {
       activeCase.platform === 'youtube' ||
       activeCase.platform === 'instagram';
 
-    handleOpenInspector({
-      title: isEventCase
-        ? `Audit Indikator Event: ${activeCase.platform.toUpperCase()}`
-        : `Analisis 21-Fitur: @${activeCase.target}`,
-      subtitle: `Klasifikasi AI: ${activeCase.detection.predicted_class} (${Math.round(
-        activeCase.detection.confidence * 100
-      )}%)`,
-      threatClass: activeCase.detection.predicted_class,
-      confidence: activeCase.detection.confidence,
-      threatLevel: activeCase.detection.threat_attribution?.forensic_dossier?.threat_level || 'HIGH',
-      indicators: Object.entries(features).map(([k, v]) => {
+    const resultSummary = activeCase.result_summary || {};
+    const hostMeta = (resultSummary as any).host_metadata;
+    const harvestMeta = (resultSummary as any).harvest_summary;
+    const aiFeats = (resultSummary as any).ai_training_features || features;
+
+    // Compose indicators list dynamically
+    let indicatorList: Array<{ label: string; value: string; mono?: boolean }> = [];
+
+    if (isEventCase) {
+      if (hostMeta) {
+        if (hostMeta.creator?.username_or_channel) {
+          indicatorList.push({
+            label: 'Host Kreator / Channel',
+            value: hostMeta.creator.username_or_channel,
+          });
+        }
+        if (hostMeta.engagement?.views_count !== undefined) {
+          indicatorList.push({
+            label: 'Total Views (Tayangan)',
+            value: hostMeta.engagement.views_count.toLocaleString('id-ID'),
+            mono: true,
+          });
+        }
+        if (hostMeta.engagement?.likes_count !== undefined) {
+          indicatorList.push({
+            label: 'Total Suka (Likes)',
+            value: hostMeta.engagement.likes_count.toLocaleString('id-ID'),
+            mono: true,
+          });
+        }
+        if (activeCase.platform !== 'x' && hostMeta.engagement?.dislikes_count !== undefined) {
+          indicatorList.push({
+            label: 'Estimasi Dislikes (RYD API)',
+            value: String(hostMeta.engagement.dislikes_count),
+            mono: true,
+          });
+        }
+      }
+
+      if (harvestMeta) {
+        indicatorList.push({
+          label: 'Panen Komentar Riil',
+          value: `${harvestMeta.total_comments_extracted} ditarik (${harvestMeta.unique_commenters_count} akun unik)`,
+          mono: true,
+        });
+        indicatorList.push({
+          label: 'Rasio Spammer / Berulang',
+          value: `${(harvestMeta.spammer_ratio * 100).toFixed(1)}%`,
+          mono: true,
+        });
+      }
+
+      // Add ML feature vector
+      Object.entries(aiFeats).forEach(([k, v]) => {
+        const topMatch = topXai.find((f) => f.feature === k);
+        const explanationText =
+          topMatch && topMatch.explanation && topMatch.explanation !== 'undefined'
+            ? ` (${topMatch.explanation})`
+            : '';
+        indicatorList.push({
+          label: topMatch ? `★ ${k}${explanationText}` : k,
+          value: typeof v === 'number' ? v.toFixed(3) : String(v),
+          mono: true,
+        });
+      });
+    } else {
+      indicatorList = Object.entries(features).map(([k, v]) => {
         const topMatch = topXai.find((f) => f.feature === k);
         const explanationText =
           topMatch && topMatch.explanation && topMatch.explanation !== 'undefined'
@@ -157,24 +277,50 @@ export const App: React.FC = () => {
           value: typeof v === 'number' ? v.toFixed(3) : String(v),
           mono: true,
         };
-      }),
+      });
+    }
+
+    handleOpenInspector({
+      title: isEventCase
+        ? `Audit Indikator Event: ${activeCase.platform.toUpperCase()}`
+        : `Analisis 21-Fitur: @${activeCase.target}`,
+      subtitle: `Klasifikasi AI: ${activeCase.detection.predicted_class} (${Math.round(
+        activeCase.detection.confidence * 100
+      )}%)`,
+      threatClass: activeCase.detection.predicted_class,
+      confidence: activeCase.detection.confidence,
+      threatLevel: activeCase.detection.threat_attribution?.forensic_dossier?.threat_level || 'HIGH',
+      indicators: indicatorList,
       rawMetadata: {
         case_id: activeCase.case_id,
         probabilities: activeCase.detection.class_probabilities,
         extracted_features: features,
         top_xai_explanations: topXai,
+        host_metadata: hostMeta,
+        harvest_summary: harvestMeta,
       },
     });
   };
 
   // Handle node selection in NetworkGraph
   const handleGraphNodeSelect = (nodeRaw: any) => {
+    const cleanHandle = (nodeRaw.label || nodeRaw.id || '').replace(/^@/, '').toLowerCase();
+    const matchedComments =
+      activeLedger?.full_ledger
+        ?.filter((item) => item.username.replace(/^@/, '').toLowerCase() === cleanHandle)
+        .map((item) => ({
+          text: item.content,
+          timestamp: item.published_at,
+          likes: item.likes,
+        })) || [];
+
     handleOpenInspector({
-      title: nodeRaw.label || nodeRaw.id,
+      title: nodeRaw.label?.startsWith('@') ? nodeRaw.label : `@${nodeRaw.label || nodeRaw.id}`,
       subtitle: `Node Jaringan: ${nodeRaw.type === 'target' ? 'Target Inti' : 'Anggota Klaster CIB'}`,
       threatClass: nodeRaw.category,
       confidence: nodeRaw.confidence,
       threatLevel: nodeRaw.category === 'BOT' ? 'CRITICAL' : nodeRaw.category === 'BUZZER' ? 'HIGH' : 'LOW',
+      comments: matchedComments,
       indicators: [
         { label: 'Tipe Node', value: nodeRaw.type === 'target' ? 'Target Kasus' : 'Afiliasi Sindikat' },
         { label: 'Skor Keyakinan AI', value: nodeRaw.confidence ? `${Math.round(nodeRaw.confidence * 100)}%` : 'N/A', mono: true },
@@ -294,7 +440,7 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-2">
               {!showSearchForm && (
                 <button
-                  onClick={() => setShowSearchForm(true)}
+                  onClick={handleNewInvestigation}
                   className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-4 py-2 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 shadow-sm cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -303,11 +449,17 @@ export const App: React.FC = () => {
               )}
 
               <button
-                onClick={() => window.location.reload()}
-                className="border border-slate-800 hover:border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-2 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 shadow-sm cursor-pointer"
+                onClick={handleRefresh}
+                disabled={isAnalyzing || isPolling}
+                className="border border-slate-800 hover:border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-2 rounded-md text-xs flex items-center gap-1.5 transition-all duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 shadow-sm cursor-pointer disabled:opacity-50"
+                title={
+                  activeCase
+                    ? 'Jalankan ulang investigasi target aktif'
+                    : 'Segarkan data & bersihkan form seperti baru login'
+                }
               >
-                <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-                Segarkan
+                <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isAnalyzing || isPolling ? 'animate-spin text-sky-400' : ''}`} />
+                <span>{activeCase ? 'Jalankan Ulang' : 'Segarkan'}</span>
               </button>
             </div>
           </div>
@@ -340,15 +492,15 @@ export const App: React.FC = () => {
               {/* Table of Past Cases Menggunakan Shared CasesTable */}
               <CasesTable
                 cases={displayCases}
-                currentPage={1}
+                currentPage={overviewPage}
                 pageSize={8}
-                onPageChange={() => {}}
+                onPageChange={setOverviewPage}
                 onSelectCase={(cid) => {
                   loadCaseDetails(cid);
                   setShowSearchForm(false);
                 }}
                 title="DAFTAR KASUS TERAKHIR DIPERIKSA (POSTGRESQL)"
-                emptyMessage="Belum ada kasus terdaftar. Jalankan investigasi akun atau gunakan preset di atas."
+                emptyMessage="Belum ada riwayat kasus terdaftar. Masukkan sasaran target akun atau link postingan di atas untuk memulai audit forensik."
               />
             </div>
           ) : (
@@ -357,7 +509,7 @@ export const App: React.FC = () => {
               {/* Back button to search form */}
               <button
                 type="button"
-                onClick={() => setShowSearchForm(true)}
+                onClick={handleNewInvestigation}
                 className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer py-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -383,6 +535,7 @@ export const App: React.FC = () => {
                       target={activeCase.target}
                       platform={activeCase.platform}
                       onInspectFeatures={handleInspect21Features}
+                      resultSummary={activeCase.result_summary}
                     />
 
                     {/* Right: Forensic Intelligence Dossier Card */}
@@ -441,11 +594,24 @@ export const App: React.FC = () => {
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="text-lg font-semibold tracking-tight text-white">
-                Narrative Monitor &amp; Analisis Temporal
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold tracking-tight text-white">
+                  Narrative Monitor &amp; Analisis Temporal
+                </h1>
+                {activeCase && (
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase font-medium ${
+                    isEventTarget
+                      ? 'bg-purple-950/40 text-purple-300 border-purple-500/30'
+                      : 'bg-sky-950/40 text-sky-300 border-sky-500/30'
+                  }`}>
+                    {isEventTarget ? 'Mode: Event / Serbuan Komentar' : 'Mode: Profil Aktor Individu'}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Deteksi anomali jam kerja sindikat buzzer, entropi penjadwalan bot, dan pergeseran narasi.
+                {isEventTarget
+                  ? 'Audit lonjakan komentar massal (burst intervals < 10s), entropi penjadwalan otomasi bot, dan pembelokan kata kunci narasi penyerang.'
+                  : 'Deteksi anomali jam kerja sindikat buzzer (09:00 - 17:00), entropi penjadwalan bot, dan pergeseran narasi profil.'}
               </p>
             </div>
 
@@ -498,11 +664,24 @@ export const App: React.FC = () => {
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
             <div>
-              <h1 className="text-lg font-semibold tracking-tight text-white">
-                Graf Jejaring Sindikat CIB (Social Network Analysis)
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold tracking-tight text-white">
+                  Graf Jejaring Sindikat CIB (Social Network Analysis)
+                </h1>
+                {activeCase && (
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase font-medium ${
+                    isEventTarget
+                      ? 'bg-purple-950/40 text-purple-300 border-purple-500/30'
+                      : 'bg-sky-950/40 text-sky-300 border-sky-500/30'
+                  }`}>
+                    {isEventTarget ? 'Topologi: Konten Target & Serbuan Buzzer' : 'Topologi: Aktor & Afiliasi'}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Visualisasi keterpautan semantik MiniLM (Cosine &ge; 0.85) dan sinkronisasi temporal akun penyerang.
+                {isEventTarget
+                  ? 'Pemetaan node konten/kreator target dengan klaster akun penyerang yang terdeteksi melakukan koordinasi copypasta semantik (Cosine ≥ 0.85).'
+                  : 'Visualisasi keterpautan semantik MiniLM (Cosine ≥ 0.85) dan sinkronisasi temporal antar akun penyerang.'}
               </p>
             </div>
           </div>
@@ -569,10 +748,8 @@ export const App: React.FC = () => {
               currentPage={targetDirectoryPage}
               pageSize={TARGET_PAGE_SIZE}
               onPageChange={setTargetDirectoryPage}
-              onSelectCase={(cid) => {
-                loadCaseDetails(cid);
-                setActiveTab('overview');
-                setShowSearchForm(false);
+              onSelectCase={(cid, item) => {
+                handleInspectCaseFromDirectory(cid, item);
               }}
               title="DATABASE SASARAN AKTIF (POSTGRESQL)"
               emptyMessage="Belum ada target atau kasus terdaftar di database PostgreSQL."
@@ -622,6 +799,12 @@ export const App: React.FC = () => {
         isOpen={isDrawerOpen}
         onClose={handleCloseInspector}
         data={selectedItem}
+        onOpenCaseWorkspace={(caseId) => {
+          loadCaseDetails(caseId);
+          setActiveTab('overview');
+          setShowSearchForm(false);
+          setIsDrawerOpen(false);
+        }}
       />
     </Layout>
   );

@@ -152,6 +152,30 @@ def fetch_youtube_metadata(video_id: str) -> Dict[str, Any]:
                 cid_m = re.search(r'"browseId":"(UC[a-zA-Z0-9_-]{22})"', html)
                 if cid_m:
                     metadata["channel_id"] = cid_m.group(1)
+
+                # Fallback ekstraksi views dari Watch Page HTML jika RYD 0
+                if metadata["views"] == 0:
+                    view_m = re.search(r'"viewCount":"(\d+)"', html)
+                    if view_m:
+                        metadata["views"] = int(view_m.group(1))
+                    else:
+                        view_m = re.search(r'"viewCount":\{"simpleText":"([^"]+)"\}', html)
+                        if view_m:
+                            metadata["views"] = parse_human_readable_count(view_m.group(1))
+
+                # Fallback ekstraksi likes dari Watch Page HTML jika RYD 0
+                if metadata["likes"] == 0:
+                    like_m = re.search(r'"label":"([\d,.]+\s*likes?|like this video along with [\d,.]* other people)"', html, re.I)
+                    if like_m:
+                        num_m = re.search(r'([\d,.]+)', like_m.group(1))
+                        if num_m:
+                            metadata["likes"] = parse_human_readable_count(num_m.group(1))
+                    else:
+                        like_m = re.search(r'"defaultText":\{"accessibility":\{"accessibilityData":\{"label":"([^"]+likes?)"\}\}\}', html, re.I)
+                        if like_m:
+                            num_m = re.search(r'([\d,.]+)', like_m.group(1))
+                            if num_m:
+                                metadata["likes"] = parse_human_readable_count(num_m.group(1))
     except Exception as e:
         logger.warning(f"Gagal mengekstrak detail subscriber watch page '{video_id}': {e}")
 

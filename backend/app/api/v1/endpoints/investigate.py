@@ -180,22 +180,52 @@ def get_investigation_stats(
     current_user: TokenPayload = Depends(require_roles([UserRole.USER, UserRole.ADMIN]))
 ):
     """
-    Mengembalikan metrik statistik agregat sistem secara real-time dari database PostgreSQL:
-    - Total kasus terdaftar
-    - Total aktor teridentifikasi
-    - Jumlah klasifikasi BOT, BUZZER, HUMAN
-    - Rata-rata confidence score
-    - Estimasi akurasi tri-class model
+    Mengembalikan metrik statistik agregat secara real-time dari database PostgreSQL:
+    - Admin: Mengakses seluruh log dan akumulasi kasus di sistem
+    - User (Operator): Hanya mengakses log statistik dari kasus yang diinvestigasi oleh dirinya sendiri
     """
-    total_cases = db.query(func.count(InvestigationCase.id)).scalar() or 0
-    completed_cases = db.query(func.count(InvestigationCase.id)).filter(InvestigationCase.status == "completed").scalar() or 0
-    total_actors = db.query(func.count(ActorProfile.id)).scalar() or 0
+    is_admin = current_user.role == UserRole.ADMIN.value
 
-    bot_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "BOT").scalar() or 0
-    buzzer_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "BUZZER").scalar() or 0
-    human_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "HUMAN").scalar() or 0
+    if is_admin:
+        total_cases = db.query(func.count(InvestigationCase.id)).scalar() or 0
+        completed_cases = db.query(func.count(InvestigationCase.id)).filter(InvestigationCase.status == "completed").scalar() or 0
+        total_actors = db.query(func.count(ActorProfile.id)).scalar() or 0
 
-    avg_conf = db.query(func.avg(DetectionResult.confidence)).scalar() or 0.94
+        bot_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "BOT").scalar() or 0
+        buzzer_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "BUZZER").scalar() or 0
+        human_count = db.query(func.count(DetectionResult.id)).filter(DetectionResult.predicted_class == "HUMAN").scalar() or 0
+
+        avg_conf = db.query(func.avg(DetectionResult.confidence)).scalar() or 0.94
+    else:
+        # Isolasi: Filter kasus milik operator yang sedang login saja
+        user_cases_q = db.query(InvestigationCase).filter(InvestigationCase.created_by == current_user.sub)
+        total_cases = user_cases_q.count()
+        completed_cases = user_cases_q.filter(InvestigationCase.status == "completed").count()
+
+        user_case_ids = [c.id for c in user_cases_q.all()]
+        if user_case_ids:
+            total_actors = db.query(func.count(ActorProfile.id)).filter(ActorProfile.case_id.in_(user_case_ids)).scalar() or 0
+            bot_count = db.query(func.count(DetectionResult.id)).filter(
+                DetectionResult.case_id.in_(user_case_ids),
+                DetectionResult.predicted_class == "BOT"
+            ).scalar() or 0
+            buzzer_count = db.query(func.count(DetectionResult.id)).filter(
+                DetectionResult.case_id.in_(user_case_ids),
+                DetectionResult.predicted_class == "BUZZER"
+            ).scalar() or 0
+            human_count = db.query(func.count(DetectionResult.id)).filter(
+                DetectionResult.case_id.in_(user_case_ids),
+                DetectionResult.predicted_class == "HUMAN"
+            ).scalar() or 0
+            avg_conf = db.query(func.avg(DetectionResult.confidence)).filter(
+                DetectionResult.case_id.in_(user_case_ids)
+            ).scalar() or 0.94
+        else:
+            total_actors = 0
+            bot_count = 0
+            buzzer_count = 0
+            human_count = 0
+            avg_conf = 0.94
 
     return {
         "total_cases": total_cases,
@@ -224,6 +254,10 @@ def list_investigation_cases(
     Mendukung paginasi dan filter platform / status.
     """
     query = db.query(InvestigationCase)
+    # Isolasi kasus: Operator biasa hanya dapat melihat kasus miliknya sendiri, Admin dapat melihat seluruhnya
+    if current_user.role != UserRole.ADMIN.value:
+        query = query.filter(InvestigationCase.created_by == current_user.sub)
+
     if platform:
         query = query.filter(InvestigationCase.platform == platform.lower())
     if status_filter:
@@ -239,6 +273,38 @@ def list_investigation_cases(
         verdict = detection.predicted_class if detection else (c.status.upper() if c.status != "completed" else "SELESAI")
         confidence = detection.confidence if detection else None
 
+        is_event = (
+            c.target.startswith("http://")
+            or c.target.startswith("https://")
+            or c.platform in ("youtube", "instagram")
+        )
+        if is_event and c.result_summary:
+            host_meta = c.result_summary.get("host_metadata", {})
+            creator = host_meta.get("creator", {})
+            creator_name = (
+                creator.get("username_or_channel")
+                or creator.get("channel_title")
+                or creator.get("display_name")
+            )
+            title = host_meta.get("title") or host_meta.get("caption")
+
+            # Khusus X (tweet / user): tulis username penulis saja
+            if "/status/" in c.target.lower():
+                try:
+                    after_domain = c.target.split("://")[1].split("/", 1)[1]
+                    author_handle = after_domain.split("/status/")[0].strip()
+                    display_name = f"@{author_handle}" if author_handle else (creator_name or f"{c.platform.upper()} Tweet")
+                except Exception:
+                    display_name = creator_name or f"{c.platform.upper()} Tweet"
+            else:
+                # Untuk 4 sisanya (YT Video, YT Shorts, IG Reel, IG Post): gunakan judul/caption
+                display_name = title or creator_name or f"{c.platform.upper()} Content Event"
+        else:
+            if c.platform == "x" and not c.target.startswith("http"):
+                display_name = c.target if c.target.startswith("@") else f"@{c.target}"
+            else:
+                display_name = (actor.display_name or (f"@{actor.username}" if actor and actor.username else None)) if actor else None
+
         result.append({
             "case_id": c.id,
             "target": c.target,
@@ -246,7 +312,7 @@ def list_investigation_cases(
             "status": c.status,
             "verdict": verdict,
             "confidence": confidence,
-            "display_name": actor.display_name if actor else None,
+            "display_name": display_name,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "completed_at": c.completed_at.isoformat() if c.completed_at else None,
         })
@@ -270,7 +336,7 @@ def get_investigation_case(
     serta faktor penjelas XAI.
     """
     case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
-    if not case:
+    if not case or (current_user.role != UserRole.ADMIN.value and case.created_by != current_user.sub):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
@@ -290,10 +356,21 @@ def get_investigation_case(
         summary = case.result_summary or {}
         tot_c = summary.get("total_comments", 0)
         uniq_c = summary.get("unique_commenters", 0)
+        host_meta = summary.get("host_metadata", {})
+        creator = host_meta.get("creator", {})
+        creator_name = (
+            creator.get("username_or_channel")
+            or creator.get("channel_title")
+            or creator.get("display_name")
+        )
+        content_title = host_meta.get("title")
+        display_name = creator_name or f"{case.platform.upper()} Event Content"
+        bio = content_title or f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)"
+
         actor_data = {
-            "username": case.target,
-            "display_name": f"{case.platform.upper()} Event Content",
-            "bio": f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)",
+            "username": creator_name or case.target,
+            "display_name": display_name,
+            "bio": bio,
             "followers_count": uniq_c,
             "following_count": tot_c,
             "is_verified": False,
@@ -353,7 +430,7 @@ def get_case_graph(
     dalam format Cytoscape.js yang siap divisualisasikan pada frontend.
     """
     case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
-    if not case:
+    if not case or (current_user.role != UserRole.ADMIN.value and case.created_by != current_user.sub):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
@@ -561,7 +638,7 @@ def get_case_analytics(
     3. Narrative Drift (Pergeseran fokus narasi temporal sliding window)
     """
     case = db.query(InvestigationCase).filter(InvestigationCase.id == case_id).first()
-    if not case:
+    if not case or (current_user.role != UserRole.ADMIN.value and case.created_by != current_user.sub):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Kasus investigasi dengan ID '{case_id}' tidak ditemukan."
