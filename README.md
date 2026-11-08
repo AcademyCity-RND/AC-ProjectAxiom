@@ -154,44 +154,122 @@ axiom/
 
 ---
 
-## 🚀 Panduan Memulai Cepat (Quick Start)
+## 🚀 Panduan Instalasi & Menjalankan (Quick Start)
 
 ### 1. Prasyarat Sistem
-- Docker & Docker Compose
-- Python 3.11+
-- Node.js 20+ & pnpm
-- Akun Groq Cloud (API Key gratis di [console.groq.com](https://console.groq.com))
+- **Docker Desktop** (direkomendasikan) atau Docker Engine 24+
+- **Python 3.11+** *(opsional, hanya jika ingin menjalankan backend manual tanpa Docker)*
+- **Node.js 20+ & pnpm** *(opsional, hanya jika ingin menjalankan frontend manual tanpa Docker)*
+- **Groq Cloud API Key** (Gratis 100% di [console.groq.com](https://console.groq.com))
 
-### 2. Kloning & Konfigurasi Lingkungan
+---
+
+### 2. Kloning & Konfigurasi `.env`
+
 ```bash
+# 1. Kloning repositori
 git clone https://github.com/AcademyCity-RND/AC-ProjectAxiom.git
 cd AC-ProjectAxiom
+
+# 2. Salin template konfigurasi
 cp .env.example .env
 ```
-Buka file `.env` dan masukkan:
-- `GROQ_API_KEY`: API Key Groq Anda
-- Kredensial burner X (`TWITTER_USERNAME`, `TWITTER_AUTH_TOKEN`, `TWITTER_CT0`)
-- Kredensial burner Instagram (`INSTAGRAM_SESSIONID`)
 
-### 3. Menjalankan via Docker Compose (Rekomendasi)
+Buka file `.env` di teks editor favorit (VS Code, Notepad, dll):
+1. **Wajib:** Masukkan `GROQ_API_KEY=gsk_...` untuk modul analisis intelijen AI Llama 3.3.
+2. **Kredensial Media Sosial (Untuk Live Scraping):**
+   - **X (Twitter):** Masukkan `TWITTER_USERNAME`, `TWITTER_AUTH_TOKEN`, dan `TWITTER_CT0` *(didapat dari browser: `F12` -> `Application` -> `Cookies` -> `https://x.com`)*.
+   - **Instagram:** Masukkan `INSTAGRAM_SESSIONID` *(didapat dari browser: `F12` -> `Application` -> `Cookies` -> `https://instagram.com`)*.
+   - **YouTube:** Berjalan otomatis tanpa butuh login maupun API key.
+3. **💡 Tips Pengujian Cepat Tanpa Akun Medsos:**  
+   Jika belum memiliki akun burner medsos, Anda tetap bisa menguji seluruh fitur dashboard! Cukup setel `SCRAPER_OFFLINE_MODE=true` di `.env` atau klik tombol preset demo di antarmuka (misal `@cyber_agitator_id`). Sistem akan otomatis menyajikan data simulasi intelijen realistis bawaan (*zero-friction testing*).
+
+---
+
+### 3. Menjalankan via Docker Compose (Rekomendasi Utama)
+
+Cukup **satu perintah** untuk menjalankan seluruh arsitektur (PostgreSQL, ChromaDB, FastAPI Backend, & Nginx React Frontend):
+
 ```bash
-docker-compose up -d --build
+# Jalankan seluruh kontainer di latar belakang
+docker compose up -d --build
 ```
-Layanan akan tersedia di:
-- **Frontend Dashboard:** `http://localhost:3000`
-- **FastAPI Interactive Docs:** `http://localhost:8000/docs`
-- **ChromaDB Vector Endpoint:** `http://localhost:8001`
-- **PostgreSQL Database:** `localhost:5434` *(port 5434 di sisi host untuk mencegah konflik port 5432 lokal)*
+> *(Catatan: Perintah `docker-compose up -d --build` juga didukung penuh untuk versi Docker Compose v1).*
 
-### 4. Menjalankan Dataset Harvester (Opsi QA / Riset)
-Untuk mengumpulkan dataset mentah 60 CSV dari 6 skenario nyata:
+#### 🌐 Akses Layanan:
+| Layanan | Alamat URL / Akses | Keterangan |
+| :--- | :--- | :--- |
+| **Frontend Web Dashboard** | [http://localhost:3000](http://localhost:3000) | Antarmuka analisis investigasi SOC PUSSIBERAD |
+| **FastAPI Interactive Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Dokumentasi & pengujian endpoint Swagger UI |
+| **ChromaDB Vector Store** | [http://localhost:8001](http://localhost:8001) | Endpoint koleksi narasi semantik CIB |
+| **PostgreSQL Database** | `localhost:5434` | DB utama *(port host 5434 untuk mencegah konflik lokal 5432)* |
+
+#### 🛠️ Perintah Operasional Docker:
+```bash
+# Cek status kesehatan seluruh kontainer
+docker compose ps
+
+# Memantau live logs backend
+docker compose logs -f backend
+
+# Menghentikan seluruh kontainer
+docker compose down
+```
+
+---
+
+### 4. Menjalankan Unit & Integration Test Suite (Verifikasi QA)
+
+Untuk memverifikasi keandalan seluruh modul (XGBoost, Groq LLM, Scraper, CIB ChromaDB, dan API):
+```bash
+# Menjalankan pengujian di dalam container backend
+docker exec -it axiom_backend pytest -v
+```
+*(Seluruh 62 test cases terverifikasi lulus 100% tanpa error maupun warning).*
+
+---
+
+### 5. Menjalankan Dataset Harvester (Opsi Riset & Ekstraksi Data)
+
+Untuk mengekstrak atau memeriksa 60 file CSV dataset nyata dari 6 skenario (X, Instagram, YouTube):
 ```powershell
-# Jalankan seluruh 60 target secara otomatis
+# Buka PowerShell di root folder proyek (c:\laragon\www\Hack\axiom):
+
+# Jalankan seluruh proses harvesting 60 target (otomatis dengan checkpoint/resume)
 .\run_harvester.ps1 -all
 
-# Atau cek status kelengkapan CSV yang sudah terkumpul
+# Atau cek status kelengkapan file CSV yang sudah berhasil terunduh
 .\run_harvester.ps1 -status
 ```
+Seluruh dataset tersimpan rapi di: `backend/data/raw_datasets/`.
+
+---
+
+### 6. Menjalankan Manual / Mode Development (Opsional Tanpa Docker)
+
+Bagi pengembang yang ingin menjalankan secara langsung di sistem host:
+
+**Backend (Terminal 1):**
+```bash
+cd backend
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Linux / macOS:
+source venv/bin/activate
+
+pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt --prefer-binary
+uvicorn app.main:app --reload --port 8000
+```
+
+**Frontend (Terminal 2):**
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+Aplikasi frontend akan tersedia di `http://localhost:5173` (Vite dev) dan mem-proxy API ke port `8000`.
 
 ---
 
