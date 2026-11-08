@@ -265,10 +265,12 @@ async def fetch_x_tweet_replies(
         raise ValueError(f"URL Tweet atau Tweet ID tidak valid: {url_or_tweet_id}")
 
     replies: List[Dict[str, Any]] = []
+    has_account = False
 
     try:
         service = TwscrapeService()
-        if await service.has_active_account():
+        has_account = await service.has_active_account()
+        if has_account:
             raw_replies = await gather(service.api.tweet_replies(tweet_id, limit=max_comments))
             for rep in raw_replies:
                 cid = str(rep.id)
