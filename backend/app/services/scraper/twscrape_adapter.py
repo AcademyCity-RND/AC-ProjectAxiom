@@ -61,8 +61,37 @@ class TwscrapeService:
             return False
         try:
             accounts = await self.api.pool.get_all()
-            return any(acc.active for acc in accounts)
-        except Exception:
+            if any(acc.active for acc in accounts):
+                return True
+
+            # Auto-sinkronisasi dari .env jika belum pernah didaftarkan ke accounts.db
+            import os
+            tw_u = os.getenv("TWITTER_USERNAME", "").strip().lstrip("@")
+            tw_auth = os.getenv("TWITTER_AUTH_TOKEN", "").strip()
+            tw_ct0 = os.getenv("TWITTER_CT0", "").strip()
+            tw_p = os.getenv("TWITTER_PASSWORD", "").strip()
+            tw_email = os.getenv("TWITTER_EMAIL", "").strip()
+            tw_email_p = os.getenv("TWITTER_EMAIL_PASSWORD", "").strip()
+
+            if tw_u and tw_auth and tw_ct0 and "PASTE" not in tw_auth.upper():
+                cookie_str = f"auth_token={tw_auth}; ct0={tw_ct0}"
+                await self.api.pool.add_account_cookies(tw_u, cookie_str)
+                logger.info(f"Otomatis mendaftarkan akun X @{tw_u} via cookie dari .env")
+                accounts = await self.api.pool.get_all()
+                return any(acc.active for acc in accounts)
+            elif tw_u and tw_p and tw_email and "PASTE" not in tw_p.upper():
+                await self.api.pool.add_account(tw_u, tw_p, tw_email, tw_email_p or tw_p)
+                logger.info(f"Otomatis mendaftarkan akun X @{tw_u} via kredensial .env. Melakukan login...")
+                try:
+                    await self.api.pool.login_all()
+                except Exception as le:
+                    logger.warning(f"Login twscrape via password gagal ({le})")
+                accounts = await self.api.pool.get_all()
+                return any(acc.active for acc in accounts)
+
+            return False
+        except Exception as e:
+            logger.warning(f"Pengecekan akun twscrape gagal: {e}")
             return False
 
     async def add_account_from_cookies(self, username: str, cookies: str) -> None:
