@@ -14,9 +14,7 @@ tmp/
 data/sessions/
 data/chromadb/
 data/raw_datasets/
-tools/dataset_harvester/
-backend/tools/dataset_harvester/
-run_harvester.ps1
+backend/data/raw_datasets/
 axiom-revisi-ui/
 
 backend/data/
