@@ -18,3 +18,6 @@ tools/dataset_harvester/
 backend/tools/dataset_harvester/
 run_harvester.ps1
 axiom-revisi-ui/
+
+backend/data/
+backend/.env

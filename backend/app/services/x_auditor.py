@@ -103,9 +103,11 @@ async def fetch_tweet_metadata(tweet_id: int, url: str = "") -> Dict[str, Any]:
     }
 
     # 1. Coba via twscrape jika memiliki akun aktif
+    has_account = False
     try:
         service = TwscrapeService()
-        if await service.has_active_account():
+        has_account = await service.has_active_account()
+        if has_account:
             tw = await service.api.tweet_details(tweet_id)
             if tw:
                 metadata["text"] = getattr(tw, "rawContent", None) or getattr(tw, "content", "")
@@ -310,7 +312,7 @@ async def fetch_x_tweet_replies(
     except Exception as e:
         logger.warning(f"Ekstraksi live balasan tweet '{tweet_id}' via twscrape gagal ({e}).")
 
-    if not replies:
+    if not replies and not has_account:
         replies = generate_contextual_tweet_replies(tweet_id, tweet_text=tweet_text_context, count=min(50, max_comments))
 
     return replies

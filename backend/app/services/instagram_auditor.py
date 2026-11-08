@@ -115,8 +115,8 @@ def get_instagrapi_client(require_auth: bool = False) -> Optional[Any]:
         from instagrapi import Client  # type: ignore
         import urllib.parse
         from dotenv import load_dotenv
-        load_dotenv(".env")
-        load_dotenv("/app/.env")
+        load_dotenv(".env", override=True)
+        load_dotenv("/app/.env", override=True)
 
         cl = Client()
         # Tingkatkan delay bawaan (2 - 5 detik) agar request menyerupai perilaku manusia
@@ -124,13 +124,23 @@ def get_instagrapi_client(require_auth: bool = False) -> Optional[Any]:
 
         session_file = os.getenv("INSTAGRAM_SETTINGS_PATH", "data/sessions/ig_settings.json")
         abs_session_file = os.path.abspath(session_file)
+        env_session = os.getenv("INSTAGRAM_SESSIONID", "").strip()
+        raw_sid = urllib.parse.unquote(env_session) if env_session else ""
 
         # 1. UTAMA: Coba load session file jika ada (Paling Aman, 0 Login Handshake)
         if os.path.exists(session_file):
             try:
                 cl.load_settings(session_file)
-                logger.info(f"Berhasil memuat pengaturan sesi instagrapi dari {session_file}")
-                return cl
+                # Verifikasi apakah sessionid di file cocok dengan yang di env (jika env diatur)
+                saved_sid = (
+                    cl.settings.get("authorization_data", {}).get("sessionid") or
+                    cl.settings.get("cookies", {}).get("sessionid")
+                )
+                if not raw_sid or saved_sid == raw_sid:
+                    logger.info(f"Berhasil memuat pengaturan sesi instagrapi dari {session_file}")
+                    return cl
+                else:
+                    logger.info("Session ID di .env telah diperbarui, memperbarui ig_settings...")
             except Exception as se:
                 logger.warning(f"Gagal memuat session file instagrapi ({se}). Mencoba metode sekunder...")
 
