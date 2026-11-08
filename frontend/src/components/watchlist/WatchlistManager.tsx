@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useCaseStore } from '../../store/useCaseStore';
 import { ThreatBadge } from '../common/ThreatBadge';
+import { PlatformIcon } from '../common/PlatformIcon';
 import { Modal } from '../common/Modal';
 import type { PlatformType } from '../../types';
 
@@ -211,7 +212,19 @@ export const WatchlistManager: React.FC<WatchlistManagerProps> = ({ onStartInves
                       </span>
                     </td>
                     <td className="py-3 px-3.5 sm:px-5 font-mono text-xs uppercase text-slate-300">
-                      {item.platform}
+                      <span className="inline-flex items-center gap-1.5">
+                        <PlatformIcon
+                          platform={item.platform}
+                          className={`w-3.5 h-3.5 ${
+                            item.platform === 'youtube'
+                              ? 'text-rose-400'
+                              : item.platform === 'instagram'
+                              ? 'text-amber-400'
+                              : 'text-sky-400'
+                          }`}
+                        />
+                        <span>{item.platform}</span>
+                      </span>
                     </td>
                     <td className="py-3 px-3.5 sm:px-5">
                       <span

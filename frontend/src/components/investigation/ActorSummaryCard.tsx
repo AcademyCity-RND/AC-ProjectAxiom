@@ -7,9 +7,6 @@ import {
   ShieldAlert,
   Check,
   AlertCircle,
-  Video,
-  Camera,
-  Radio,
   ExternalLink,
   MessageSquare,
   Eye,
@@ -20,6 +17,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { ThreatBadge } from '../common/ThreatBadge';
+import { PlatformIcon } from '../common/PlatformIcon';
 import { useCaseStore } from '../../store/useCaseStore';
 import type {
   ActorSummary,
@@ -181,9 +179,16 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
             </span>
           )}
           <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider bg-slate-950 px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1.5">
-            {platform === 'youtube' && <Video className="w-3 h-3 text-rose-400" />}
-            {platform === 'instagram' && <Camera className="w-3 h-3 text-amber-400" />}
-            {platform === 'x' && <Radio className="w-3 h-3 text-sky-400" />}
+            <PlatformIcon
+              platform={platform}
+              className={`w-3.5 h-3.5 ${
+                platform === 'youtube'
+                  ? 'text-rose-400'
+                  : platform === 'instagram'
+                  ? 'text-amber-400'
+                  : 'text-sky-400'
+              }`}
+            />
             <span>{platform}</span>
           </span>
         </div>
@@ -195,13 +200,16 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
         <div className="flex items-start gap-3.5 min-w-0 flex-1">
           <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner">
             {isEvent ? (
-              platform === 'youtube' ? (
-                <Video className="w-6 h-6 text-rose-400" />
-              ) : platform === 'instagram' ? (
-                <Camera className="w-6 h-6 text-amber-400" />
-              ) : (
-                <Radio className="w-6 h-6 text-sky-400" />
-              )
+              <PlatformIcon
+                platform={platform}
+                className={`w-6 h-6 ${
+                  platform === 'youtube'
+                    ? 'text-rose-400'
+                    : platform === 'instagram'
+                    ? 'text-amber-400'
+                    : 'text-sky-400'
+                }`}
+              />
             ) : (
               <User className="w-6 h-6 text-slate-400" />
             )}

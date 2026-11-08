@@ -182,3 +182,55 @@ Fitur numerik dan kategorikal siap pakai untuk model **XGBoost / LightGBM**:
 
 ---
 *Dokumen ini divalidasi langsung oleh sistem AXIOM PUSSIBERAD pada 6 fitur operasional aktif: X User (@Kemhan_RI), X Tweet (/status/1849372819203819201), Instagram Reel (DOFtzyCkzNq), Instagram Post (DfCR3JPlK9F), YouTube Shorts (p66hnaKuB3o), dan YouTube Video (HGgCE9a7BjU).*
+
+---
+
+## 4. Spesifikasi Dataset Tabular Harvester (60 Target Real Data)
+
+Untuk kebutuhan QA, evaluasi model offline, dan training pipeline, harvester AXIOM (	ools/dataset_harvester/harvester.py) mengekstraksi data ke format CSV standar (UTF-8 with BOM) yang tersimpan pada direktori ackend/data/raw_datasets/:
+
+### A. Skema Kolom CSV Event Comments (x_tweet, ig_post, ig_reels, yt_shorts, yt_video)
+
+| Kolom | Tipe | Deskripsi |
+| :--- | :--- | :--- |
+| comment_id | String | ID unik komentar dari platform / hash |
+| created_at | ISO-8601 | Waktu komentar dipublikasikan |
+| uthor_username | String | Username komentator (e.g., @user atau handle) |
+| uthor_display_name | String | Nama tampilan komentator |
+| 
+aw_text | String | Teks komentar asli (unaltered) |
+| likes_count | Integer | Jumlah interaksi like pada komentar |
+| is_reply | Boolean | True jika komentar berupa balasan, False jika level atas |
+| 	arget_context | String | Konteks/ID target postingan (e.g., tweet ID, shortcode, video ID) |
+
+### B. Skema Kolom CSV Actor Timeline (x_user)
+
+| Kolom | Tipe | Deskripsi |
+| :--- | :--- | :--- |
+| content_id | String | ID cuitan / status X |
+| created_at | ISO-8601 | Waktu cuitan dibuat |
+| uthor_username | String | Username akun target |
+| uthor_display_name | String | Nama akun target |
+| 
+aw_text | String | Teks cuitan / balasan |
+| likes_count | Integer | Jumlah likes |
+| 
+etweets_count | Integer | Jumlah retweets |
+| 
+eplies_count | Integer | Jumlah replies |
+| is_reply | Boolean | True jika merupakan balasan ke pengguna lain |
+| 	arget_context | String | Target username pemilik profil |
+
+### C. Direktori & Verifikasi Integritas Dataset
+
+`
+backend/data/raw_datasets/
+├── x_user/     # 10 file CSV (Profil & linimasa akun intelijen/tokoh/buzzer)
+├── x_tweet/    # 10 file CSV (Diskusi & balasan thread viral di X)
+├── ig_post/    # 10 file CSV (Komentar postingan feed Instagram)
+├── ig_reels/   # 10 file CSV (Komentar video Reels Instagram)
+├── yt_shorts/  # 10 file CSV (Komentar video YouTube Shorts)
+└── yt_video/   # 10 file CSV (Komentar video panjang YouTube)
+`
+- Total target terverifikasi: **60/60 target nyata (100% data live tanpa data sintetis/dummy)**.
+

@@ -13,4 +13,9 @@ tmp/
 *.db
 data/sessions/
 data/chromadb/
+data/raw_datasets/
+backend/data/raw_datasets/
 axiom-revisi-ui/
+
+backend/data/
+backend/.env

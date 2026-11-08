@@ -1,4 +1,5 @@
 import React from 'react';
+import { PlatformIcon } from '../common/PlatformIcon';
 import {
   Compass,
   Radio,
@@ -151,21 +152,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="bg-slate-900/60 border border-slate-800/80 rounded-md p-2.5 space-y-2 text-xs shadow-sm">
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="flex items-center gap-2 font-mono text-[11px] truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span> X (Twitter)
+                      <PlatformIcon platform="x" className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <span>X (Twitter)</span>
                     </span>
-                    <span className="text-[10px] text-emerald-400 font-mono font-medium shrink-0">Ready</span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-medium shrink-0 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      Ready
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="flex items-center gap-2 font-mono text-[11px] truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span> YouTube
+                      <PlatformIcon platform="youtube" className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      <span>YouTube</span>
                     </span>
-                    <span className="text-[10px] text-emerald-400 font-mono font-medium shrink-0">Ready</span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-medium shrink-0 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      Ready
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="flex items-center gap-2 font-mono text-[11px] truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span> Instagram
+                      <PlatformIcon platform="instagram" className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Instagram</span>
                     </span>
-                    <span className="text-[10px] text-emerald-400 font-mono font-medium shrink-0">Ready</span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-medium shrink-0 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      Ready
+                    </span>
                   </div>
                 </div>
               </>
@@ -174,9 +187,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="py-2 flex flex-col items-center gap-2 bg-slate-900/40 border border-slate-800/60 rounded-md"
                 title="Feed Platform: X, YouTube, Instagram (All Online)"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <PlatformIcon platform="x" className="w-3.5 h-3.5 text-sky-400/80" />
+                <PlatformIcon platform="youtube" className="w-3.5 h-3.5 text-rose-400/80" />
+                <PlatformIcon platform="instagram" className="w-3.5 h-3.5 text-amber-400/80" />
               </div>
             )}
           </div>

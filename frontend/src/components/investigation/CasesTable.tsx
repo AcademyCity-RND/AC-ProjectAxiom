@@ -4,12 +4,10 @@ import {
   Search,
   Filter,
   X,
-  Radio,
-  Video,
-  Camera,
   Layers,
 } from 'lucide-react';
 import { ThreatBadge } from '../common/ThreatBadge';
+import { PlatformIcon } from '../common/PlatformIcon';
 import { Pagination } from '../common/Pagination';
 import type { CaseSummary } from '../../types';
 
@@ -294,8 +292,9 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                             )}
                           </td>
                           <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs">
-                            <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold ${formatted.badgeColor}`}>
-                              {formatted.badge}
+                            <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold inline-flex items-center gap-1.5 ${formatted.badgeColor}`}>
+                              <PlatformIcon platform={rc.platform || 'x'} className="w-3 h-3" />
+                              <span>{formatted.badge}</span>
                             </span>
                           </td>
                         </>
