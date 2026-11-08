@@ -70,24 +70,33 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 ### 2.2 Konfigurasi Environment (`.env.example`)
 
 ```env
-# Backend & Port Settings
-HOST=0.0.0.0
-PORT=8000
-ENVIRONMENT=development
-
-# Database Connections
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/axiom_db
-CHROMA_PERSIST_DIR=./data/chromadb
-
-# AI Inference (Groq LPU - Free Tier)
-GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# AI Synthesis & Explainable XAI (Groq LPU Llama 3.3)
+GROQ_API_KEY=gsk_your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_FALLBACK_MODEL=llama-3.1-8b-instant
 
-# X (Twitter) Scraper Credentials Pool (Multiple Accounts for Rotation)
-X_ACCOUNTS_POOL='[{"username":"acc1","password":"pwd","email":"e1"},{"username":"acc2","password":"pwd","email":"e2"}]'
+# X (Twitter) Scraper (1 Akun Burner Aman via Browser Cookies)
+TWITTER_USERNAME=your_username
+TWITTER_AUTH_TOKEN=your_auth_token_cookie
+TWITTER_CT0=your_ct0_cookie
 
-# YouTube Data API v3 (Optional for Video Auditing)
-YOUTUBE_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxx
+# Instagram Scraper (1 Akun Burner Aman via Session ID)
+INSTAGRAM_SESSIONID=your_sessionid_cookie
+INSTAGRAM_SETTINGS_PATH=data/sessions/ig_settings.json
+
+# Database & Vector Store Connections
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=axiom_db
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_HOST_PORT=5434
+CHROMA_HOST=chromadb
+CHROMA_PORT=8000
+CHROMA_COLLECTION_NAME=actor_narratives
+
+# Scraper Operation Mode
+SCRAPER_OFFLINE_MODE=false
 ```
 
 ---
@@ -111,7 +120,7 @@ flowchart TD
     end
 
     subgraph Ingestion["Data Ingestion Adapters"]
-        XAdapter["X (Twitter) Engine\n(Twikit Session Pool)"]
+        XAdapter["X (Twitter) Engine\n(twscrape Session Pool)"]
         YTAdapter["YouTube Video Auditor\n(youtube-comment-downloader)"]
         IGAdapter["Instagram Post Auditor\n(Instaloader Public Engine)"]
     end
@@ -305,7 +314,7 @@ Sebuah milestone purwarupa dinyatakan selesai dan layak diajukan ke dewan juri j
 
 | No | Modul Uji | Target Verifikasi | Tolok Ukur Keberhasilan |
 | :---: | :--- | :--- | :--- |
-| 1 | **X Scraping Ingestion** | Engine `twikit` session | Mampu menarik 150+ tweet & replies dari username publik tanpa error rate-limit. |
+| 1 | **X Scraping Ingestion** | Engine `twscrape` session | Mampu menarik 150+ tweet & replies dari username publik tanpa error rate-limit. |
 | 2 | **Inference Latency** | Pipeline XGBoost + Chroma | Menghasilkan skor klasifikasi dan kesamaan vektor dalam waktu $< 3.5$ detik. |
 | 3 | **LLM Synthesis via Groq** | Llama 3.3 70B | Menghasilkan narasi pembuktian bukti ancaman (*evidence points*) dalam waktu $< 2.0$ detik. |
 | 4 | **Tri-Class Accuracy** | Labeled Benchmark Dataset | Mencapai akurasi deteksi $> 88\%$ pada set data uji bot, buzzer, dan akun organik. |
@@ -321,7 +330,7 @@ Mengacu pada jadwal resmi **Kartika Cyber Hackathon 2026**:
 
 * **Minggu 1 (25 Okt – 31 Okt 2026) — Core Foundation & Ingestion:**
   * Inisialisasi monorepo: FastAPI backend + Vite React SPA UI + Docker Compose (PostgreSQL, ChromaDB, FastAPI, Nginx).
-  * Implementasi wrapper `twikit` scraper pool untuk penarikan data X bebas blokir.
+  * Implementasi wrapper `twscrape` scraper pool untuk penarikan data X bebas blokir.
   * Setup ChromaDB lokal dan pipeline embedding `all-MiniLM-L6-v2`.
 * **Minggu 2 (01 Nov – 07 Nov 2026) — Detection Engine & Analytics:**
   * Pembangunan formula ekstraksi fitur (Entropi waktu, konsentrasi target, copypasta cluster).

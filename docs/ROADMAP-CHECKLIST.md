@@ -1,6 +1,6 @@
 # 🗺️ Axiom / Project Axiom — Master Execution Checklist & Roadmap (Kartika Cyber Hackathon 2026)
 ### Target: Submission 15 November 2026 | Finalis 20 November 2026 | Grand Final 24 November 2026
-### Status: **Minggu 1 (25 Okt – 31 Okt) — Inisialisasi Selesai (Fondasi Berjalan)**
+### Status: **Minggu 1, 2, & 3 Selesai (100% Production Ready) — Menuju Minggu 4: Final QA, Demo Recording & Submission**
 
 > **Kode Proyek / Identitas:** Project Axiom  
 > **Tagline:** *"Unveiling the Truth in the Cognitive Battlefield."*  
@@ -358,61 +358,93 @@
 
 ```yaml
 # docker-compose.yml (root)
-version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: axiom_postgres
     environment:
-      POSTGRES_DB: axiom_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-axiom_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - pg_data:/var/lib/postgresql/data
-    ports: ["5432:5432"]
-    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres"], interval: 10s, timeout: 5s, retries: 5 }
+    ports:
+      # Hardened: Bind to localhost (127.0.0.1) only, host port 5434
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - axiom_net
 
   chromadb:
-    image: chromadb/chroma:0.5.5
+    image: chromadb/chroma:0.5.20
+    container_name: axiom_chromadb
     volumes:
       - chroma_data:/chroma/chroma
-    ports: ["8001:8000"]
+    ports:
+      # Hardened: Bind to localhost (127.0.0.1) only, isolating vector store
+      - "127.0.0.1:8001:8000"
     environment:
       - CHROMA_SERVER_HOST=0.0.0.0
       - CHROMA_SERVER_HTTP_PORT=8000
-
-  redis:
-    image: redis:7-alpine
-    ports: ["6379:6379"]
-    volumes: [redis_data:/data]
+      - IS_PERSISTENT=TRUE
+    networks:
+      - axiom_net
 
   backend:
-    build: ./backend
+    image: axiom-backend:1.0.0
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: axiom_backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
       - ./data/chromadb:/app/data/chromadb
-    ports: ["8000:8000"]
-    env_file: .env
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     depends_on:
-      postgres: { condition: service_healthy }
-      chromadb: { condition: service_started }
-      redis: { condition: service_started }
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    networks:
+      - axiom_net
 
   frontend:
-    build: ./frontend
-    command: pnpm dev
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    ports: ["3000:3000"]
-    env_file: .env
-    depends_on: [backend]
+    image: axiom-frontend:1.0.0
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: axiom_frontend
+    ports:
+      - "3000:80"
+    env_file:
+      - .env
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - axiom_net
 
 volumes:
   pg_data:
   chroma_data:
-  redis_data:
+
+networks:
+  axiom_net:
+    driver: bridge
 ```
 
 ---
@@ -422,101 +454,96 @@ volumes:
 ### Backend (`backend/requirements.txt`)
 ```text
 # Core Framework
-fastapi==0.115.0
-uvicorn[standard]==0.32.0
-pydantic==2.9.2
-pydantic-settings==2.6.1
-python-multipart==0.0.18
+fastapi>=0.115.11
+uvicorn[standard]==0.32.1
+pydantic>=2.12.5,<2.15.0
+pydantic-settings>=2.6.1
+python-multipart>=0.0.31
 
 # Database & ORM
 sqlalchemy==2.0.36
-alembic==1.13.2
-asyncpg==0.29.0
+alembic==1.14.0
+asyncpg==0.30.0
 psycopg2-binary==2.9.10
 
-# Vector DB & Embeddings
-chromadb==0.5.5
-sentence-transformers==3.2.0
-torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu  # CPU version, ganti cu121/cu124 jika GPU
-transformers==4.46.3
-accelerate==0.34.2
+# Vector DB & Embeddings (torch CPU is installed in Dockerfile layer)
+chromadb-client==0.5.20
+sentence-transformers>=5.6.0
+transformers>=5.10.0
 
 # ML Classical
 xgboost==2.1.3
 scikit-learn==1.5.2
-scipy==1.13.1
+scipy==1.14.1
 numpy==1.26.4
 pandas==2.2.3
 joblib==1.4.2
 
-# Scraping X (Twitter)
-twikit==1.6.0
+# Multi-Platform Scraping (X, YouTube, Instagram)
+twscrape==0.20.1
+aiosqlite==0.22.1
 httpx==0.27.2
-beautifulsoup4==4.12.3
-lxml==5.3.0
+beautifulsoup4==4.15.0
+lxml>=6.1.0
+youtube-comment-downloader==0.1.84
+instaloader==4.16
+instagrapi>=3.2.2
 
 # LLM Client (Groq)
 groq==0.13.0
 
-# Document Export
-weasyprint==62.0
-jinja2==3.1.4
+# Document & Template
+jinja2==3.1.6
 
-# Utilities
-python-dotenv==1.0.1
-pyyaml==6.0.1
-tqdm==4.66.5
-python-json-logger==2.0.7
+# Utilities & Security
+bcrypt>=4.0.0
+pyjwt>=2.15.0
+python-dotenv>=1.2.2
+pyyaml==6.0.2
 
 # Testing
 pytest==8.3.3
 pytest-asyncio==0.23.8
 pytest-cov==5.0.0
-httpx==0.27.2  # for async test client
 ```
 
 ### Frontend (`frontend/package.json` — dependencies only)
 ```json
 {
   "dependencies": {
-    "next": "15.1.3",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "typescript": "5.7.2",
-    "tailwindcss": "3.4.17",
-    "postcss": "8.4.49",
-    "autoprefixer": "10.4.20",
-    "cytoscape": "3.30.2",
-    "cytoscape-cose-bilkent": "4.1.0",
-    "cytoscape-fcose": "2.2.0",
-    "recharts": "2.14.1",
-    "lucide-react": "0.468.0",
-    "zustand": "5.0.2",
-    "axios": "1.7.9",
-    "clsx": "2.1.1",
-    "tailwind-merge": "2.5.5",
-    "react-hot-toast": "2.4.1",
-    "date-fns": "4.1.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.16",
+    "axios": "^1.20.0",
+    "@tanstack/react-query": "^5.104.5",
+    "@xyflow/react": "^12.12.0",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
+    "@react-pdf/renderer": "^4.9.0",
+    "lucide-react": "^1.61.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
-    "@types/node": "22.10.2",
-    "@types/react": "19.0.1",
-    "@types/react-dom": "19.0.1",
-    "@types/cytoscape": "3.21.5",
-    "eslint": "9.15.0",
-    "eslint-config-next": "15.1.3",
-    "prettier": "3.4.1",
-    "prettier-plugin-tailwindcss": "0.6.9"
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "@vitejs/plugin-react": "^6.1.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/node": "^26.6.5"
   }
 }
 ```
 
-> **Catatan Versi:**
-> - **Python 3.11/3.12** direkomendasikan (3.13 belum sepenuhnya didukung semua wheel ML).
-> - **PyTorch CPU** dipakai untuk `sentence-transformers` agar ringan & tidak butuh CUDA di laptop dev. Ganti index-url ke `cu121`/`cu124` jika deploy ke server GPU.
-> - **Twikit 1.6.0** adalah versi stabil terakhir sebelum breaking changes besar.
-> - **Next.js 15.1.x** (App Router stable) + **React 19** (RC/Stable terbaru).
-> - **ChromaDB 0.5.5** kompatibel dengan `chromadb` python client versi sama.
+> **Catatan Versi & Lingkungan Produksi:**
+> - **Python 3.11/3.12** direkomendasikan (didukung penuh oleh semua wheel ML).
+> - **PyTorch CPU** dioptimasi untuk `sentence-transformers` & MiniLM agar ultra-ringan tanpa ketergantungan GPU CUDA di laptop dev/server PUSSIBERAD.
+> - **twscrape 0.20.1** menggantikan Twikit dengan pool akun burner berbasis cookie browser (`auth_token`, `ct0`).
+> - **React 19 + Vite 8 + Tailwind CSS v4** memberikan performa bundling instan (CSR zero SSR vulnerability).
+> - **ChromaDB 0.5.20** terisolasi di port lokal `8001` untuk zero external attack vector.
+> - **PostgreSQL 16** menggunakan bind port `127.0.0.1:5434` untuk mencegah konflik dengan database lokal.
 
 ---
 
