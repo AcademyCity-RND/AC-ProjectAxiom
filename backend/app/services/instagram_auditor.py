@@ -185,7 +185,7 @@ def fetch_instagram_metadata(shortcode: str) -> Dict[str, Any]:
 
     # 1. Lapisan Primer (Zero-Auth Instaloader Public Post Extraction)
     try:
-        import instaloader
+        import instaloader  # type: ignore
         L = instaloader.Instaloader(
             download_pictures=False,
             download_videos=False,
@@ -397,7 +397,7 @@ def fetch_instagram_comments(
     # 1. MESIN WEB: Instaloader dengan Browser Session & Pacing Delay
     # -------------------------------------------------------------
     try:
-        import instaloader
+        import instaloader  # type: ignore
         loader = instaloader.Instaloader(
             download_pictures=False,
             download_videos=False,
