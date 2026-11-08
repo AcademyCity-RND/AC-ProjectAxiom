@@ -14,16 +14,21 @@ param(
 $toolsTargets = "$PSScriptRoot\tools\dataset_harvester\targets.json"
 $backendTargets = "$PSScriptRoot\backend\tools\dataset_harvester\targets.json"
 
-# Selaraskan targets.json jika diedit di salah satu lokasi
+# Selaraskan targets.json dan harvester.py jika diedit di salah satu lokasi
 if (Test-Path $toolsTargets) {
     Copy-Item $toolsTargets $backendTargets -Force -ErrorAction SilentlyContinue
 }
+$toolsHarvester = "$PSScriptRoot\tools\dataset_harvester\harvester.py"
+$backendHarvester = "$PSScriptRoot\backend\tools\dataset_harvester\harvester.py"
+if (Test-Path $toolsHarvester) {
+    Copy-Item $toolsHarvester $backendHarvester -Force -ErrorAction SilentlyContinue
+}
 
 if ($status) {
-    docker exec axiom_backend python /app/tools/dataset_harvester/harvester.py --status
+    docker exec axiom_backend python -u /app/tools/dataset_harvester/harvester.py --status
 } else {
     $targetMode = if ($all) { "all" } else { $mode }
-    docker exec axiom_backend python /app/tools/dataset_harvester/harvester.py --mode $targetMode
+    docker exec axiom_backend python -u /app/tools/dataset_harvester/harvester.py --mode $targetMode
 }
 
 # Sinkronkan file CSV ke folder data/raw_datasets di root workspace

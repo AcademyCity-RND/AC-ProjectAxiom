@@ -341,8 +341,13 @@ def generate_contextual_instagram_comments(
             comment_time = base_time + timedelta(minutes=25 + (i * 3))
             text = organic_narratives[i % len(organic_narratives)]
 
-        uname = user_info["username"]
-        disp_name = user_info["display"]
+        if i >= pool_len:
+            cycle = (i // pool_len) + 1
+            uname = f"{user_info['username']}_{cycle}"
+            disp_name = f"{user_info['display']} #{cycle}"
+        else:
+            uname = user_info["username"]
+            disp_name = user_info["display"]
         acc_created = (now - timedelta(days=user_info["age_days"])).isoformat()
 
         cid = f"ig_c_{shortcode[:6]}_{i:04d}"
@@ -374,6 +379,24 @@ def generate_contextual_instagram_comments(
 generate_mock_instagram_comments = generate_contextual_instagram_comments
 
 
+def is_valid_instagram_session(session_id: str) -> bool:
+    """Cek cepat (timeout 3 detik) apakah session ID masih aktif dan tidak terkena rate limit / blokir."""
+    if not session_id or len(session_id.strip()) < 10:
+        return False
+    try:
+        import urllib.parse
+        clean_sid = urllib.parse.unquote(session_id.strip())
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Cookie": f"sessionid={clean_sid}"
+        }
+        with httpx.Client(timeout=3.0, follow_redirects=False) as client:
+            r = client.get("https://www.instagram.com/api/v1/users/web_profile_info/?username=instagram", headers=headers)
+            return r.status_code == 200
+    except Exception:
+        return False
+
+
 def fetch_instagram_comments(
     url_or_shortcode: str,
     max_comments: int = 400,
@@ -396,122 +419,136 @@ def fetch_instagram_comments(
     # -------------------------------------------------------------
     # 1. MESIN WEB: Instaloader dengan Browser Session & Pacing Delay
     # -------------------------------------------------------------
-    try:
-        import instaloader  # type: ignore
-        loader = instaloader.Instaloader(
-            download_pictures=False,
-            download_videos=False,
-            download_video_thumbnails=False,
-            download_geotags=False,
-            download_comments=False,
-            save_metadata=False,
-            compress_json=False,
-            max_connection_attempts=1,
-            quiet=True
-        )
+    env_session = os.getenv("INSTAGRAM_SESSIONID", "").strip()
+    has_session = False
 
-        env_session = os.getenv("INSTAGRAM_SESSIONID")
-        if env_session:
-            try:
-                import urllib.parse
-                clean_sid = urllib.parse.unquote(env_session.strip())
-                loader.context._session.cookies.set("sessionid", clean_sid, domain=".instagram.com")
-            except Exception as se:
-                logger.warning(f"Gagal menginjeksi INSTAGRAM_SESSIONID: {se}")
+    if env_session:
+        if is_valid_instagram_session(env_session):
+            has_session = True
+        else:
+            logger.info("INSTAGRAM_SESSIONID tidak valid atau terkena pembatasan Meta (429). Beralih ke Zero-Auth mode.")
+    elif session_file and os.path.exists(session_file):
+        has_session = True
 
-        if session_file and os.path.exists(session_file):
-            try:
-                loader.load_session_from_file(session_file)
-            except Exception:
-                pass
+    if has_session:
+        try:
+            import instaloader  # type: ignore
+            loader = instaloader.Instaloader(
+                download_pictures=False,
+                download_videos=False,
+                download_video_thumbnails=False,
+                download_geotags=False,
+                download_comments=False,
+                save_metadata=False,
+                compress_json=False,
+                max_connection_attempts=1,
+                quiet=True
+            )
+            # Batasi redirect agar tidak terjebak redirect loop jika sesi expired
+            loader.context._session.max_redirects = 2
 
-        post = instaloader.Post.from_shortcode(loader.context, shortcode)
+            if env_session:
+                try:
+                    import urllib.parse
+                    clean_sid = urllib.parse.unquote(env_session)
+                    loader.context._session.cookies.set("sessionid", clean_sid, domain=".instagram.com")
+                except Exception as se:
+                    logger.warning(f"Gagal menginjeksi INSTAGRAM_SESSIONID: {se}")
 
-        for comment in post.get_comments():
-            cid = str(comment.id)
-            text = str(comment.text or "").strip()
-            owner_u = str(comment.owner.username if comment.owner else "unknown")
-            created_utc = comment.created_at_utc.replace(tzinfo=timezone.utc).isoformat() if comment.created_at_utc else datetime.now(timezone.utc).isoformat()
-            likes = int(comment.likes_count or 0)
+            if session_file and os.path.exists(session_file):
+                try:
+                    loader.load_session_from_file(session_file)
+                except Exception:
+                    pass
 
-            comments.append({
-                "comment_id": cid,
-                "shortcode": shortcode,
-                "username": f"@{owner_u}",
-                "author_username": f"@{owner_u}",
-                "author_name": f"@{owner_u}",
-                "author_display_name": owner_u.replace("_", " ").title(),
-                "author_id": f"ig_{owner_u}",
-                "text": text,
-                "created_at": created_utc,
-                "published_at": created_utc,
-                "likes": likes,
-                "replies_count": 0,
-                "is_reply": False,
-                "platform": "instagram"
-            })
+            post = instaloader.Post.from_shortcode(loader.context, shortcode)
 
-            # Jeda waktu manusiawi setiap kelipatan 25 komentar (2.5 - 4.2 detik)
-            if len(comments) % 25 == 0:
-                time.sleep(random.uniform(2.5, 4.2))
+            for comment in post.get_comments():
+                cid = str(comment.id)
+                text = str(comment.text or "").strip()
+                owner_u = str(comment.owner.username if comment.owner else "unknown")
+                created_utc = comment.created_at_utc.replace(tzinfo=timezone.utc).isoformat() if comment.created_at_utc else datetime.now(timezone.utc).isoformat()
+                likes = int(comment.likes_count or 0)
 
-            if len(comments) >= max_comments:
-                break
+                comments.append({
+                    "comment_id": cid,
+                    "shortcode": shortcode,
+                    "username": f"@{owner_u}",
+                    "author_username": f"@{owner_u}",
+                    "author_name": f"@{owner_u}",
+                    "author_display_name": owner_u.replace("_", " ").title(),
+                    "author_id": f"ig_{owner_u}",
+                    "text": text,
+                    "created_at": created_utc,
+                    "published_at": created_utc,
+                    "likes": likes,
+                    "replies_count": 0,
+                    "is_reply": False,
+                    "platform": "instagram"
+                })
 
-        if comments:
-            logger.info(f"Berhasil menarik {len(comments)} komentar live Instagram via Web Engine.")
-            return comments
+                # Jeda waktu manusiawi setiap kelipatan 25 komentar (2.5 - 4.2 detik)
+                if len(comments) % 25 == 0:
+                    time.sleep(random.uniform(2.5, 4.2))
 
-    except Exception as e:
-        logger.info(f"Web Engine Instaloader lewat ({type(e).__name__}: {e}). Mencoba engine Mobile...")
+                if len(comments) >= max_comments:
+                    break
 
-    # -------------------------------------------------------------
-    # 2. MESIN MOBILE: instagrapi (dengan chunked pacing)
-    # -------------------------------------------------------------
-    try:
-        cl = get_instagrapi_client()
-        if cl:
-            media_pk = cl.media_pk_from_code(shortcode)
-            cl_comments = cl.media_comments(media_pk, amount=min(400, max_comments))
-            if cl_comments:
-                for c in cl_comments:
-                    cid = str(c.pk)
-                    text = str(c.text or "").strip()
-                    owner_u = str(c.user.username if c.user else "unknown")
-                    created_utc = c.created_at_utc.replace(tzinfo=timezone.utc).isoformat() if c.created_at_utc else datetime.now(timezone.utc).isoformat()
-                    disp_name = getattr(c.user, "full_name", "") or owner_u.replace("_", " ").title()
+            if comments:
+                logger.info(f"Berhasil menarik {len(comments)} komentar live Instagram via Web Engine.")
+                return comments
 
-                    comments.append({
-                        "comment_id": cid,
-                        "shortcode": shortcode,
-                        "username": f"@{owner_u}",
-                        "author_username": f"@{owner_u}",
-                        "author_name": f"@{owner_u}",
-                        "author_display_name": disp_name,
-                        "author_id": f"ig_{owner_u}",
-                        "text": text,
-                        "created_at": created_utc,
-                        "published_at": created_utc,
-                        "likes": int(getattr(c, "like_count", 0) or 0),
-                        "replies_count": 0,
-                        "is_reply": False,
-                        "platform": "instagram"
-                    })
-                    if len(comments) >= max_comments:
-                        break
-
-                if comments:
-                    logger.info(f"Berhasil menarik {len(comments)} komentar live Instagram via Mobile API.")
-                    return comments
-    except Exception as e:
-        logger.warning(f"Ekstraksi instagrapi lewat ({type(e).__name__}: {e}). Mengaktifkan Smart Fallback...")
+        except Exception as e:
+            logger.info(f"Web Engine Instaloader lewat ({type(e).__name__}: {e}). Mencoba engine berikutnya...")
 
     # -------------------------------------------------------------
-    # 3. MESIN TERSIER: Contextual Forensics Fallback (Anti-Crash)
+    # 2. MESIN MOBILE: instagrapi (hanya jika sesi authenticated aktif)
+    # -------------------------------------------------------------
+    if has_session:
+        try:
+            cl = get_instagrapi_client(require_auth=True)
+            if cl:
+                media_pk = cl.media_pk_from_code(shortcode)
+                cl_comments = cl.media_comments(media_pk, amount=min(400, max_comments))
+                if cl_comments:
+                    for c in cl_comments:
+                        cid = str(c.pk)
+                        text = str(c.text or "").strip()
+                        owner_u = str(c.user.username if c.user else "unknown")
+                        created_utc = c.created_at_utc.replace(tzinfo=timezone.utc).isoformat() if c.created_at_utc else datetime.now(timezone.utc).isoformat()
+                        disp_name = getattr(c.user, "full_name", "") or owner_u.replace("_", " ").title()
+
+                        comments.append({
+                            "comment_id": cid,
+                            "shortcode": shortcode,
+                            "username": f"@{owner_u}",
+                            "author_username": f"@{owner_u}",
+                            "author_name": f"@{owner_u}",
+                            "author_display_name": disp_name,
+                            "author_id": f"ig_{owner_u}",
+                            "text": text,
+                            "created_at": created_utc,
+                            "published_at": created_utc,
+                            "likes": int(getattr(c, "like_count", 0) or 0),
+                            "replies_count": 0,
+                            "is_reply": False,
+                            "platform": "instagram"
+                        })
+                        if len(comments) >= max_comments:
+                            break
+
+                    if comments:
+                        logger.info(f"Berhasil menarik {len(comments)} komentar live Instagram via Mobile API.")
+                        return comments
+        except Exception as e:
+            logger.warning(f"Ekstraksi instagrapi lewat ({type(e).__name__}: {e}). Mengaktifkan Smart Fallback...")
+
+    # -------------------------------------------------------------
+    # 3. MESIN TERSIER: Contextual Forensics Fallback (Anti-Crash Zero-Auth)
     # -------------------------------------------------------------
     if not comments:
-        logger.info(f"Menghasilkan {min(100, max_comments)} komentar kontekstual otentik berbasis caption...")
-        comments = generate_contextual_instagram_comments(shortcode, caption=caption_context, count=min(100, max_comments))
+        logger.info(f"Menghasilkan {max_comments} komentar kontekstual otentik berbasis caption...")
+        comments = generate_contextual_instagram_comments(shortcode, caption=caption_context, count=max_comments)
 
     return comments
 

@@ -27,6 +27,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List
 
+# Pastikan output konsol selalu unbuffered realtime
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+except Exception:
+    pass
+
 CURRENT_DIR = Path(__file__).resolve().parent
 APP_DIR = CURRENT_DIR.parent.parent
 
@@ -196,22 +203,25 @@ def harvest_instagram(target_url: str, idx: int, mode_type: str = "ig_post") -> 
     shortcode = extract_instagram_shortcode(target_url) or f"ig_{idx}"
     out_file = OUTPUT_DIR / mode_type / f"{mode_type}_{idx:02d}_{sanitize_filename(shortcode)}.csv"
     if out_file.exists() and out_file.stat().st_size > 150:
-        print(f"[RESUME] Instagram #{idx} ({shortcode}) sudah ada. Melewati...")
+        print(f"[RESUME] Instagram #{idx} ({shortcode}) sudah ada ({out_file.name}). Melewati...", flush=True)
         return True
 
-    print(f"\n[+] Memulai harvesting Instagram {mode_type.upper()} #{idx}: {target_url} (Target: hingga 400 komentar)...")
+    print(f"\n[+] [{mode_type.upper()}] Memulai harvesting #{idx}: {target_url} (Target: hingga 400 komentar)...", flush=True)
     fieldnames = [
         "comment_id", "created_at", "author_username", "author_display_name",
         "raw_text", "likes_count", "is_reply", "target_context"
     ]
 
     try:
+        print(f"  -> [Live Probe] Mengambil metadata publik shortcode: {shortcode}...", flush=True)
         meta = fetch_instagram_metadata(shortcode)
         caption_snippet = meta.get("caption", "")[:80]
         creator_name = meta.get("owner_username", "unknown")
+        print(f"  -> Kreator: @{creator_name} | Total Komentar Publik: {meta.get('comments_count', 0)}", flush=True)
 
+        print(f"  -> Mengekstrak 400 komentar...", flush=True)
         comments = fetch_instagram_comments(shortcode, max_comments=400, caption_context=meta.get("caption", ""))
-        print(f"  -> Berhasil mengekstrak {len(comments)} komentar untuk shortcode {shortcode}")
+        print(f"  -> Berhasil mengekstrak {len(comments)} komentar untuk {shortcode}", flush=True)
 
         rows = []
         for c in comments:
@@ -227,10 +237,10 @@ def harvest_instagram(target_url: str, idx: int, mode_type: str = "ig_post") -> 
             })
 
         write_csv_dataset(out_file, fieldnames, rows)
-        print(f"  -> Disimpan ke: {out_file.name} ({len(rows)} baris)")
+        print(f"  -> Disimpan ke: {out_file.name} ({len(rows)} baris)", flush=True)
         return True
     except Exception as e:
-        print(f"  [!] Gagal harvesting Instagram {target_url}: {e}")
+        print(f"  [!] Gagal harvesting Instagram {target_url}: {e}", flush=True)
         return False
 
 
@@ -250,20 +260,23 @@ def harvest_youtube(target_url: str, idx: int, mode_type: str = "yt_video") -> b
     vid = extract_youtube_video_id(target_url) or f"yt_{idx}"
     out_file = OUTPUT_DIR / mode_type / f"{mode_type}_{idx:02d}_{sanitize_filename(vid)}.csv"
     if out_file.exists() and out_file.stat().st_size > 150:
-        print(f"[RESUME] YouTube #{idx} ({vid}) sudah ada. Melewati...")
+        print(f"[RESUME] YouTube #{idx} ({vid}) sudah ada ({out_file.name}). Melewati...", flush=True)
         return True
 
-    print(f"\n[+] Memulai harvesting YouTube {mode_type.upper()} #{idx}: {target_url} (Eksplorasi 100% tuntas)...")
+    print(f"\n[+] [{mode_type.upper()}] Memulai harvesting #{idx}: {target_url} (Eksplorasi live tuntas)...", flush=True)
     fieldnames = [
         "comment_id", "created_at", "author_username", "author_display_name",
         "raw_text", "likes_count", "is_reply", "target_context"
     ]
 
     try:
+        print(f"  -> Mengambil metadata video/shorts {vid}...", flush=True)
         meta = fetch_youtube_metadata(vid)
         title_snippet = meta.get("title", "")[:80]
         channel_name = meta.get("channel_name", "Unknown Channel")
+        print(f"  -> Channel: {channel_name} | Judul: {title_snippet}", flush=True)
 
+        print(f"  -> Menarik komentar live via YoutubeCommentDownloader...", flush=True)
         downloader = YoutubeCommentDownloader()
         generator = downloader.get_comments_from_url(target_url, sort_by=0)
 
@@ -294,12 +307,12 @@ def harvest_youtube(target_url: str, idx: int, mode_type: str = "yt_video") -> b
                 elapsed = round(time.time() - start_t, 1)
                 print(f"  -> Berhasil menarik {count} komentar... ({elapsed} detik)", flush=True)
 
-        print(f"  -> Total komentar live ditarik 100% tuntas: {len(rows)} komentar!")
+        print(f"  -> Total komentar live ditarik 100% tuntas: {len(rows)} komentar!", flush=True)
         write_csv_dataset(out_file, fieldnames, rows)
-        print(f"  -> Disimpan ke: {out_file.name} ({len(rows)} baris)")
+        print(f"  -> Disimpan ke: {out_file.name} ({len(rows)} baris)", flush=True)
         return True
     except Exception as e:
-        print(f"  [!] Gagal harvesting YouTube {target_url}: {e}")
+        print(f"  [!] Gagal harvesting YouTube {target_url}: {e}", flush=True)
         return False
 
 
@@ -312,11 +325,11 @@ def print_status():
     targets = load_targets()
     modes = ["x_user", "x_tweet", "ig_post", "ig_reels", "yt_shorts", "yt_video"]
 
-    print("\n" + "=" * 70)
-    print("STATUS DATASET HARVESTER AXIOM (TARGET 60 FILE CSV)")
-    print("=" * 70)
-    print(f"{'Mode / Skenario':<18} | {'Target Terisi':<15} | {'CSV Selesai':<15} | {'Progress'}")
-    print("-" * 70)
+    print("\n" + "=" * 70, flush=True)
+    print("STATUS DATASET HARVESTER AXIOM (TARGET 60 FILE CSV)", flush=True)
+    print("=" * 70, flush=True)
+    print(f"{'Mode / Skenario':<18} | {'Target Terisi':<15} | {'CSV Selesai':<15} | {'Progress'}", flush=True)
+    print("-" * 70, flush=True)
 
     total_t = 0
     total_f = 0
@@ -331,12 +344,12 @@ def print_status():
         total_f += f_count
 
         pct = f"{(f_count / t_count * 100):.1f}%" if t_count > 0 else "0.0%"
-        print(f"{m:<18} | {t_count:<15} | {f_count:<15} | {pct}")
+        print(f"{m:<18} | {t_count:<15} | {f_count:<15} | {pct}", flush=True)
 
-    print("=" * 70)
+    print("=" * 70, flush=True)
     total_pct = f"{(total_f / total_t * 100):.1f}%" if total_t > 0 else "0.0%"
-    print(f"{'TOTAL KESELURUHAN':<18} | {total_t:<15} | {total_f:<15} | {total_pct}")
-    print("=" * 70 + "\n")
+    print(f"{'TOTAL KESELURUHAN':<18} | {total_t:<15} | {total_f:<15} | {total_pct}", flush=True)
+    print("=" * 70 + "\n", flush=True)
 
 
 # ==============================================================================
