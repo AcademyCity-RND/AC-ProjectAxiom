@@ -335,8 +335,8 @@ Axiom dirancang khusus untuk verifikasi ruang siber dan perlindungan publik:
 ## 👥 Tim Pengembang (Development Team)
 
 | Anggota Tim | Peran & Tanggung Jawab | Profil GitHub |
-| :--- | :--- | :--- |
-| **Hilarius Christiano Avin Paliling** | System Architect, AI Engineer, & Web Developer | <a href="https://github.com/Avin1731"><img src="https://github.com/Avin1731.png?size=80" width="36" height="36" style="border-radius:50%; vertical-align:middle;" alt="Avin1731"/></a> [![Avin1731](https://img.shields.io/badge/Avin1731-181717?style=flat&logo=github)](https://github.com/Avin1731) &nbsp;&nbsp;&nbsp;&nbsp; <a href="https://github.com/Xte-1412"><img src="https://github.com/Xte-1412.png?size=80" width="36" height="36" style="border-radius:50%; vertical-align:middle;" alt="Xte-1412"/></a> [![Xte-1412](https://img.shields.io/badge/Xte--1412-181717?style=flat&logo=github)](https://github.com/Xte-1412) |
-| **Ahsani Fadhli Ilahi** | QA Engineer, Debugger, & Functional Tester | <a href="https://github.com/Ahsanifadhli"><img src="https://github.com/Ahsanifadhli.png?size=80" width="36" height="36" style="border-radius:50%; vertical-align:middle;" alt="Ahsanifadhli"/></a> [![Ahsanifadhli](https://img.shields.io/badge/Ahsanifadhli-181717?style=flat&logo=github)](https://github.com/Ahsanifadhli) |
+| :--- | :--- | :---: |
+| **Hilarius Christiano Avin Paliling** | System Architect, AI Engineer, & Web Developer | <a href="https://github.com/Avin1731" title="GitHub: Avin1731"><img src="https://github.com/Avin1731.png?size=100" width="46" height="46" style="border-radius: 50%; vertical-align: middle; margin: 0 4px;" alt="Avin1731" /></a> &nbsp;&nbsp; <a href="https://github.com/Xte-1412" title="GitHub: Xte-1412"><img src="https://github.com/Xte-1412.png?size=100" width="46" height="46" style="border-radius: 50%; vertical-align: middle; margin: 0 4px;" alt="Xte-1412" /></a> |
+| **Ahsani Fadhli Ilahi** | QA Engineer, Debugger, & Functional Tester | <a href="https://github.com/Ahsanifadhli" title="GitHub: Ahsanifadhli"><img src="https://github.com/Ahsanifadhli.png?size=100" width="46" height="46" style="border-radius: 50%; vertical-align: middle; margin: 0 4px;" alt="Ahsanifadhli" /></a> |
 
 *Disusun untuk Kartika Cyber Hackathon 2026 — Pusat Siber Angkatan Darat (PUSSIBERAD).* 🛡️🇮🇩
