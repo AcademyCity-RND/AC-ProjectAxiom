@@ -332,8 +332,11 @@ Axiom dirancang khusus untuk verifikasi ruang siber dan perlindungan publik:
 
 ---
 
-## 👥 Tim Pengembang
+## 👥 Tim Pengembang (Development Team)
 
-- **Hilarius Christiano Avin Paliling (Xte-1412)** — *System Architect & AI Engineer*
+| Anggota Tim | Peran & Tanggung Jawab | Profil GitHub |
+| :--- | :--- | :--- |
+| **Hilarius Christiano Avin Paliling** | System Architect, AI Engineer, & Web Developer | [![Avin1731](https://img.shields.io/badge/GitHub-Avin1731-181717?style=flat&logo=github)](https://github.com/Avin1731) <br> [![Xte-1412](https://img.shields.io/badge/GitHub-Xte--1412-181717?style=flat&logo=github)](https://github.com/Xte-1412) |
+| **Ahsani Fadhli Ilahi** | QA Engineer, Debugger, & Functional Tester | [![Ahsanifadhli](https://img.shields.io/badge/GitHub-Ahsanifadhli-181717?style=flat&logo=github)](https://github.com/Ahsanifadhli) |
 
 *Disusun untuk Kartika Cyber Hackathon 2026 — Pusat Siber Angkatan Darat (PUSSIBERAD).* 🛡️🇮🇩
