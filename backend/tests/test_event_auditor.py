@@ -21,6 +21,8 @@ from app.services.instagram_auditor import (
     extract_instagram_shortcode,
     generate_mock_instagram_comments,
     fetch_instagram_comments,
+    fetch_instagram_metadata_from_scraper,
+    fetch_instagram_comments_from_scraper,
 )
 from app.services.x_auditor import (
     extract_tweet_id,
@@ -147,6 +149,70 @@ def test_fetch_instagram_comments_mock_fallback():
         assert comments[0]["platform"] == "instagram"
         assert "username" in comments[0]
         assert "created_at" in comments[0]
+
+
+def test_fetch_instagram_metadata_from_scraper_mock():
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "caption": "Polda DIY tindak tegas perusuh Malioboro",
+        "like_count": 1250,
+        "comment_count": 88,
+        "published_at": "2024-10-28T12:00:00Z",
+        "display_url": "https://instagram.com/pic.jpg",
+        "owner": {
+            "username": "humas_jogja",
+            "full_name": "Humas Polda DIY",
+            "followers_count": 45000,
+            "is_verified": True
+        }
+    }
+    with patch("httpx.Client.get", return_value=mock_response):
+        meta = fetch_instagram_metadata_from_scraper("DfCR3JPlK9F")
+        assert meta is not None
+        assert meta["owner_username"] == "humas_jogja"
+        assert meta["likes_count"] == 1250
+        assert meta["comments_count"] == 88
+        assert meta["is_verified"] is True
+
+
+def test_fetch_instagram_comments_from_scraper_success():
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "target_context": "IG Creator: @humas_jogja",
+        "total_extracted": 2,
+        "comments": [
+            {
+                "comment_id": "18001",
+                "created_at": "2024-10-28T13:00:00Z",
+                "author_username": "@warga_jogja",
+                "author_display_name": "Warga Jogja",
+                "raw_text": "Kawal kondusivitas kota tercinta",
+                "likes_count": 15,
+                "is_reply": False,
+                "target_context": "IG Creator: @humas_jogja"
+            },
+            {
+                "comment_id": "18002",
+                "created_at": "2024-10-28T13:05:00Z",
+                "author_username": "@mahasiswa_ugm",
+                "author_display_name": "Mahasiswa UGM",
+                "raw_text": "Sikat provokator perusak Malioboro",
+                "likes_count": 8,
+                "is_reply": True,
+                "target_context": "IG Creator: @humas_jogja"
+            }
+        ]
+    }
+    with patch("httpx.Client.get", return_value=mock_response):
+        comments = fetch_instagram_comments("https://www.instagram.com/p/DfCR3JPlK9F/", max_comments=10)
+        assert len(comments) == 2
+        assert comments[0]["author_username"] == "@warga_jogja"
+        assert comments[0]["text"] == "Kawal kondusivitas kota tercinta"
+        assert comments[0]["likes"] == 15
+        assert comments[0]["platform"] == "instagram"
+        assert comments[1]["is_reply"] is True
 
 
 def test_generate_mock_tweet_replies():

@@ -1,9 +1,11 @@
 import re
 import os
+import sys
 import json
 import logging
 import time
 import random
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 from urllib.parse import urlparse
@@ -161,6 +163,163 @@ def get_instagrapi_client(require_auth: bool = False) -> Optional[Any]:
         return None
 
 
+def _get_scraper_base_urls() -> List[str]:
+    """Mengembalikan daftar candidate URL scraper microservice."""
+    urls = []
+    env_url = os.getenv("INSTAGRAM_SCRAPER_URL", "").strip().rstrip("/")
+    if env_url:
+        urls.append(env_url)
+    for default_url in ["http://instagram-scraper:8000", "http://127.0.0.1:8005", "http://localhost:8005"]:
+        if default_url not in urls:
+            urls.append(default_url)
+    return urls
+
+
+def fetch_instagram_metadata_from_scraper(shortcode: str) -> Optional[Dict[str, Any]]:
+    """Mengambil metadata postingan Instagram via microservice AC-InstagramScraper (Zero-Auth)."""
+    for base_url in _get_scraper_base_urls():
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                resp = client.get(f"{base_url}/posts/details", params={"post": shortcode})
+                if resp.status_code == 200:
+                    data = resp.json()
+                    owner = data.get("owner") or {}
+                    owner_uname = owner.get("username") or "unknown_creator"
+                    owner_name = owner.get("full_name") or owner_uname.replace("_", " ").replace(".", " ").title()
+                    return {
+                        "shortcode": shortcode,
+                        "owner_username": owner_uname,
+                        "owner_full_name": owner_name,
+                        "owner_followers": owner.get("followers_count", 0),
+                        "caption": data.get("caption") or "",
+                        "likes_count": int(data.get("like_count") or 0),
+                        "comments_count": int(data.get("comment_count") or 0),
+                        "published_at": data.get("published_at"),
+                        "thumbnail_url": data.get("display_url") or "",
+                        "is_verified": bool(owner.get("is_verified", False))
+                    }
+        except Exception as e:
+            logger.debug(f"Panggilan metadata ke scraper di {base_url} gagal ({e})")
+            continue
+    return None
+
+
+def fetch_instagram_comments_from_scraper(
+    url_or_shortcode: str,
+    max_comments: int = 400
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Mengambil komentar live otentik dari microservice AC-InstagramScraper
+    menggunakan endpoint standar AXIOM (/axiom/comments) dengan zero-auth TLS impersonation.
+    """
+    shortcode = extract_instagram_shortcode(url_or_shortcode) or url_or_shortcode
+    timeout = max(30.0, min(180.0, float(max_comments) * 0.4 + 15.0))
+
+    # 1. Coba via HTTP Microservice (Docker network atau host port)
+    for base_url in _get_scraper_base_urls():
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                resp = client.get(
+                    f"{base_url}/axiom/comments",
+                    params={"url": shortcode, "max": max_comments}
+                )
+                if resp.status_code == 200:
+                    payload = resp.json()
+                    raw_comments = payload.get("comments", [])
+                    if raw_comments:
+                        formatted: List[Dict[str, Any]] = []
+                        for c in raw_comments:
+                            cid = str(c.get("comment_id") or "")
+                            raw_uname = str(c.get("author_username") or "anon").strip()
+                            clean_uname = raw_uname if raw_uname.startswith("@") else f"@{raw_uname}"
+                            disp_name = str(c.get("author_display_name") or clean_uname.lstrip("@"))
+                            raw_t = str(c.get("raw_text") or "").strip()
+                            c_date = str(c.get("created_at") or datetime.now(timezone.utc).isoformat())
+                            likes = int(c.get("likes_count") or 0)
+                            is_rep = bool(c.get("is_reply", False))
+                            t_ctx = str(c.get("target_context") or f"Instagram Post: {shortcode}")
+
+                            formatted.append({
+                                "comment_id": cid,
+                                "shortcode": shortcode,
+                                "username": clean_uname,
+                                "author_username": clean_uname,
+                                "author_name": clean_uname,
+                                "author_display_name": disp_name,
+                                "author_id": f"ig_{clean_uname.lstrip('@')}",
+                                "text": raw_t,
+                                "raw_text": raw_t,
+                                "created_at": c_date,
+                                "published_at": c_date,
+                                "likes": likes,
+                                "likes_count": likes,
+                                "replies_count": 0,
+                                "is_reply": is_rep,
+                                "target_context": t_ctx,
+                                "platform": "instagram"
+                            })
+                        logger.info(f"Berhasil menarik {len(formatted)} komentar live Instagram dari AC-InstagramScraper ({base_url}).")
+                        return formatted
+        except Exception as e:
+            logger.debug(f"Panggilan ke scraper di {base_url} gagal ({e})")
+            continue
+
+    # 2. Coba direct invocation jika folder AC-InstagramScraper tersedia secara lokal
+    try:
+        candidate_paths = [
+            Path(__file__).resolve().parents[4] / "AC-InstagramScraper",
+            Path("C:/laragon/www/Hack/AC-InstagramScraper"),
+            Path("../AC-InstagramScraper").resolve(),
+        ]
+        for p in candidate_paths:
+            if p.exists() and (p / "instagram" / "axiom_adapter.py").exists():
+                p_str = str(p)
+                if p_str not in sys.path:
+                    sys.path.insert(0, p_str)
+                from instagram.axiom_adapter import fetch_comments_axiom  # type: ignore
+                res = fetch_comments_axiom(shortcode, max_comments=max_comments)
+                raw_comments = res.get("comments", [])
+                if raw_comments:
+                    formatted = []
+                    for c in raw_comments:
+                        cid = str(c.get("comment_id") or "")
+                        raw_uname = str(c.get("author_username") or "anon").strip()
+                        clean_uname = raw_uname if raw_uname.startswith("@") else f"@{raw_uname}"
+                        disp_name = str(c.get("author_display_name") or clean_uname.lstrip("@"))
+                        raw_t = str(c.get("raw_text") or "").strip()
+                        c_date = str(c.get("created_at") or datetime.now(timezone.utc).isoformat())
+                        likes = int(c.get("likes_count") or 0)
+                        is_rep = bool(c.get("is_reply", False))
+                        t_ctx = str(c.get("target_context") or f"Instagram Post: {shortcode}")
+
+                        formatted.append({
+                            "comment_id": cid,
+                            "shortcode": shortcode,
+                            "username": clean_uname,
+                            "author_username": clean_uname,
+                            "author_name": clean_uname,
+                            "author_display_name": disp_name,
+                            "author_id": f"ig_{clean_uname.lstrip('@')}",
+                            "text": raw_t,
+                            "raw_text": raw_t,
+                            "created_at": c_date,
+                            "published_at": c_date,
+                            "likes": likes,
+                            "likes_count": likes,
+                            "replies_count": 0,
+                            "is_reply": is_rep,
+                            "target_context": t_ctx,
+                            "platform": "instagram"
+                        })
+                    logger.info(f"Berhasil menarik {len(formatted)} komentar live Instagram via Direct Adapter Import.")
+                    return formatted
+                break
+    except Exception as e:
+        logger.debug(f"Direct import AC-InstagramScraper dilewati ({e})")
+
+    return None
+
+
 def fetch_instagram_metadata(shortcode: str) -> Dict[str, Any]:
     """
     Mengambil metadata postingan/reels Instagram secara 100% LIVE tanpa login:
@@ -183,7 +342,13 @@ def fetch_instagram_metadata(shortcode: str) -> Dict[str, Any]:
         "is_verified": False
     }
 
-    # 1. Lapisan Primer (Zero-Auth Instaloader Public Post Extraction)
+    # 1. Lapisan Primer (Zero-Auth via AC-InstagramScraper Microservice)
+    scraper_meta = fetch_instagram_metadata_from_scraper(shortcode)
+    if scraper_meta and scraper_meta.get("owner_username") != "unknown_creator":
+        logger.info(f"Metadata Instagram untuk '{shortcode}' berhasil ditarik via AC-InstagramScraper.")
+        return scraper_meta
+
+    # 2. Lapisan Sekunder (Zero-Auth Instaloader Public Post Extraction)
     try:
         import instaloader  # type: ignore
         L = instaloader.Instaloader(
@@ -218,7 +383,7 @@ def fetch_instagram_metadata(shortcode: str) -> Dict[str, Any]:
     except Exception as e:
         logger.info(f"Instaloader metadata check lewat ({e}), mencoba fallback embed...")
 
-    # 2. Lapisan Sekunder: Embed Scraper (Zero-Auth)
+    # 3. Lapisan Tersier: Embed Scraper (Zero-Auth)
     try:
         embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
         with httpx.Client(timeout=10.0, headers=STANDARD_BROWSER_HEADERS, follow_redirects=True) as client:
@@ -405,10 +570,11 @@ def fetch_instagram_comments(
 ) -> List[Dict[str, Any]]:
     """
     Mengambil daftar komentar Instagram (target hingga 400 komentar).
-    Menerapkan Jeda Waktu Manusiawi (Human Delay Pacing) untuk mencegah pembatasan Meta:
-    1. Mesin Sekunder (Web Session Instaloader + Pacing Delay)
-    2. Mesin Primer (instagrapi Mobile API dengan chunked pacing)
-    3. Fallback Keselamatan: Contextual Forensics Fallback anti-crash jika terkena blokir Meta.
+    Arsitektur Multi-Tier Resilient:
+    1. Mesin Primer: AC-InstagramScraper Zero-Auth TLS Impersonation (tanpa butuh login).
+    2. Mesin Sekunder (Web Session Instaloader + Pacing Delay jika ada sesi aktif).
+    3. Mesin Tersier (instagrapi Mobile API jika ada sesi aktif).
+    4. Fallback Keselamatan: Contextual Forensics Fallback anti-crash jika seluruh engine offline / dibatasi Meta.
     """
     shortcode = extract_instagram_shortcode(url_or_shortcode)
     if not shortcode:
@@ -417,7 +583,17 @@ def fetch_instagram_comments(
     comments: List[Dict[str, Any]] = []
 
     # -------------------------------------------------------------
-    # 1. MESIN WEB: Instaloader dengan Browser Session & Pacing Delay
+    # 1. MESIN PRIMER: Zero-Auth TLS AC-InstagramScraper Microservice
+    # -------------------------------------------------------------
+    try:
+        scraper_comments = fetch_instagram_comments_from_scraper(shortcode, max_comments=max_comments)
+        if scraper_comments:
+            return scraper_comments
+    except Exception as e:
+        logger.info(f"Mesin AC-InstagramScraper lewat ({type(e).__name__}: {e}). Mencoba engine berikutnya...")
+
+    # -------------------------------------------------------------
+    # 2. MESIN SEKUNDER: Instaloader dengan Browser Session & Pacing Delay
     # -------------------------------------------------------------
     env_session = os.getenv("INSTAGRAM_SESSIONID", "").strip()
     has_session = False
@@ -502,7 +678,7 @@ def fetch_instagram_comments(
             logger.info(f"Web Engine Instaloader lewat ({type(e).__name__}: {e}). Mencoba engine berikutnya...")
 
     # -------------------------------------------------------------
-    # 2. MESIN MOBILE: instagrapi (hanya jika sesi authenticated aktif)
+    # 3. MESIN TERSIER: instagrapi (hanya jika sesi authenticated aktif)
     # -------------------------------------------------------------
     if has_session:
         try:
@@ -544,7 +720,7 @@ def fetch_instagram_comments(
             logger.warning(f"Ekstraksi instagrapi lewat ({type(e).__name__}: {e}). Mengaktifkan Smart Fallback...")
 
     # -------------------------------------------------------------
-    # 3. MESIN TERSIER: Contextual Forensics Fallback (Anti-Crash Zero-Auth)
+    # 4. MESIN FALLBACK: Contextual Forensics Fallback (Anti-Crash Zero-Auth)
     # -------------------------------------------------------------
     if not comments:
         logger.info(f"Menghasilkan {max_comments} komentar kontekstual otentik berbasis caption...")
