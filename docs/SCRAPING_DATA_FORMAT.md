@@ -173,12 +173,12 @@ Fitur numerik dan kategorikal siap pakai untuk model **XGBoost / LightGBM**:
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Identifier** | Username (@handle) | Numeric Tweet ID | Shortcode (alphanumeric) | Shortcode (alphanumeric) | 11-char Video ID | 11-char Video ID |
 | **Host / Author** | Akun Target (@handle) | Pemilik Cuitan (@handle) | @humas_poldakalsel | @narasinewsroom | BBC News Indonesia | TribunJakarta |
-| **Followers / Subs** | Real via API/twscrape | Real via API/twscrape | Real via Instaloader Reel | Real via Instaloader Post | Real via HTML/About | Real via HTML/About |
+| **Followers / Subs** | Real via API/twscrape | Real via API/twscrape | Real via AC-InstagramScraper | Real via AC-InstagramScraper | Real via HTML/About | Real via HTML/About |
 | **Engagement Utama** | Tweets, Media, Likes | Retweets, Quotes, Likes | Likes & Komentar | Likes & Komentar | Views, Likes, Dislikes | Views, Likes, Dislikes |
 | **Total Komentar Platform** | N/A (Profil Aktor) | Real Replies di X | Real Komentar di IG | Real Komentar di IG | Real Komentar di YT | Real Komentar di YT |
-| **Interaksi Ditarik** | 150 Cuitan Historis | 150 Balasan (Replies) | 50-150 Komentar | 50-150 Komentar | 150 Komentar Live | 150 Komentar Live |
-| **Account Created Date** | Real via user.created | Real via user.created | Proxy Earliest Post/Bio | Proxy Earliest Post/Bio | Channel Joined Date | Channel Joined Date |
-| **Audit Usia Akun** | Aktor Utama | Top Attackers Balasan | Top Attackers Komentar | Top Attackers Komentar | Top Attackers Komentar | Top Attackers Komentar |
+| **Interaksi Ditarik** | Hingga 400 Cuitan Historis | Hingga 2500 Balasan (Replies) | Hingga 400 Komentar Live | Hingga 400 Komentar Live | Komentar Live Penuh | Komentar Live Penuh |
+| **Engine Scraper** | twscrape (Token Auth) | twscrape (Token Auth) | AC-InstagramScraper (Zero-Auth) | AC-InstagramScraper (Zero-Auth) | YouTubeCommentDownloader | YouTubeCommentDownloader |
+| **Audit Usia Akun** | Aktor Utama (Real API) | Top Attackers Balasan | Top Attackers Komentar | Top Attackers Komentar | Channel Joined Date | Channel Joined Date |
 
 ---
 *Dokumen ini divalidasi langsung oleh sistem AXIOM PUSSIBERAD pada 6 fitur operasional aktif: X User (@Kemhan_RI), X Tweet (/status/1849372819203819201), Instagram Reel (DOFtzyCkzNq), Instagram Post (DfCR3JPlK9F), YouTube Shorts (p66hnaKuB3o), dan YouTube Video (HGgCE9a7BjU).*
@@ -187,50 +187,45 @@ Fitur numerik dan kategorikal siap pakai untuk model **XGBoost / LightGBM**:
 
 ## 4. Spesifikasi Dataset Tabular Harvester (60 Target Real Data)
 
-Untuk kebutuhan QA, evaluasi model offline, dan training pipeline, harvester AXIOM (	ools/dataset_harvester/harvester.py) mengekstraksi data ke format CSV standar (UTF-8 with BOM) yang tersimpan pada direktori ackend/data/raw_datasets/:
+Untuk kebutuhan QA, evaluasi model offline, dan training pipeline, harvester AXIOM (`tools/dataset_harvester/harvester.py`) mengekstraksi data ke format CSV standar RFC 4180 (UTF-8 with BOM) yang tersimpan pada direktori `backend/data/raw_datasets/`:
 
-### A. Skema Kolom CSV Event Comments (x_tweet, ig_post, ig_reels, yt_shorts, yt_video)
+### A. Skema Kolom CSV Event Comments (`x_tweet`, `ig_post`, `ig_reels`, `yt_shorts`, `yt_video`)
+
+| Kolom | Tipe | Deskripsi & Catatan Forensik |
+| :--- | :--- | :--- |
+| `comment_id` | String | ID unik komentar dari platform / hash |
+| `created_at` | ISO-8601 | Waktu komentar dipublikasikan (UTC) |
+| `author_username` | String | Username komentator berformat `@username` |
+| `author_display_name` | String | Nama tampilan komentator |
+| `raw_text` | String | Teks komentar asli (dibersihkan dari newline break) |
+| `likes_count` | Integer | Jumlah interaksi like pada komentar. Pada endpoint publik Meta, nilai diambil langsung dari CDN edge GraphQL Meta (aktual 0, 1, 2, dst). |
+| `is_reply` | Boolean | `True` jika komentar berupa balasan, `False` jika level atas. **Catatan Instagram Zero-Auth:** Bernilai `False` pada seluruh baris karena Meta mengunci percakapan sub-balasan (*threaded replies*) di balik *Login Wall*. Seluruh data yang diserap adalah komentar induk langsung ke postingan. Jika membutuhkan ekstraksi balasan bertingkat, gunakan akun burner via `INSTAGRAM_SESSIONID` (Tier 2/3). |
+| `target_context` | String | Konteks/ID target postingan (e.g., tweet ID, shortcode, kreator & snippet caption) |
+
+### B. Skema Kolom CSV Actor Timeline (`x_user`)
 
 | Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
-| comment_id | String | ID unik komentar dari platform / hash |
-| created_at | ISO-8601 | Waktu komentar dipublikasikan |
-| uthor_username | String | Username komentator (e.g., @user atau handle) |
-| uthor_display_name | String | Nama tampilan komentator |
-| 
-aw_text | String | Teks komentar asli (unaltered) |
-| likes_count | Integer | Jumlah interaksi like pada komentar |
-| is_reply | Boolean | True jika komentar berupa balasan, False jika level atas |
-| 	arget_context | String | Konteks/ID target postingan (e.g., tweet ID, shortcode, video ID) |
-
-### B. Skema Kolom CSV Actor Timeline (x_user)
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| content_id | String | ID cuitan / status X |
-| created_at | ISO-8601 | Waktu cuitan dibuat |
-| uthor_username | String | Username akun target |
-| uthor_display_name | String | Nama akun target |
-| 
-aw_text | String | Teks cuitan / balasan |
-| likes_count | Integer | Jumlah likes |
-| 
-etweets_count | Integer | Jumlah retweets |
-| 
-eplies_count | Integer | Jumlah replies |
-| is_reply | Boolean | True jika merupakan balasan ke pengguna lain |
-| 	arget_context | String | Target username pemilik profil |
+| `content_id` | String | ID cuitan / status X |
+| `created_at` | ISO-8601 | Waktu cuitan dibuat |
+| `author_username` | String | Username akun target |
+| `author_display_name` | String | Nama akun target |
+| `raw_text` | String | Teks cuitan / balasan |
+| `likes_count` | Integer | Jumlah likes |
+| `retweets_count` | Integer | Jumlah retweets |
+| `replies_count` | Integer | Jumlah replies |
+| `is_reply` | Boolean | `True` jika merupakan balasan ke pengguna lain |
+| `target_context` | String | Target username pemilik profil |
 
 ### C. Direktori & Verifikasi Integritas Dataset
 
-`
+```text
 backend/data/raw_datasets/
 ├── x_user/     # 10 file CSV (Profil & linimasa akun intelijen/tokoh/buzzer)
 ├── x_tweet/    # 10 file CSV (Diskusi & balasan thread viral di X)
-├── ig_post/    # 10 file CSV (Komentar postingan feed Instagram)
-├── ig_reels/   # 10 file CSV (Komentar video Reels Instagram)
-├── yt_shorts/  # 10 file CSV (Komentar video YouTube Shorts)
-└── yt_video/   # 10 file CSV (Komentar video panjang YouTube)
-`
+├── ig_post/    # 10 file CSV (Komentar postingan feed Instagram - Real Data Zero-Auth)
+├── ig_reels/   # 10 file CSV (Komentar video Reels Instagram - Real Data Zero-Auth)
+├── yt_shorts/  # 10 file CSV (Komentar video YouTube Shorts - Real Data)
+└── yt_video/   # 10 file CSV (Komentar video panjang YouTube - Real Data)
+```
 - Total target terverifikasi: **60/60 target nyata (100% data live tanpa data sintetis/dummy)**.
-

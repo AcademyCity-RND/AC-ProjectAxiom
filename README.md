@@ -1,6 +1,8 @@
 # 🛡️ Axiom — Cognitive Domain Threat Intelligence & Inauthentic Behavior Detection Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Contributing](https://img.shields.io/badge/Contributing-Guidelines-orange.svg)](CONTRIBUTING.md)
+[![Security Policy](https://img.shields.io/badge/Security-Policy-red.svg)](SECURITY.md)
 [![CI Pipeline](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml)
 [![Tests: 62/62 Passed](https://img.shields.io/badge/Tests-62%2F62%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg?logo=python&logoColor=white)](https://www.python.org/)
@@ -36,7 +38,10 @@ Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-
 2. **Multi-Platform Event & Incident Auditing:**
    - Deteksi amplifikasi terkoordinasi pada konten viral lintas platform:
      - **X (Twitter):** Cuitan tunggal & seluruh pohon balasan (*replies*).
-     - **Instagram:** Feed Post (`/p/`) & Reels (`/reel/`) via Mobile Private API & Instaloader.
+     - **Instagram:** Feed Post (`/p/`) & Reels (`/reel/`) via **Multi-Tier Zero-Auth Architecture**:
+       - **Tier 1 (Microservice Scraper):** Ekstraksi live hingga 400 komentar utama tanpa login & tanpa risiko banned via browser TLS impersonation (`curl_cffi`).
+       - **Tier 2/3 (Authenticated Session):** Penelusuran pohon balasan (*threaded replies*) opsional jika sesi akun burner (`INSTAGRAM_SESSIONID`) disediakan.
+       - **Tier 4 (Contextual Forensics Fallback):** Fail-safe anti-crash cerdas berbasis konteks nyata postingan.
      - **YouTube:** Video Panjang (`/watch`) & Shorts (`/shorts/`) via streaming parser Innertube HTTP.
 3. **Tri-Class AI Classification Engine:**
    - Membedakan tiga entitas dengan presisi tinggi menggunakan XGBoost Classifier:
@@ -79,8 +84,9 @@ Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-
 ┌──────────────────────┐ ┌──────────────┐ ┌──────────────┐
 │ MULTI-PLATFORM ENGINE│ │ VECTOR STORE │ │ AI / ML CORE │
 │ - X (twscrape)       │ │ - ChromaDB   │ │ - XGBoost    │
-│ - Instagram (Private)│ │   (MiniLM)   │ │ - Groq Llama │
-│ - YouTube (Innertube)│ │              │ │   3.3 (XAI)  │
+│ - Instagram Scraper  │ │   (MiniLM)   │ │ - Groq Llama │
+│   (Zero-Auth Service)│ │              │ │   3.3 (XAI)  │
+│ - YouTube (Innertube)│ │              │ │              │
 └──────────────────────┘ └──────────────┘ └──────────────┘
        │                    │                    │
        └────────────────────┴────────────────────┘
@@ -201,8 +207,19 @@ docker compose up -d --build
 | :--- | :--- | :--- |
 | **Frontend Web Dashboard** | [http://localhost:3000](http://localhost:3000) | Antarmuka analisis investigasi SOC PUSSIBERAD |
 | **FastAPI Interactive Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Dokumentasi & pengujian endpoint Swagger UI |
+| **Instagram Scraper Service** | [http://localhost:8005](http://localhost:8005) | Microservice zero-auth TLS scraper (`/axiom/comments`) |
 | **ChromaDB Vector Store** | [http://localhost:8001](http://localhost:8001) | Endpoint koleksi narasi semantik CIB |
 | **PostgreSQL Database** | `localhost:5434` | DB utama *(port host 5434 untuk mencegah konflik lokal 5432)* |
+
+#### 🔍 Catatan Forensik: Ekstraksi Instagram (Zero-Auth vs Authenticated)
+Axiom menerapkan arsitektur scraping multi-tier untuk menjamin analisis media sosial berjalan tanpa risiko pemblokiran akun (*anti-ban*):
+* **Mode Zero-Auth (Tier 1 - Default Microservice):**
+  - **Bebas Akun:** 100% tanpa login, tanpa akun burner, dan bebas risiko banned.
+  - **Kapasitas:** Mampu menyedot hingga **400 komentar level-1 (Top-Level Comments)** per postingan/Reels.
+  - **Variabel `likes_count`:** Menampilkan jumlah like aktual dari cache GraphQL publik Meta (angka 0, 1, 2, dst. sesuai interaksi riil).
+  - **Variabel `is_reply`:** Seluruh baris bernilai `False` karena Meta secara ketat mengunci percakapan sub-balasan (*threaded replies*) di balik *Login Wall*. Seluruh data yang diserap adalah komentar induk langsung ke postingan.
+* **Mode Sesi Terautentikasi (Tier 2/3 - Opsional):**
+  - Jika investigasi mewajibkan pemetaan percakapan balasan bertingkat (*child comments*), cukup masukkan cookie sesi akun cadangan/burner ke file `.env` (`INSTAGRAM_SESSIONID=...`). Sistem akan otomatis mengaktifkan Tier 2 (Instaloader) / Tier 3 (instagrapi) untuk mengekstrak pohon balasan dan menandai `is_reply = True`.
 
 #### 🛠️ Perintah Operasional Docker:
 ```bash
@@ -306,8 +323,20 @@ Axiom dirancang khusus untuk verifikasi ruang siber dan perlindungan publik:
 
 ---
 
-## 👥 Tim Pengembang
+## 📚 Dokumentasi & Panduan Komunitas
 
-- **Hilarius Christiano Avin Paliling (Xte-1412)** — *System Architect & AI Engineer*
+* 📖 [Panduan Kontribusi (CONTRIBUTING.md)](CONTRIBUTING.md) — Alur kerja git, standar kode, dan pengujian.
+* 🛡️ [Kebijakan Keamanan (SECURITY.md)](SECURITY.md) — Pelaporan celah keamanan dan mitigasi kerentanan.
+* 📄 [Lisensi Proyek (LICENSE)](LICENSE) — Lisensi open source MIT.
+* 📊 [Spesifikasi Format Data Scraping](docs/SCRAPING_DATA_FORMAT.md) — Kontrak data standar seluruh platform.
+
+---
+
+## 👥 Tim Pengembang (Development Team)
+
+| Anggota Tim | Peran & Tanggung Jawab | Profil GitHub |
+| :--- | :--- | :---: |
+| **Hilarius Christiano Avin Paliling** | System Architect, AI Engineer, & Web Developer | <a href="https://github.com/Avin1731" title="GitHub: Avin1731"><img src="https://github.com/Avin1731.png?size=100" width="46" height="46" style="border-radius: 50%; vertical-align: middle; margin: 0 4px;" alt="Avin1731" /></a> &nbsp;&nbsp; <a href="https://github.com/Xte-1412" title="GitHub: Xte-1412"><img src="https://github.com/Xte-1412.png?size=100" width="46" height="46" style="border-radius: 50%; vertical-align: middle; margin: 0 4px;" alt="Xte-1412" /></a> |
+| **Ahsani Fadhli Ilahi** | QA Engineer, Debugger, & Functional Tester | <a href="https://github.com/Ahsanifadhli" title="GitHub: Ahsanifadhli"><img src="https://github.com/Ahsanifadhli.png?size=100" width="46" height="46" style="border-radius: 50%; vertical-align: middle; margin: 0 4px;" alt="Ahsanifadhli" /></a> |
 
 *Disusun untuk Kartika Cyber Hackathon 2026 — Pusat Siber Angkatan Darat (PUSSIBERAD).* 🛡️🇮🇩

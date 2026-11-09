@@ -165,8 +165,9 @@
   - [x] Simpan ke `ActivityLog` (`platform=youtube`) + Embed ke ChromaDB (`actor_narratives`)
   - [x] Auto-fallback ke simulated mock dataset saat offline/air-gapped
 - [x] **Instagram Public Post Comment Auditor (`services/instagram_auditor.py`):**
-  - [x] Integrasi `instaloader` (GraphQL public post comments parser dengan session file support)
-  - [x] Ekstraksi komentar publik: `comment_id`, `username`, `text`, `created_at`, `likes_count`
+  - [x] Integrasi microservice `AC-InstagramScraper` (Zero-Auth TLS impersonation via `curl_cffi`, port 8005)
+  - [x] Ekstraksi hingga 400 komentar live: `comment_id`, `author_username`, `author_display_name`, `raw_text`, `likes_count`, `created_at`
+  - [x] Arsitektur Multi-Tier: Tier 1 Zero-Auth Scraper -> Tier 2 Instaloader Session -> Tier 3 instagrapi Mobile -> Tier 4 Contextual Forensics Fallback
   - [x] Simpan ke `ActivityLog` (`platform=instagram`) + Embed ke ChromaDB
   - [x] Auto-fallback ke mock dataset jika postingan terbentur batasan login / offline
 - [x] **Unified Multi-Platform Endpoint (`POST /api/v1/investigate/event`):**

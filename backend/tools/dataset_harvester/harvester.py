@@ -5,8 +5,8 @@ AXIOM - Standalone Dataset Harvester (Temporary Research Tool)
 Tujuan: Mengumpulkan dataset mentah aktual (post-2020) dari 6 skenario:
   1. X User (hingga 400 aktivitas terakhir per akun)
   2. X Tweet (ekstraksi seluruh balasan cuitan tanpa batas)
-  3. IG Post (ekstraksi seluruh komentar postingan)
-  4. IG Reels (ekstraksi seluruh komentar video Reels)
+  3. IG Post (ekstraksi hingga 400 komentar dengan jeda bertingkat)
+  4. IG Reels (ekstraksi hingga 400 komentar dengan jeda bertingkat)
   5. YT Shorts (ekstraksi seluruh komentar Shorts)
   6. YT Video (ekstraksi seluruh komentar Video Reguler)
 
@@ -19,6 +19,7 @@ import sys
 import csv
 import json
 import time
+import random
 import re
 import argparse
 import asyncio
@@ -26,11 +27,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List
 
-# Konfigurasi path fleksibel (bisa jalan di dalam Docker /app maupun di host)
-CURRENT_DIR = Path(__file__).resolve().parent
-APP_DIR = CURRENT_DIR.parent.parent  # /app atau axiom/backend
+# Pastikan output konsol selalu unbuffered realtime
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+except Exception:
+    pass
 
-# Cek apakah sedang berjalan di dalam docker container
+CURRENT_DIR = Path(__file__).resolve().parent
+APP_DIR = CURRENT_DIR.parent.parent
+
 if Path("/app").exists() and (Path("/app") / "app").exists():
     BASE_DIR = Path("/app")
 else:
@@ -42,7 +48,6 @@ if str(BASE_DIR) not in sys.path:
 OUTPUT_DIR = BASE_DIR / "data" / "raw_datasets"
 TARGETS_FILE = CURRENT_DIR / "targets.json"
 
-# Muat environment variabel
 try:
     from dotenv import load_dotenv
     load_dotenv(BASE_DIR / ".env", override=True)
@@ -184,85 +189,58 @@ async def harvest_x_tweet(target_url: str, idx: int) -> bool:
 
 
 # ==============================================================================
-# 3 & 4. HARVESTER: INSTAGRAM POST & REELS (Seluruh Komentar Tanpa Batas)
+# 3 & 4. HARVESTER: INSTAGRAM POST & REELS (Target Hingga 400 Komentar)
 # ==============================================================================
 def harvest_instagram(target_url: str, idx: int, mode_type: str = "ig_post") -> bool:
     if not target_url.strip():
         return False
 
     from app.services.instagram_auditor import (  # type: ignore
-        get_instagrapi_client,
         extract_instagram_shortcode,
-        fetch_instagram_metadata
+        fetch_instagram_metadata,
+        fetch_instagram_comments
     )
     shortcode = extract_instagram_shortcode(target_url) or f"ig_{idx}"
     out_file = OUTPUT_DIR / mode_type / f"{mode_type}_{idx:02d}_{sanitize_filename(shortcode)}.csv"
     if out_file.exists() and out_file.stat().st_size > 150:
-        print(f"[RESUME] Instagram #{idx} ({shortcode}) sudah ada. Melewati...")
+        print(f"[RESUME] Instagram #{idx} ({shortcode}) sudah ada ({out_file.name}). Melewati...", flush=True)
         return True
 
-    print(f"\n[+] Memulai harvesting Instagram {mode_type.upper()} #{idx}: {target_url} (Seluruh komentar)...")
+    print(f"\n[+] [{mode_type.upper()}] Memulai harvesting #{idx}: {target_url} (Target: hingga 400 komentar)...", flush=True)
     fieldnames = [
         "comment_id", "created_at", "author_username", "author_display_name",
         "raw_text", "likes_count", "is_reply", "target_context"
     ]
 
     try:
+        print(f"  -> [Live Probe] Mengambil metadata publik shortcode: {shortcode}...", flush=True)
         meta = fetch_instagram_metadata(shortcode)
         caption_snippet = meta.get("caption", "")[:80]
-        cl = get_instagrapi_client()
+        creator_name = meta.get("owner_username", "unknown")
+        print(f"  -> Kreator: @{creator_name} | Total Komentar Publik: {meta.get('comments_count', 0)}", flush=True)
+
+        print(f"  -> Mengekstrak 400 komentar...", flush=True)
+        comments = fetch_instagram_comments(shortcode, max_comments=400, caption_context=meta.get("caption", ""))
+        print(f"  -> Berhasil mengekstrak {len(comments)} komentar untuk {shortcode}", flush=True)
 
         rows = []
-        harvested_live = False
-        if cl:
-            try:
-                media_pk = cl.media_pk_from_code(shortcode)
-                print(f"  -> Terkoneksi via instagrapi Mobile API (Media PK: {media_pk}). Menarik seluruh komentar...")
-                
-                raw_comments = cl.media_comments(media_pk, amount=0)
-                print(f"  -> Berhasil menarik {len(raw_comments)} komentar live dari Instagram!")
-
-                for c in raw_comments:
-                    u = c.user.username if c.user else "unknown"
-                    dname = getattr(c.user, "full_name", "") or u.replace("_", " ").title()
-                    c_time = c.created_at_utc.isoformat() if c.created_at_utc else datetime.now(timezone.utc).isoformat()
-                    
-                    rows.append({
-                        "comment_id": str(c.pk),
-                        "created_at": c_time,
-                        "author_username": f"@{u}",
-                        "author_display_name": dname,
-                        "raw_text": str(c.text or "").replace("\r\n", " ").replace("\n", " "),
-                        "likes_count": int(getattr(c, "like_count", 0) or 0),
-                        "is_reply": False,
-                        "target_context": f"IG Creator: @{meta.get('owner_username')} | Caption: {caption_snippet}"
-                    })
-                if rows:
-                    harvested_live = True
-            except Exception as ie:
-                print(f"  [!] Instagrapi request gagal ({type(ie).__name__}: {ie}). Mengalihkan ke multi-layer fallback...")
-
-        if not harvested_live:
-            print("  [!] Menggunakan multi-tier fallback extraction...")
-            from app.services.instagram_auditor import fetch_instagram_comments
-            comments_fb = fetch_instagram_comments(shortcode, max_comments=1000, caption_context=meta.get("caption", ""))
-            for c in comments_fb:
-                rows.append({
-                    "comment_id": c.get("comment_id"),
-                    "created_at": c.get("published_at"),
-                    "author_username": c.get("author_username"),
-                    "author_display_name": c.get("author_display_name"),
-                    "raw_text": str(c.get("text") or "").replace("\r\n", " ").replace("\n", " "),
-                    "likes_count": c.get("likes", 0),
-                    "is_reply": False,
-                    "target_context": f"Caption: {caption_snippet}"
-                })
+        for c in comments:
+            rows.append({
+                "comment_id": c.get("comment_id"),
+                "created_at": c.get("published_at") or c.get("created_at"),
+                "author_username": c.get("author_username") or c.get("username"),
+                "author_display_name": c.get("author_display_name", ""),
+                "raw_text": str(c.get("text") or "").replace("\r\n", " ").replace("\n", " "),
+                "likes_count": c.get("likes", 0),
+                "is_reply": c.get("is_reply", False),
+                "target_context": f"IG Creator: @{creator_name} | Caption: {caption_snippet}"
+            })
 
         write_csv_dataset(out_file, fieldnames, rows)
-        print(f"  -> Disimpan ke: {out_file.name} ({len(rows)} baris)")
+        print(f"  -> Disimpan ke: {out_file.name} ({len(rows)} baris)", flush=True)
         return True
     except Exception as e:
-        print(f"  [!] Gagal harvesting Instagram {target_url}: {e}")
+        print(f"  [!] Gagal harvesting Instagram {target_url}: {e}", flush=True)
         return False
 
 
@@ -282,20 +260,23 @@ def harvest_youtube(target_url: str, idx: int, mode_type: str = "yt_video") -> b
     vid = extract_youtube_video_id(target_url) or f"yt_{idx}"
     out_file = OUTPUT_DIR / mode_type / f"{mode_type}_{idx:02d}_{sanitize_filename(vid)}.csv"
     if out_file.exists() and out_file.stat().st_size > 150:
-        print(f"[RESUME] YouTube #{idx} ({vid}) sudah ada. Melewati...")
+        print(f"[RESUME] YouTube #{idx} ({vid}) sudah ada ({out_file.name}). Melewati...", flush=True)
         return True
 
-    print(f"\n[+] Memulai harvesting YouTube {mode_type.upper()} #{idx}: {target_url} (Eksplorasi 100% tuntas)...")
+    print(f"\n[+] [{mode_type.upper()}] Memulai harvesting #{idx}: {target_url} (Eksplorasi live tuntas)...", flush=True)
     fieldnames = [
         "comment_id", "created_at", "author_username", "author_display_name",
         "raw_text", "likes_count", "is_reply", "target_context"
     ]
 
     try:
+        print(f"  -> Mengambil metadata video/shorts {vid}...", flush=True)
         meta = fetch_youtube_metadata(vid)
         title_snippet = meta.get("title", "")[:80]
         channel_name = meta.get("channel_name", "Unknown Channel")
+        print(f"  -> Channel: {channel_name} | Judul: {title_snippet}", flush=True)
 
+        print(f"  -> Menarik komentar live via YoutubeCommentDownloader...", flush=True)
         downloader = YoutubeCommentDownloader()
         generator = downloader.get_comments_from_url(target_url, sort_by=0)
 
@@ -326,12 +307,12 @@ def harvest_youtube(target_url: str, idx: int, mode_type: str = "yt_video") -> b
                 elapsed = round(time.time() - start_t, 1)
                 print(f"  -> Berhasil menarik {count} komentar... ({elapsed} detik)", flush=True)
 
-        print(f"  -> Total komentar live ditarik 100% tuntas: {len(rows)} komentar!")
+        print(f"  -> Total komentar live ditarik 100% tuntas: {len(rows)} komentar!", flush=True)
         write_csv_dataset(out_file, fieldnames, rows)
-        print(f"  -> Disimpan ke: {out_file.name} ({len(rows)} baris)")
+        print(f"  -> Disimpan ke: {out_file.name} ({len(rows)} baris)", flush=True)
         return True
     except Exception as e:
-        print(f"  [!] Gagal harvesting YouTube {target_url}: {e}")
+        print(f"  [!] Gagal harvesting YouTube {target_url}: {e}", flush=True)
         return False
 
 
@@ -344,39 +325,44 @@ def print_status():
     targets = load_targets()
     modes = ["x_user", "x_tweet", "ig_post", "ig_reels", "yt_shorts", "yt_video"]
 
-    print("\n" + "=" * 70)
-    print("STATUS DATASET HARVESTER AXIOM (TARGET 60 FILE CSV)")
-    print("=" * 70)
-    print(f"{'Mode / Skenario':<18} | {'Target Terisi':<15} | {'CSV Selesai':<15} | {'Progress'}")
-    print("-" * 70)
+    print("\n" + "=" * 70, flush=True)
+    print("STATUS DATASET HARVESTER AXIOM (TARGET 60 FILE CSV)", flush=True)
+    print("=" * 70, flush=True)
+    print(f"{'Mode / Skenario':<18} | {'Target Terisi':<15} | {'CSV Selesai':<15} | {'Progress'}", flush=True)
+    print("-" * 70, flush=True)
 
-    total_targets = 0
-    total_csvs = 0
+    total_t = 0
+    total_f = 0
 
     for m in modes:
-        t_list = [t for t in targets.get(m, []) if t.strip()]
+        t_count = len(targets.get(m, []))
         csv_files = list((OUTPUT_DIR / m).glob("*.csv"))
-        
-        t_count = len(t_list)
-        c_count = len(csv_files)
-        total_targets += t_count
-        total_csvs += c_count
+        valid_files = [f for f in csv_files if f.stat().st_size > 150]
+        f_count = len(valid_files)
 
-        pct = f"{(c_count / max(1, t_count)) * 100:.1f}%" if t_count > 0 else "0.0%"
-        print(f"{m:<18} | {t_count:<3} / 10 target   | {c_count:<3} file CSV     | {pct}")
+        total_t += t_count
+        total_f += f_count
 
-    print("-" * 70)
-    print(f"TOTAL: {total_targets}/60 Target Terdaftar | {total_csvs}/60 File CSV Terkumpul")
-    print(f"Folder Penyimpanan: {OUTPUT_DIR.resolve()}")
-    print("=" * 70 + "\n")
+        pct = f"{(f_count / t_count * 100):.1f}%" if t_count > 0 else "0.0%"
+        print(f"{m:<18} | {t_count:<15} | {f_count:<15} | {pct}", flush=True)
+
+    print("=" * 70, flush=True)
+    total_pct = f"{(total_f / total_t * 100):.1f}%" if total_t > 0 else "0.0%"
+    print(f"{'TOTAL KESELURUHAN':<18} | {total_t:<15} | {total_f:<15} | {total_pct}", flush=True)
+    print("=" * 70 + "\n", flush=True)
 
 
 # ==============================================================================
-# MAIN ORCHESTRATOR
+# MAIN RUNNER
 # ==============================================================================
 async def main():
-    parser = argparse.ArgumentParser(description="Axiom Dataset Harvester CLI")
-    parser.add_argument("--mode", choices=["x_user", "x_tweet", "ig_post", "ig_reels", "yt_shorts", "yt_video", "all"], default="all", help="Pilih mode skenario")
+    parser = argparse.ArgumentParser(description="AXIOM Standalone Dataset Harvester")
+    parser.add_argument(
+        "--mode",
+        choices=["all", "x_user", "x_tweet", "ig_post", "ig_reels", "yt_shorts", "yt_video"],
+        default="all",
+        help="Mode harvesting yang ingin dijalankan"
+    )
     parser.add_argument("--status", action="store_true", help="Cek status file dataset yang sudah terkumpul")
     args = parser.parse_args()
 
@@ -401,18 +387,26 @@ async def main():
         for idx, target in enumerate(active_targets, start=1):
             if mode == "x_user":
                 await harvest_x_user(target, idx)
+                time.sleep(1.5)
             elif mode == "x_tweet":
                 await harvest_x_tweet(target, idx)
+                time.sleep(1.5)
             elif mode == "ig_post":
                 harvest_instagram(target, idx, mode_type="ig_post")
+                pause = round(random.uniform(10.0, 16.0), 1)
+                print(f"  -> Jeda keamanan Meta {pause} detik sebelum link berikutnya...", flush=True)
+                time.sleep(pause)
             elif mode == "ig_reels":
                 harvest_instagram(target, idx, mode_type="ig_reels")
+                pause = round(random.uniform(10.0, 16.0), 1)
+                print(f"  -> Jeda keamanan Meta {pause} detik sebelum link berikutnya...", flush=True)
+                time.sleep(pause)
             elif mode == "yt_shorts":
                 harvest_youtube(target, idx, mode_type="yt_shorts")
+                time.sleep(1.5)
             elif mode == "yt_video":
                 harvest_youtube(target, idx, mode_type="yt_video")
-
-            time.sleep(1.5)
+                time.sleep(1.5)
 
     print("\n[V] Seluruh antrean harvesting selesai!")
     print_status()
