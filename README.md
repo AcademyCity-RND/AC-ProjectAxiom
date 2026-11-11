@@ -150,10 +150,12 @@ axiom/
 │   ├── tailwind.config.ts     # Cyber Defense Dark Palette (v4)
 │   ├── vite.config.ts         # Vite Configuration & Backend Proxy
 │   └── tsconfig.json          # TypeScript Config
-├── tools/                     # Operational & Research Tooling
-│   └── dataset_harvester/     # Standalone Harvester (60 Targets RFC 4180 CSV)
-│       ├── harvester.py       # Multi-Channel CLI Engine
-│       └── targets.json       # 60 Verified Target Scenarios (Post-2020)
+│   ├── tools/                 # Operational & Research Tooling
+│   │   ├── dataset_harvester/ # Standalone Harvester (RFC 4180 CSV)
+│   │   │   ├── harvester.py   # Multi-Channel 6-Worker Parallel CLI Engine
+│   │   │   └── targets.json   # 80 Verified Target Scenarios
+│   │   ├── clean_database.py
+│   │   └── dump_instagram_session.py
 ├── data/                      # Local Embedded Storage
 │   ├── chromadb/              # Persistent Vector Collections
 │   ├── models/                # Trained XGBoost Artifacts (xgboost_tri_class.json)

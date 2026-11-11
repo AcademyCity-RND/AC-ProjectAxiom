@@ -13,33 +13,6 @@ param(
     [switch]$sequential = $false
 )
 
-$toolsTargets = "$PSScriptRoot\tools\dataset_harvester\targets.json"
-$backendTargets = "$PSScriptRoot\backend\tools\dataset_harvester\targets.json"
-
-# Selaraskan targets.json dan harvester.py berdasarkan file yang paling baru diedit (dua arah)
-function Sync-NewerFile($fileA, $fileB) {
-    $existsA = Test-Path $fileA
-    $existsB = Test-Path $fileB
-    if ($existsA -and $existsB) {
-        $timeA = (Get-Item $fileA).LastWriteTime
-        $timeB = (Get-Item $fileB).LastWriteTime
-        if ($timeB -gt $timeA) {
-            Copy-Item $fileB $fileA -Force -ErrorAction SilentlyContinue
-        } elseif ($timeA -gt $timeB) {
-            Copy-Item $fileA $fileB -Force -ErrorAction SilentlyContinue
-        }
-    } elseif ($existsA) {
-        Copy-Item $fileA $fileB -Force -ErrorAction SilentlyContinue
-    } elseif ($existsB) {
-        Copy-Item $fileB $fileA -Force -ErrorAction SilentlyContinue
-    }
-}
-
-Sync-NewerFile $toolsTargets $backendTargets
-$toolsHarvester = "$PSScriptRoot\tools\dataset_harvester\harvester.py"
-$backendHarvester = "$PSScriptRoot\backend\tools\dataset_harvester\harvester.py"
-Sync-NewerFile $toolsHarvester $backendHarvester
-
 if ($status) {
     docker exec axiom_backend python -u /app/tools/dataset_harvester/harvester.py --status
 } else {
