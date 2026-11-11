@@ -4,7 +4,9 @@
 [![Contributing](https://img.shields.io/badge/Contributing-Guidelines-orange.svg)](CONTRIBUTING.md)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-red.svg)](SECURITY.md)
 [![CI Pipeline](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml)
-[![Tests: 62/62 Passed](https://img.shields.io/badge/Tests-62%2F62%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
+[![Core Engine: Axiom-Core](https://img.shields.io/badge/Powered%20by-Axiom--Core-blueviolet.svg?logo=python&logoColor=white)](https://github.com/AcademyCity-RND/AC-AxiomCore)
+[![Citation: CFF](https://img.shields.io/badge/Cite-CITATION.cff-informational.svg)](CITATION.cff)
+[![Tests: 72/72 Passed](https://img.shields.io/badge/Tests-72%2F72%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI: 0.115.11](https://img.shields.io/badge/FastAPI-0.115.11-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Vite: 8](https://img.shields.io/badge/Vite-8.3-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -13,7 +15,8 @@
 
 > **Kategori:** 04 Cognitive Domain (Siber Sosial)  
 > **Institusi:** Pusat Siber TNI Angkatan Darat (PUSSIBERAD) & CODEPOLITAN  
-> **Status:** MVP Prototype Development (Target Submission: 15 November 2026)
+> **Status:** MVP Prototype Development (Target Submission: 15 November 2026)  
+> **Core Engine:** [Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore) (*Open-Source Threat Profiling & Inauthentic Behavior Detection Engine*)
 
 ---
 
@@ -28,6 +31,10 @@
 **Axiom** adalah platform intelijen forensik siber sosial yang dirancang untuk mendeteksi, mengklasifikasikan, dan memetakan aktor inautentik (**Bot**, **Buzzer/Astroturfer**, dan **Manusia Autentik**) serta operasi pengaruh (*Psychological Operations / PsyOps*) di media sosial secara *real-time*, berbasis bukti (*Explainable AI*), dan mandiri tanpa biaya API eksternal.
 
 Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-hari menjadi analisis otomatis dalam hitungan detik, memberikan atribusi ancaman nyata bagi pertahanan kedaulatan informasi nasional.
+
+> [!NOTE]
+> 🔬 **Ditenagai oleh Engine Riset Mandiri: [Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore)**  
+> Seluruh fondasi matematis 21 fitur behavioral ($H_{norm}$ Shannon temporal entropy, $\chi^2$ uji sirkadian 24/7, parameter burstiness $B$), pipeline klasifikasi tri-class XGBoost, filter pertahanan *Adversarial Prompt Guard*, dan harvester data multi-kanal ditenagai oleh framework riset mandiri kami: **[Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore)**. Dokumentasi teknis dan formulasi ilmiah lengkap dapat dipelajari di [Spesifikasi Framework Axiom-Core](docs/AXIOM_CORE_FRAMEWORK.md).
 
 ---
 
@@ -59,7 +66,7 @@ Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-
    - Tabel ringkasan Top 10 Attackers serta Audit Ledger 100% seluruh komentator.
    - Ekspor berkas dossier resmi siap cetak (A4 PDF/HTML dengan kop dinas PUSSIBERAD) disertai rantai bukti kriptografis (*Digital Chain of Custody* SHA-256).
 8. **Research Dataset Harvester (RFC 4180):**
-   - CLI Tooling mandiri untuk ekstraksi dataset riset empiris aktual pasca-2020 di 6 skenario (X User, X Tweet, IG Post, IG Reels, YT Shorts, YT Video) dengan fitur auto-resume & checkpoint.
+   - CLI Tooling mandiri dengan **arsitektur paralel 6-worker simultan** untuk ekstraksi dataset riset empiris aktual di 6 skenario (X User, X Tweet, IG Post, IG Reels, YT Shorts, YT Video) berstandar RFC 4180 dengan fitur auto-resume, checkpoint, dan sinkronisasi 2-arah cerdas (`Sync-NewerFile`).
 
 ---
 
@@ -242,23 +249,29 @@ Untuk memverifikasi keandalan seluruh modul (XGBoost, Groq LLM, Scraper, CIB Chr
 # Menjalankan pengujian di dalam container backend
 docker exec -it axiom_backend pytest -v
 ```
-*(Seluruh 62 test cases terverifikasi lulus 100% tanpa error maupun warning).*
+*(Seluruh 72 test cases terverifikasi lulus 100% tanpa error maupun warning).*
 
 ---
 
 ### 5. Menjalankan Dataset Harvester (Opsi Riset & Ekstraksi Data)
 
-Untuk mengekstrak atau memeriksa 60 file CSV dataset nyata dari 6 skenario (X, Instagram, YouTube):
+Axiom menyertakan harvester paralel mandiri berkinerja tinggi untuk mengekstrak data live secara simultan:
 ```powershell
-# Buka PowerShell di root folder proyek (c:\laragon\www\Hack\axiom):
+# Buka PowerShell di root folder proyek:
 
-# Jalankan seluruh proses harvesting 60 target (otomatis dengan checkpoint/resume)
-.\run_harvester.ps1 -all
+# 1. Jalankan seluruh proses harvesting 6 mode secara PARALEL (6 worker simultan)
+.\run_harvester.ps1
 
-# Atau cek status kelengkapan file CSV yang sudah berhasil terunduh
+# 2. Periksa status kelengkapan target & file CSV
 .\run_harvester.ps1 -status
+
+# 3. Jalankan khusus untuk satu mode tertentu (contoh: x_user atau yt_video)
+.\run_harvester.ps1 -mode yt_video
+
+# 4. Mode sekuensial 1 per 1 (opsional jika bandwidth terbatas)
+.\run_harvester.ps1 -sequential
 ```
-Seluruh dataset tersimpan rapi di: `backend/data/raw_datasets/`.
+Seluruh file CSV tersimpan berstandar RFC 4180 di [`data/raw_datasets/`](data/raw_datasets) dan cadangan bersih terbebas dari duplikat/dummy tersimpan di `backend/data/raw_datasets_backup/` (191 file dataset otentik).
 
 ---
 
@@ -325,10 +338,32 @@ Axiom dirancang khusus untuk verifikasi ruang siber dan perlindungan publik:
 
 ## 📚 Dokumentasi & Panduan Komunitas
 
+* 🔬 [Spesifikasi Framework Axiom-Core](docs/AXIOM_CORE_FRAMEWORK.md) — Dokumentasi ilmiah 21 fitur behavioral, model ML, arsitektur engine, dan metodologi riset.
 * 📖 [Panduan Kontribusi (CONTRIBUTING.md)](CONTRIBUTING.md) — Alur kerja git, standar kode, dan pengujian.
 * 🛡️ [Kebijakan Keamanan (SECURITY.md)](SECURITY.md) — Pelaporan celah keamanan dan mitigasi kerentanan.
 * 📄 [Lisensi Proyek (LICENSE)](LICENSE) — Lisensi open source MIT.
 * 📊 [Spesifikasi Format Data Scraping](docs/SCRAPING_DATA_FORMAT.md) — Kontrak data standar seluruh platform.
+* 🗺️ [Master Execution Roadmap & Checklist](docs/ROADMAP-CHECKLIST.md) — Panduan eksekusi dan pelacakan target milestone.
+
+---
+
+## 📜 Sitasi Akademik (Academic Citation)
+
+Jika platform ini atau framework **Axiom-Core** digunakan dalam penelitian, publikasi, skripsi, atau operasi pertahanan siber, silakan sitasi menggunakan format BibTeX berikut:
+
+```bibtex
+@software{axiom_core_2026,
+  author       = {Paliling, Hilarius Christiano Avin and Ilahi, Ahsani Fadhli},
+  title        = {{Axiom: Cognitive Domain Threat Intelligence & Inauthentic Behavior Detection Platform}},
+  year         = {2026},
+  publisher    = {GitHub},
+  journal      = {GitHub repository},
+  howpublished = {\url{https://github.com/AcademyCity-RND/AC-ProjectAxiom}},
+  note         = {Powered by Axiom-Core Engine (https://github.com/AcademyCity-RND/AC-AxiomCore). Developed for Kartika Cyber Hackathon 2026 - PUSSIBERAD}
+}
+```
+
+Metadata sitasi mesin standar juga tersedia di berkas [`CITATION.cff`](CITATION.cff).
 
 ---
 

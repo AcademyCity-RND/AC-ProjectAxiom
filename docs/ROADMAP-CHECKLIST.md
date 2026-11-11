@@ -344,7 +344,9 @@
   10. Tim & Kontak.
 
 #### 4.4 Final Submission Prep (Hari 3-4: Minggu-Senin)
-- [ ] **Repo Public/GitHub:** `axiom-hackathon` (README lengkap, cara jalanin, license MIT).
+- [x] **Axiom-Core Research Engine:** Dokumentasi spesifikasi ilmiah mandiri (`docs/AXIOM_CORE_FRAMEWORK.md`), berkas sitasi akademik (`CITATION.cff`), dan tautan repositori engine ([AC-AxiomCore](https://github.com/AcademyCity-RND/AC-AxiomCore)).
+- [x] **Harvester Concurrency & Dataset Cleanliness:** Harvester paralel 6-worker simultan dengan sinkronisasi 2-arah cerdas (`run_harvester.ps1`), 80 target aktif 100% tuntas, dan 191 file dataset cadangan otentik bersih.
+- [ ] **Repo Public/GitHub:** `AC-ProjectAxiom` (README lengkap, cara jalanin, license MIT).
 - [ ] **Fokus Pengujian Mandiri (Air-Gapped & Docker Compose):** Penilaian berfokus pada kesiapan container lokal yang mandiri dan aman tanpa ketergantungan cloud publik.
 - [ ] **Checklist Submission Codepolitan:**
   - [ ] Link Repo GitHub
