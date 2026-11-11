@@ -15,9 +15,9 @@ from app.services.youtube_auditor import detect_temporal_influx_anomaly
 
 logger = logging.getLogger("axiom.instagram_auditor")
 
-# Regex pencocokan URL Instagram (/p/, /reel/, /reels/, /tv/)
+# Regex pencocokan URL Instagram (/p/, /reel/, /reels/, /tv/ atau /<user>/reel/)
 INSTAGRAM_URL_REGEX = re.compile(
-    r"(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:p|reels?|tv)\/([a-zA-Z0-9_-]+)",
+    r"(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:[a-zA-Z0-9_.]+\/)?(?:p|reels?|tv)\/([a-zA-Z0-9_-]+)",
     re.IGNORECASE
 )
 
@@ -87,8 +87,11 @@ def extract_instagram_shortcode(url_or_code: str) -> Optional[str]:
     try:
         parsed = urlparse(cleaned)
         parts = [p for p in parsed.path.strip("/").split("/") if p]
-        if len(parts) >= 2 and parts[0] in ("p", "reel", "reels", "tv"):
-            return parts[1]
+        if len(parts) >= 2:
+            if parts[0] in ("p", "reel", "reels", "tv"):
+                return parts[1]
+            elif len(parts) >= 3 and parts[1] in ("p", "reel", "reels", "tv"):
+                return parts[2]
     except Exception:
         pass
 

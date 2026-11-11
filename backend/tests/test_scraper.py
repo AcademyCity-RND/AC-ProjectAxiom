@@ -50,6 +50,7 @@ def test_twscrape_service_initialization():
 async def test_twscrape_offline_mode():
     """Uji coba penarikan profil, cuitan, dan balasan pada mode offline/mock."""
     service = TwscrapeService(db_path="./tmp/empty_accounts.db")
+    service.has_active_account = AsyncMock(return_value=False)
     scraper = XScraperService(backend_service=service)
 
     # 1. Profil

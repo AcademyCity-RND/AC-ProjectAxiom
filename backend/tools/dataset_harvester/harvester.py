@@ -10,7 +10,7 @@ Tujuan: Mengumpulkan dataset mentah aktual (post-2020) dari 6 skenario:
   5. YT Shorts (ekstraksi seluruh komentar Shorts)
   6. YT Video (ekstraksi seluruh komentar Video Reguler)
 
-Output: 60 file CSV mandiri berstandar RFC 4180
+Output: 80 file CSV mandiri berstandar RFC 4180
 Fitur: Checkpointing & Auto-Resuming (jika terputus, tidak mengulang dari 0).
 """
 
@@ -247,6 +247,37 @@ def harvest_instagram(target_url: str, idx: int, mode_type: str = "ig_post") -> 
 # ==============================================================================
 # 5 & 6. HARVESTER: YOUTUBE SHORTS & VIDEO (Seluruh Komentar Tanpa Batas)
 # ==============================================================================
+def parse_youtube_votes(raw_votes: Any) -> int:
+    """Parses likes/votes from localized string (e.g. '1 rb', '1.5k', '1,234') safely."""
+    if not raw_votes:
+        return 0
+    if isinstance(raw_votes, (int, float)):
+        return int(raw_votes)
+    s = str(raw_votes).replace("\xa0", " ").strip().lower()
+    m = re.match(r"^([\d\.,]+)\s*([kmb]|rb|jt)?", s)
+    if not m:
+        try:
+            return int(float(s.replace(",", "")))
+        except Exception:
+            return 0
+    num_part, unit = m.group(1), m.group(2)
+    if unit:
+        num_part = num_part.replace(",", ".")
+    else:
+        num_part = num_part.replace(",", "")
+    try:
+        val = float(num_part)
+        if unit in ["k", "rb"]:
+            val *= 1_000
+        elif unit in ["m", "jt"]:
+            val *= 1_000_000
+        elif unit == "b":
+            val *= 1_000_000_000
+        return int(val)
+    except Exception:
+        return 0
+
+
 def harvest_youtube(target_url: str, idx: int, mode_type: str = "yt_video") -> bool:
     if not target_url.strip():
         return False
@@ -290,7 +321,7 @@ def harvest_youtube(target_url: str, idx: int, mode_type: str = "yt_video") -> b
             text = str(c.get("text") or "").replace("\r\n", " ").replace("\n", " ")
             author = str(c.get("author") or "anon")
             pub_time = str(c.get("time") or "")
-            likes = int(c.get("votes") or 0)
+            likes = parse_youtube_votes(c.get("votes"))
 
             rows.append({
                 "comment_id": cid,
@@ -353,10 +384,51 @@ def print_status():
 
 
 # ==============================================================================
+# WORKER ORCHESTRATION (PARALLEL & SEQUENTIAL)
+# ==============================================================================
+async def run_worker(mode: str, targets: List[str]):
+    active_targets = [t for t in targets if t.strip()]
+    tag = mode.upper()
+    if not active_targets:
+        return
+
+    print(f"\n>>> [WORKER-{tag}] Dimulai! Mengantrekan {len(active_targets)} target.", flush=True)
+
+    for idx, target in enumerate(active_targets, start=1):
+        try:
+            if mode == "x_user":
+                await harvest_x_user(target, idx)
+                await asyncio.sleep(2.0)
+            elif mode == "x_tweet":
+                await harvest_x_tweet(target, idx)
+                await asyncio.sleep(2.0)
+            elif mode == "ig_post":
+                await asyncio.to_thread(harvest_instagram, target, idx, mode_type="ig_post")
+                pause = round(random.uniform(8.0, 14.0), 1)
+                print(f"  [{tag}] -> Jeda keamanan Meta {pause} detik sebelum link berikutnya...", flush=True)
+                await asyncio.sleep(pause)
+            elif mode == "ig_reels":
+                await asyncio.to_thread(harvest_instagram, target, idx, mode_type="ig_reels")
+                pause = round(random.uniform(8.0, 14.0), 1)
+                print(f"  [{tag}] -> Jeda keamanan Meta {pause} detik sebelum link berikutnya...", flush=True)
+                await asyncio.sleep(pause)
+            elif mode == "yt_shorts":
+                await asyncio.to_thread(harvest_youtube, target, idx, mode_type="yt_shorts")
+                await asyncio.sleep(1.5)
+            elif mode == "yt_video":
+                await asyncio.to_thread(harvest_youtube, target, idx, mode_type="yt_video")
+                await asyncio.sleep(1.5)
+        except Exception as e:
+            print(f"  [!] [{tag}] Error pada target #{idx} ({target}): {e}", flush=True)
+
+    print(f"\n[V] [WORKER-{tag}] Selesai memproses seluruh {len(active_targets)} target!", flush=True)
+
+
+# ==============================================================================
 # MAIN RUNNER
 # ==============================================================================
 async def main():
-    parser = argparse.ArgumentParser(description="AXIOM Standalone Dataset Harvester")
+    parser = argparse.ArgumentParser(description="AXIOM Standalone Dataset Harvester (Parallel Multiprocessing)")
     parser.add_argument(
         "--mode",
         choices=["all", "x_user", "x_tweet", "ig_post", "ig_reels", "yt_shorts", "yt_video"],
@@ -364,6 +436,7 @@ async def main():
         help="Mode harvesting yang ingin dijalankan"
     )
     parser.add_argument("--status", action="store_true", help="Cek status file dataset yang sudah terkumpul")
+    parser.add_argument("--sequential", action="store_true", help="Jalankan secara sekuensial (default: paralel jika --mode all)")
     args = parser.parse_args()
 
     ensure_output_dirs()
@@ -373,42 +446,27 @@ async def main():
         return
 
     targets = load_targets()
-    selected_modes = [args.mode] if args.mode != "all" else ["x_user", "x_tweet", "ig_post", "ig_reels", "yt_shorts", "yt_video"]
+    if args.mode != "all":
+        selected_modes = [args.mode]
+    else:
+        selected_modes = ["x_user", "x_tweet", "ig_post", "ig_reels", "yt_shorts", "yt_video"]
 
-    print("\n" + "=" * 70)
-    print("MEMULAI PROSES HARVESTING DATASET AXIOM")
-    print("=" * 70)
+    is_parallel = len(selected_modes) > 1 and not args.sequential
 
-    for mode in selected_modes:
-        target_list = targets.get(mode, [])
-        active_targets = [t for t in target_list if t.strip()]
-        print(f"\n>>> MENJALANKAN MODE: {mode.upper()} (Ditemukan {len(active_targets)} target)")
+    print("\n" + "=" * 70, flush=True)
+    print(f"MEMULAI PROSES HARVESTING DATASET AXIOM ({'PARALEL 6 WORKER' if is_parallel else 'SEKUENSIAL'})", flush=True)
+    print("=" * 70, flush=True)
 
-        for idx, target in enumerate(active_targets, start=1):
-            if mode == "x_user":
-                await harvest_x_user(target, idx)
-                time.sleep(1.5)
-            elif mode == "x_tweet":
-                await harvest_x_tweet(target, idx)
-                time.sleep(1.5)
-            elif mode == "ig_post":
-                harvest_instagram(target, idx, mode_type="ig_post")
-                pause = round(random.uniform(10.0, 16.0), 1)
-                print(f"  -> Jeda keamanan Meta {pause} detik sebelum link berikutnya...", flush=True)
-                time.sleep(pause)
-            elif mode == "ig_reels":
-                harvest_instagram(target, idx, mode_type="ig_reels")
-                pause = round(random.uniform(10.0, 16.0), 1)
-                print(f"  -> Jeda keamanan Meta {pause} detik sebelum link berikutnya...", flush=True)
-                time.sleep(pause)
-            elif mode == "yt_shorts":
-                harvest_youtube(target, idx, mode_type="yt_shorts")
-                time.sleep(1.5)
-            elif mode == "yt_video":
-                harvest_youtube(target, idx, mode_type="yt_video")
-                time.sleep(1.5)
+    if is_parallel:
+        workers = [run_worker(mode, targets.get(mode, [])) for mode in selected_modes]
+        await asyncio.gather(*workers)
+    else:
+        for mode in selected_modes:
+            await run_worker(mode, targets.get(mode, []))
 
-    print("\n[V] Seluruh antrean harvesting selesai!")
+    print("\n" + "=" * 70, flush=True)
+    print("[V] Seluruh antrean harvesting selesai!", flush=True)
+    print("=" * 70, flush=True)
     print_status()
 
 

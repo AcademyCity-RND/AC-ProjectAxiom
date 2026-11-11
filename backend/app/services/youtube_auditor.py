@@ -408,6 +408,37 @@ def generate_mock_youtube_comments(video_id: str, count: int = 50) -> List[Dict[
     return mock_comments
 
 
+def parse_youtube_votes(raw_votes: Any) -> int:
+    """Parses likes/votes from localized string (e.g. '1 rb', '1.5k', '1,234') safely."""
+    if not raw_votes:
+        return 0
+    if isinstance(raw_votes, (int, float)):
+        return int(raw_votes)
+    s = str(raw_votes).replace("\xa0", " ").strip().lower()
+    m = re.match(r"^([\d\.,]+)\s*([kmb]|rb|jt)?", s)
+    if not m:
+        try:
+            return int(float(s.replace(",", "")))
+        except Exception:
+            return 0
+    num_part, unit = m.group(1), m.group(2)
+    if unit:
+        num_part = num_part.replace(",", ".")
+    else:
+        num_part = num_part.replace(",", "")
+    try:
+        val = float(num_part)
+        if unit in ["k", "rb"]:
+            val *= 1_000
+        elif unit in ["m", "jt"]:
+            val *= 1_000_000
+        elif unit == "b":
+            val *= 1_000_000_000
+        return int(val)
+    except Exception:
+        return 0
+
+
 def fetch_youtube_comments(
     url_or_video_id: str,
     max_comments: int = 150,
@@ -444,10 +475,7 @@ def fetch_youtube_comments(
             else:
                 pub_time = datetime.now(timezone.utc).isoformat()
 
-            try:
-                votes = int(str(item.get("votes") or "0").replace(",", "").strip())
-            except Exception:
-                votes = 0
+            votes = parse_youtube_votes(item.get("votes"))
 
             comments.append({
                 "comment_id": cid,
