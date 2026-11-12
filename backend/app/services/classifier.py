@@ -12,7 +12,14 @@ from app.services.dataset_generator import LABEL_MAP, LABEL_TO_INT, generate_syn
 
 logger = logging.getLogger("axiom.classifier")
 
-DEFAULT_MODEL_PATH = os.path.join("data", "models", "xgboost_tri_class.json")
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+_BACKEND_DIR = os.path.abspath(os.path.join(_CURRENT_DIR, "..", ".."))
+_POSSIBLE_PATHS = [
+    os.path.join("data", "models", "xgboost_tri_class.json"),
+    os.path.join(_BACKEND_DIR, "data", "models", "xgboost_tri_class.json"),
+    os.path.join("/app", "data", "models", "xgboost_tri_class.json"),
+]
+DEFAULT_MODEL_PATH = next((p for p in _POSSIBLE_PATHS if os.path.exists(p)), _POSSIBLE_PATHS[1])
 
 
 class AxiomBotClassifier:
