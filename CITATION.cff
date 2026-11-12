@@ -1,0 +1,46 @@
+cff-version: 1.2.0
+message: "If you use this software or the Axiom-Core research framework in your research or operations, please cite it using the metadata below."
+title: "Axiom: Cognitive Domain Threat Intelligence & Inauthentic Behavior Detection Platform"
+version: 1.0.0
+date-released: 2026-11-12
+url: "https://github.com/AcademyCity-RND/AC-ProjectAxiom"
+repository-code: "https://github.com/AcademyCity-RND/AC-ProjectAxiom"
+license: MIT
+authors:
+  - family-names: Paliling
+    given-names: Hilarius Christiano Avin
+    alias: Avin1731
+    affiliation: "Academy City R&D / Project Axiom Lead Architect"
+  - family-names: Ilahi
+    given-names: Ahsani Fadhli
+    alias: Ahsanifadhli
+    affiliation: "Academy City R&D / QA & Security Engineer"
+abstract: >-
+  Axiom is an enterprise military-grade SOC intelligence platform designed to detect,
+  classify, and attribute Coordinated Inauthentic Behavior (CIB), automated bots,
+  and state/commercial astroturfing buzzers across multi-platform social media (X/Twitter,
+  Instagram, and YouTube). The platform is powered by the Axiom-Core research engine,
+  featuring a 21-feature behavioral profiling pipeline, Shannon temporal entropy metrics,
+  24/7 circadian Chi-Square goodness-of-fit testing, vector semantic narrative clustering,
+  XGBoost tri-class classification, and adversarial LLM prompt injection defense.
+keywords:
+  - cognitive-warfare
+  - threat-intelligence
+  - coordinated-inauthentic-behavior
+  - bot-detection
+  - buzzer-detection
+  - explainable-ai
+  - osint
+  - pussiberad
+  - cyber-defense
+  - social-cyber-security
+references:
+  - type: software
+    title: "Axiom-Core: The Open-Source Threat Profiling & Inauthentic Behavior Detection Engine"
+    repository-code: "https://github.com/AcademyCity-RND/AC-AxiomCore"
+    authors:
+      - family-names: Paliling
+        given-names: Hilarius Christiano Avin
+      - family-names: Ilahi
+        given-names: Ahsani Fadhli
+    license: MIT

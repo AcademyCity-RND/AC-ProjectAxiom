@@ -20,7 +20,10 @@ class EmbeddingService:
     def __init__(self, model_name: Optional[str] = None):
         self.model_name = model_name or settings.EMBEDDING_MODEL_NAME
         logger.info(f"Memuat model embedding lokal: {self.model_name}...")
-        self.model = SentenceTransformer(self.model_name)
+        try:
+            self.model = SentenceTransformer(self.model_name, local_files_only=True)
+        except Exception:
+            self.model = SentenceTransformer(self.model_name)
         logger.info(f"Model embedding {self.model_name} berhasil dimuat.")
 
     def embed_text(self, text: str) -> List[float]:
