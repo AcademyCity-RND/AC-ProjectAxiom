@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     CHROMA_HOST: str = "chromadb"
     CHROMA_PORT: int = 8000
     CHROMA_COLLECTION_NAME: str = "actor_narratives"
-    EMBEDDING_MODEL_NAME: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    EMBEDDING_MODEL_NAME: str = "intfloat/multilingual-e5-small"
     CIB_SIMILARITY_THRESHOLD: float = 0.85
 
     # Groq API
