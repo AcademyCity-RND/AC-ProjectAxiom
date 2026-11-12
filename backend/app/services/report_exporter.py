@@ -325,3 +325,54 @@ def get_dual_tier_ledger(case_id: str, db: Session) -> Dict[str, Any]:
         "top_10_attackers": top_attackers,
         "full_ledger": dossier["full_ledger"]
     }
+
+
+def generate_master_dataset_csv(db: Session) -> str:
+    """
+    Mengakumulasi seluruh data vektor 21-fitur dari seluruh aktor yang pernah dianalisis
+    di database PostgreSQL dan menghasilkan berkas CSV master untuk keperluan retraining model ML.
+    Format kolom mencakup identitas aktor, platform, 21 fitur standar, confidence, dan label akhir.
+    """
+    from app.services.features import FEATURE_NAMES
+
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+    # Header Kanonikal Dataset Retraining
+    headers = ["actor_id", "username", "platform", "case_id"] + FEATURE_NAMES + ["confidence", "label"]
+    writer.writerow(headers)
+
+    # Ambil seluruh DetectionResult yang memiliki extracted_features
+    detections = db.query(DetectionResult).all()
+    for det in detections:
+        feats = det.extracted_features or {}
+        if not feats:
+            continue
+
+        actor = db.query(ActorProfile).filter(ActorProfile.id == det.actor_id).first() if det.actor_id else None
+        case = db.query(InvestigationCase).filter(InvestigationCase.id == det.case_id).first() if det.case_id else None
+
+        username = actor.username if actor else (case.target if case else "unknown")
+        platform = case.platform if case else "x"
+        case_id = det.case_id or ""
+        label = (det.predicted_class or "HUMAN").upper()
+        confidence = f"{det.confidence:.4f}" if det.confidence is not None else "0.0000"
+
+        row = [
+            det.actor_id or "",
+            username,
+            platform,
+            case_id,
+        ]
+
+        for fname in FEATURE_NAMES:
+            val = feats.get(fname, 0.0)
+            if isinstance(val, float):
+                row.append(f"{val:.5f}")
+            else:
+                row.append(str(val))
+
+        row.extend([confidence, label])
+        writer.writerow(row)
+
+    return output.getvalue()

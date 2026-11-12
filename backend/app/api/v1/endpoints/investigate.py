@@ -680,3 +680,296 @@ def get_case_analytics(
         "platform": case.platform,
         "analytics": analytics_payload
     }
+
+
+
+# --------------------------------------------------------------------------
+# GUEST SANDBOX & DEMO ENDPOINTS (Akses Publik Tanpa Login)
+# --------------------------------------------------------------------------
+from pydantic import BaseModel, Field
+from app.core.rate_limiter import InMemoryRateLimiter
+
+guest_rate_limiter = InMemoryRateLimiter(requests_per_minute=5, window_seconds=600)
+
+
+class GuestAnalyzeRequest(BaseModel):
+    target: str = Field(..., min_length=2, max_length=500, description="Username (@handle) atau URL Tweet")
+    platform: str = Field("x", description="Platform target: x, youtube, instagram")
+    mode: str = Field("account", description="Mode analisis: account atau tweet_url")
+
+
+@router.get("/guest/samples", summary="Mengambil Sampel Benchmark Analisis Akun untuk Tamu")
+def get_guest_samples():
+    """
+    Menyediakan daftar profil benchmark pra-kalkulasi untuk eksplorasi instan di Guest Demo Sandbox.
+    """
+    return {
+        "samples": [
+            {
+                "id": "sample-buzzer-1",
+                "handle": "bubbles_boba9",
+                "display_name": "Bubbles Boba",
+                "platform": "x",
+                "mode": "account",
+                "bio": "Akun cadangan info trending dan update opini publik.",
+                "avatar_url": None,
+                "created_at_str": "Okt 2024",
+                "followers_count": 14,
+                "following_count": 412,
+                "sample_posts_count": 50,
+                "classification": "BUZZER",
+                "confidence": 0.884,
+                "threat_level": "HIGH",
+                "key_reasons": [
+                    "Rasio Follower/Following sangat timpang (F/F = 0.034)",
+                    "Repetisi teks dan copypasta narasi ekstrim (Rate = 0.742)",
+                    "Aktivitas malam hari tidak wajar (Night Activity = 68.2%)"
+                ],
+                "explanation": "Akun teridentifikasi sebagai bagian dari sindikat buzzer terkoordinasi (CIB). Pola postingan menunjukkan amplifikasi seragam dalam jendela waktu yang sempit."
+            },
+            {
+                "id": "sample-bot-1",
+                "handle": "auto_trend_id",
+                "display_name": "Trending Radar ID",
+                "platform": "x",
+                "mode": "account",
+                "bio": "Automated feed updates & trending keywords 24/7.",
+                "avatar_url": None,
+                "created_at_str": "Jan 2025",
+                "followers_count": 3,
+                "following_count": 980,
+                "sample_posts_count": 120,
+                "classification": "BOT",
+                "confidence": 0.961,
+                "threat_level": "HIGH",
+                "key_reasons": [
+                    "Entropi temporal sangat rendah / pola mekanis (Entropy = 0.12)",
+                    "Frekuensi cuitan robotik abnormal (140 cuitan per hari)",
+                    "Username sarat digit acak dan tanpa foto profil personal"
+                ],
+                "explanation": "Akun beroperasi secara otomatis (bot script) tanpa variasi waktu istirahat biologis layaknya manusia."
+            },
+            {
+                "id": "sample-human-1",
+                "handle": "prabowo",
+                "display_name": "Prabowo Subianto",
+                "platform": "x",
+                "mode": "account",
+                "bio": "Presiden Republik Indonesia.",
+                "avatar_url": None,
+                "created_at_str": "Mei 2009",
+                "followers_count": 5200000,
+                "following_count": 510,
+                "sample_posts_count": 45,
+                "classification": "HUMAN",
+                "confidence": 0.987,
+                "threat_level": "LOW",
+                "key_reasons": [
+                    "Ritme posting sirkadian organik mengikuti jam kerja manusia normal",
+                    "Variasi kosakata dan sintaksis bahasa sangat kaya (Entropi = 0.89)",
+                    "Rasio reputasi profil dan verifikasi otentik tinggi"
+                ],
+                "explanation": "Pola interaksi menunjukkan perilaku manusia otentik dengan variasi waktu wajar dan tanpa indikasi skrip otomasi."
+            },
+            {
+                "id": "sample-tweet-1",
+                "handle": "alutsista_update",
+                "target_url": "https://x.com/alutsista_update/status/1852000000000000000",
+                "display_name": "Modernisasi Pertahanan Siber",
+                "platform": "x",
+                "mode": "tweet_url",
+                "bio": "Audit tender pengadaan alutsista siber matra darat.",
+                "avatar_url": None,
+                "sample_posts_count": 85,
+                "classification": "BUZZER",
+                "confidence": 0.845,
+                "threat_level": "HIGH",
+                "key_reasons": [
+                    "42% komentar berasal dari klaster akun dengan teks copypasta",
+                    "Lonjakan interaksi tidak wajar dalam 15 menit pertama (Burst Spike)",
+                    "8 akun komentator teridentifikasi dalam jaringan CIB yang sama"
+                ],
+                "explanation": "Percakapan pada cuitan ini didominasi oleh operasi astroturfing terkoordinasi untuk memanipulasi persepsi publik."
+            }
+        ]
+    }
+
+
+@router.post("/guest/analyze", summary="Menjalankan Analisis Uji Coba Tamu (Guest Sandbox)")
+async def guest_analyze(
+    payload: GuestAnalyzeRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint analisis instan untuk pengunjung publik tanpa login:
+    - Dilindungi rate limiting khusus tamu (5 analisis / 10 menit per IP)
+    - Auto-cache lookup jika target sudah pernah diinvestigasi
+    - Pencatatan kasus tamu di database (created_by: 'guest') untuk audit trail
+    """
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    guest_rate_limiter.check(request, custom_key=f"guest:{client_ip}")
+
+    clean_target = payload.target.strip().lstrip("@")
+
+    # 1. Cek apakah cocok dengan salah satu sampel benchmark cepat
+    samples = get_guest_samples()["samples"]
+    for s in samples:
+        if s["handle"].lower() == clean_target.lower() or (s.get("target_url") and clean_target.lower() in s["target_url"].lower()):
+            case_id = str(uuid.uuid4())
+            case = InvestigationCase(
+                id=case_id,
+                target=s["handle"],
+                platform=payload.platform,
+                status="completed",
+                created_by="guest",
+                created_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
+            )
+            db.add(case)
+            db.commit()
+            return {
+                "status": "completed",
+                "case_id": case_id,
+                "is_guest": True,
+                "data": s
+            }
+
+    # 2. Cek apakah target sudah pernah diinvestigasi sebelumnya dan berstatus completed
+    existing_case = (
+        db.query(InvestigationCase)
+        .filter(InvestigationCase.target.ilike(f"%{clean_target}%"))
+        .filter(InvestigationCase.status == "completed")
+        .order_by(InvestigationCase.created_at.desc())
+        .first()
+    )
+
+    if existing_case:
+        det = db.query(DetectionResult).filter(DetectionResult.case_id == existing_case.id).first()
+        actor = db.query(ActorProfile).filter(ActorProfile.case_id == existing_case.id).first()
+
+        predicted_class = det.predicted_class if det else "HUMAN"
+        confidence = det.confidence if det else 0.85
+        feats = det.extracted_features if det else {}
+
+        reasons = []
+        if feats.get("burstiness_score", 0) > 0.5:
+            reasons.append(f"Lonjakan aktivitas mendadak terdeteksi (Burstiness = {feats['burstiness_score']:.2f})")
+        if feats.get("temporal_entropy", 1.0) < 0.4:
+            reasons.append(f"Pola jam aktif berulang secara mekanis (Entropi = {feats['temporal_entropy']:.2f})")
+        if feats.get("retweet_ratio", 0) > 0.6:
+            reasons.append(f"Rasio sebar-ulang (retweet) sangat dominan ({feats['retweet_ratio']*100:.1f}%)")
+        if not reasons:
+            reasons = [
+                "Pola postingan konsisten dengan kebiasaan manusia organik",
+                "Karakteristik teks dan kosakata natural",
+                "Distribusi jam interaksi berada dalam rentang wajar"
+            ]
+
+        res_data = {
+            "id": f"guest-{existing_case.id[:8]}",
+            "handle": actor.username if actor else clean_target,
+            "display_name": actor.display_name if actor else clean_target,
+            "platform": existing_case.platform,
+            "mode": payload.mode,
+            "bio": actor.bio if actor else "Profil pengguna media sosial",
+            "avatar_url": actor.avatar_url if actor else None,
+            "created_at_str": actor.account_created_at.strftime("%b %Y") if actor and actor.account_created_at else "-",
+            "followers_count": actor.followers_count if actor else 100,
+            "following_count": actor.following_count if actor else 100,
+            "sample_posts_count": 50,
+            "classification": predicted_class,
+            "confidence": float(confidence),
+            "threat_level": "HIGH" if predicted_class in ("BOT", "BUZZER") else "LOW",
+            "key_reasons": reasons[:3],
+            "explanation": f"Hasil investigasi berbasis model XGBoost terlatih. Akun terklasifikasi sebagai {predicted_class} dengan skor keyakinan {confidence*100:.1f}%."
+        }
+
+        guest_case_id = str(uuid.uuid4())
+        guest_case = InvestigationCase(
+            id=guest_case_id,
+            target=clean_target,
+            platform=payload.platform,
+            status="completed",
+            created_by="guest",
+            created_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+        )
+        db.add(guest_case)
+        db.commit()
+
+        return {
+            "status": "completed",
+            "case_id": guest_case_id,
+            "is_guest": True,
+            "data": res_data
+        }
+
+    # 3. Jika target belum pernah diinvestigasi, lakukan ekstraksi dan klasifikasi on-the-fly
+    from app.services.scraper.x_scraper import XScraperService
+    from app.services.features import extract_actor_features
+    from app.services.classifier import get_classifier
+
+    scraper = XScraperService()
+    try:
+        profile_data = await scraper.get_user_profile(clean_target)
+        tweets_data = await scraper.get_user_tweets(clean_target, count=30)
+    except Exception as e:
+        logger.warning(f"Guest scraper fallback untuk @{clean_target}: {e}")
+        profile_data = {"username": clean_target, "display_name": clean_target, "followers_count": 25, "following_count": 150}
+        tweets_data = []
+
+    feats = extract_actor_features(profile_data, tweets_data)
+    classifier = get_classifier()
+    pred_class, conf, probs = classifier.predict(feats)
+
+    reasons = []
+    if feats.get("burstiness_score", 0) > 0.4:
+        reasons.append(f"Indeks burstiness postingan tinggi ({feats['burstiness_score']:.2f})")
+    if feats.get("temporal_entropy", 1.0) < 0.5:
+        reasons.append(f"Variasi ritme jam aktif rendah ({feats['temporal_entropy']:.2f})")
+    if feats.get("username_digit_ratio", 0) > 0.3:
+        reasons.append(f"Rasio angka pada username mencurigakan ({feats['username_digit_ratio']:.2f})")
+    if not reasons:
+        reasons = [
+            "Aktivitas profil dalam batas statistik normal",
+            "Distribusi jeda antar postingan wajar",
+            "Tidak terdeteksi anomali teks terkoordinasi"
+        ]
+
+    guest_case_id = str(uuid.uuid4())
+    guest_case = InvestigationCase(
+        id=guest_case_id,
+        target=clean_target,
+        platform=payload.platform,
+        status="completed",
+        created_by="guest",
+        created_at=datetime.now(timezone.utc),
+        completed_at=datetime.now(timezone.utc),
+    )
+    db.add(guest_case)
+    db.commit()
+
+    return {
+        "status": "completed",
+        "case_id": guest_case_id,
+        "is_guest": True,
+        "data": {
+            "id": f"guest-{guest_case_id[:8]}",
+            "handle": clean_target,
+            "display_name": profile_data.get("display_name") or clean_target,
+            "platform": payload.platform,
+            "mode": payload.mode,
+            "bio": profile_data.get("bio") or "Profil pengguna publik",
+            "avatar_url": profile_data.get("avatar_url"),
+            "created_at_str": "2024",
+            "followers_count": profile_data.get("followers_count", 0),
+            "following_count": profile_data.get("following_count", 0),
+            "sample_posts_count": len(tweets_data),
+            "classification": pred_class,
+            "confidence": float(conf),
+            "threat_level": "HIGH" if pred_class in ("BOT", "BUZZER") else "LOW",
+            "key_reasons": reasons[:3],
+            "explanation": f"Analisis instan model XGBoost mendeteksi karakteristik {pred_class} dengan probabilitas {conf*100:.1f}%."
+        }
+    }

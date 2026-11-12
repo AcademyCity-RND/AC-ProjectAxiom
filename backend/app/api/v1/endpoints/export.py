@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ from app.services.report_exporter import (
     render_html_dossier,
     generate_csv_ledger,
     get_dual_tier_ledger,
+    generate_master_dataset_csv,
 )
 from app.services.audit_logger import log_activity
 
@@ -171,4 +173,45 @@ def get_case_audit_ledger(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Gagal mengambil data audit ledger kasus."
+        )
+
+
+@router.get("/master-dataset", summary="Mengekspor Master Dataset Retraining ML (21-Fitur Kanonikal + Label)")
+def export_master_dataset(
+    db: Session = Depends(get_db),
+    current_user: TokenPayload = Depends(require_roles([UserRole.ADMIN]))
+):
+    """
+    Mengekspor akumulasi seluruh kasus dan profil aktor yang telah diekstraksi ke format CSV
+    dengan 21-fitur kanonikal untuk retraining model XGBoost.
+    Khusus untuk Administrator (Role: Admin).
+    """
+    try:
+        csv_content = generate_master_dataset_csv(db)
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        filename = f"axiom_retraining_master_dataset_{now_str}.csv"
+
+        log_activity(
+            db=db,
+            username=current_user.sub or "anonymous",
+            role=current_user.role or "admin",
+            action="EXPORT_MASTER_DATASET",
+            target="system:master_dataset",
+            details={"filename": filename},
+            status="SUCCESS",
+        )
+
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "X-Axiom-Export-Type": "Master-ML-Dataset"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Gagal mengekspor master dataset: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Gagal menghasilkan master dataset: {e}"
         )
