@@ -12,7 +12,7 @@ _embedding_service_instance: Optional["EmbeddingService"] = None
 
 class EmbeddingService:
     """
-    Layanan embedding teks lokal berbasis sentence-transformers (all-MiniLM-L6-v2).
+    Layanan embedding teks lokal berbasis sentence-transformers (paraphrase-multilingual-MiniLM-L12-v2).
     Zero-Cost, 100% lokal, dan berjalan pada CPU tanpa membutuhkan koneksi internet
     setelah model ter-cache.
     """
