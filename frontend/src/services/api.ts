@@ -228,6 +228,22 @@ export const api = {
     }
   },
 
+  // 7c. Unduh Master Dataset Retraining ML (Admin Only)
+  downloadMasterDataset: async (): Promise<void> => {
+    const response = await apiClient.get('/export/master-dataset', {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `axiom_retraining_master_dataset_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+  },
+
   // 8. Health Check Sistem
   checkHealth: async (): Promise<{ status: string }> => {
     const targetUrl = API_BASE_URL.startsWith('http')
@@ -289,6 +305,17 @@ export const api = {
 
   getAuditSummary: async (): Promise<AuditSummary> => {
     const response = await apiClient.get('/audit/summary');
+    return response.data;
+  },
+
+  // 12. Modul Guest Demo Sandbox (Akses Publik)
+  getGuestSamples: async (): Promise<{ samples: any[] }> => {
+    const response = await apiClient.get('/investigate/guest/samples');
+    return response.data;
+  },
+
+  guestAnalyze: async (payload: { target: string; platform?: string; mode?: string }): Promise<any> => {
+    const response = await apiClient.post('/investigate/guest/analyze', payload);
     return response.data;
   },
 };

@@ -18,6 +18,7 @@ import { NarrativeDriftChart } from './components/visualization/NarrativeDriftCh
 import { DualTierLedgerTable } from './components/reports/DualTierLedgerTable';
 import { ExportActionPanel } from './components/reports/ExportActionPanel';
 import { LoginPage } from './components/auth/LoginPage';
+import { LandingPage } from './components/landing/LandingPage';
 import { WatchlistManager } from './components/watchlist/WatchlistManager';
 import { UserManagement } from './components/users/UserManagement';
 import { StatCard } from './components/common/StatCard';
@@ -43,6 +44,44 @@ import type { PlatformType } from './types';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [authView, setAuthView] = useState<'landing' | 'login'>(() => {
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.pathname === '/login' || window.location.hash === '#login')
+    ) {
+      return 'login';
+    }
+    return 'landing';
+  });
+
+  const handleNavigateLogin = () => {
+    setAuthView('login');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/login');
+    }
+  };
+
+  const handleNavigateLanding = () => {
+    setAuthView('landing');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/');
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (
+        window.location.pathname === '/login' ||
+        window.location.hash === '#login'
+      ) {
+        setAuthView('login');
+      } else {
+        setAuthView('landing');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [narrativeSubView, setNarrativeSubView] = useState<'circadian_entropy' | 'drift'>('circadian_entropy');
   const [targetsSubView, setTargetsSubView] = useState<'cases' | 'watchlist'>('cases');
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
@@ -355,9 +394,17 @@ export const App: React.FC = () => {
     );
   }
 
-  // Jika belum login / sesi tidak ada -> Tampilkan Landing & Login Page PUSSIBERAD
+  // Jika belum login / sesi tidak ada -> Tampilkan Public Landing Page atau Gerbang Login
   if (!isAuthenticated) {
-    return <LoginPage backendStatus={backendStatus} />;
+    if (authView === 'login') {
+      return (
+        <LoginPage
+          backendStatus={backendStatus}
+          onNavigateBack={handleNavigateLanding}
+        />
+      );
+    }
+    return <LandingPage onNavigateLogin={handleNavigateLogin} />;
   }
 
   return (
