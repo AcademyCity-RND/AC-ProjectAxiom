@@ -40,17 +40,17 @@ export const SplashTransition: React.FC<SplashTransitionProps> = ({ onFinish }) 
       aria-label="Memuat Project Axiom"
     >
       <div className="relative flex flex-col items-center">
-        {/* Radar Ring Glow Effect */}
-        <div className="absolute w-24 h-24 rounded-full border border-sky-500/20 animate-ping" />
-        <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2.5">
+        {/* Radar Ring Glow Effect (Enlarged 2x) */}
+        <div className="absolute w-44 h-44 rounded-full border border-sky-500/20 animate-ping" />
+        <div className="relative flex items-center justify-center w-32 h-32 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-5">
           <img
             src="/axiom-icon.png"
             alt="Axiom Emblem"
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain drop-shadow-[0_8px_32px_rgba(56,189,248,0.35)]"
           />
         </div>
 
-        <div className="mt-5 text-center flex flex-col items-center">
+        <div className="mt-6 text-center flex flex-col items-center">
           <img
             src="/axiom-logo.png"
             alt="Project Axiom"

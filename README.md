@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/axiom-logo.png" alt="Project Axiom - Cognitive Domain Threat Intelligence" width="760" />
+</p>
+
 # 🛡️ Axiom — Cognitive Domain Threat Intelligence & Inauthentic Behavior Detection Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -103,6 +107,109 @@ Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-
 │            PERSISTENCE (PostgreSQL 16)                 │
 │  - Investigation Cases  - Actor Profiles  - Audit Trail│
 └────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔄 Alur Kerja Sistem (System Workflows)
+
+Berikut adalah visualisasi alur kerja interaksi komponen sistem dalam mendeteksi dan memproses intelijen ancaman kognitif:
+
+### Diagram Alur Analisis Baru (Request Flow)
+Berikut adalah visualisasi alur request ketika pengguna melakukan analisis akun baru:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Pengguna (Browser)
+    participant FE as Frontend (React 19)
+    participant BE as Backend (FastAPI)
+    participant Scraper as twscrape (X/Twitter)
+    participant ML as MiniLM (Embeddings) & XGBoost
+    participant LLM as Llama 3.3 (Groq LPU)
+    participant DB as PostgreSQL 16 & ChromaDB
+
+    User->>FE: Input Username Target (misal: @username)
+    FE->>BE: POST /api/investigate/target {target: "@username", platform: "x"}
+    Note over BE: Cek Rate Limit (Berbasis IP / API Guard)
+    
+    alt Jika Kena Rate Limit
+        BE-->>FE: Error 429: Batas analisis tercapai
+        FE-->>User: Tampilkan Pesan Batas Analisis Tercapai
+    else Valid & Aman
+        BE->>Scraper: Ambil 100 Tweet Terbaru & Profil Target
+        Scraper-->>BE: Data Profil & Tweets (Text, Timestamp, Mentions, Engagement)
+        
+        alt Tweets < 10
+            BE-->>FE: Error 422: Data aktivitas tidak cukup
+            FE-->>User: Tampilkan Pesan "Data Aktivitas Akun Tidak Cukup"
+        else Data Cukup (>= 10)
+            BE->>ML: Bandingkan Kemiripan Semantik (MiniLM) & Ekstraksi 21 Fitur
+            ML-->>BE: Vektor Kemiripan & Skor Probabilitas [Bot, Buzzer, Human]
+            Note over BE: Hitung Metrik & Formula Scoring Baku (Entropi & Chi-Square)
+            Note over BE: Pertahanan Adversarial Prompt Guard
+            BE->>LLM: Minta Eksplanasi (Metrik Ringkasan & Sampel Narasi)
+            LLM-->>BE: Teks Eksplanasi Atribusi Ancaman (Bahasa Indonesia)
+            BE->>DB: Simpan Kasus & Audit Ledger dengan Stempel SHA-256
+            BE-->>FE: Response (Score, Metrics, Signals, Explanations, CIB Clusters)
+            FE-->>User: Tampilkan DossierCard, Heatmap 24/7, Graf CIB & Full Ledger
+        end
+    end
+```
+
+### Diagram Alur Audit Konten / Insiden Viral (Event Auditing Flow)
+Berikut adalah alur saat pengguna mengaudit tautan postingan viral lintas platform (X Tweet, Instagram Post/Reels, YouTube Video/Shorts):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Pengguna (Browser)
+    participant FE as Frontend (React 19)
+    participant BE as Backend (FastAPI)
+    participant Scraper as Multi-Platform Scraper (TLS / Innertube)
+    participant Engine as Feature & CIB Cluster Engine
+    participant DB as PostgreSQL 16 & ChromaDB
+
+    User->>FE: Masukkan Tautan Insiden Viral (X, Instagram, YouTube)
+    FE->>BE: POST /api/investigate/event {url: "https://..."}
+    BE->>Scraper: Ekstraksi Komentar Publik & Thread Balasan
+    Scraper-->>BE: Kumpulan Komentar (Author, Text, Timestamp, Likes)
+    
+    alt Komentar Kosong / Konten Privat
+        BE-->>FE: Error 404/422: Konten tidak dapat diakses
+        FE-->>User: Tampilkan Pesan Error / Tautan Tidak Valid
+    else Data Berhasil Diekstrak
+        BE->>Engine: Ekstraksi Fitur Komentator & Klaster Kemiripan Semantik
+        Engine->>DB: Deteksi Astroturfing di ChromaDB & Rekam Audit Ledger
+        DB-->>Engine: Konfirmasi Penyimpanan & Stempel Kriptografis SHA-256
+        Engine-->>BE: Hasil Audit (Top 10 Attackers, Inauthentic Ratio, Full Ledger)
+        BE-->>FE: Response Ringkasan Insiden & Detail Seluruh Komentator
+        FE-->>User: Tampilkan Statistik Inautentik, Dual-Tier Ledger & Tombol Ekspor PDF
+    end
+```
+
+### Diagram Alur Mengambil Riwayat (History Flow)
+Berikut adalah alur saat pengguna mengeklik akun dari papan riwayat investigasi / leaderboard (tanpa scraping ulang):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Pengguna (Browser)
+    participant FE as Frontend (React 19)
+    participant BE as Backend (FastAPI)
+    participant DB as PostgreSQL Database
+
+    User->>FE: Klik Akun di Riwayat / Kasus
+    FE->>BE: GET /api/investigate/history/{target}
+    BE->>DB: Cari di Tabel `investigation_cases` & `actor_profiles`
+    alt Ditemukan
+        DB-->>BE: full_report (Skor, Metrik, Penjelasan, Ledger, dll)
+        BE-->>FE: Response full_report (tanpa raw scraping ulang)
+        FE-->>User: Tampilkan Laporan (Modal Detail menunjukkan "Data Terlindungi" demi Privasi)
+    else Tidak Ditemukan
+        BE-->>FE: Error 404
+        FE-->>User: Tampilkan Pesan Error
+    end
 ```
 
 ---
@@ -305,16 +412,32 @@ Aplikasi frontend akan tersedia di `http://localhost:5173` (Vite dev) dan mem-pr
 
 ---
 
-## 📊 Matriks Fitur & Status Implementasi
+## 🔮 Rencana Pembaruan Potensial (Potential Future Updates)
 
-- [x] **Dokumentasi & Spesifikasi PRD** (Selesai di `docs/PRD-Axiom.md`)
-- [x] **Master Checklist & Roadmap** (Selesai di `docs/ROADMAP-CHECKLIST.md`)
-- [x] **Data Contract Standard** (Selesai di `docs/SCRAPING_DATA_FORMAT.md`)
-- [x] **Minggu 1:** Ingesti X (Twitter), Skema DB, ChromaDB, XGBoost Baseline & Core API Orchestrator (100% Selesai: Milestone 1.1 s/d 1.6)
-- [x] **Minggu 2:** Integrasi Groq LLM Explainable AI, Prompt Injection Defense, Multi-Platform Auditing (X, IG, YT), PDF/CSV Export (100% Selesai: Milestone 2.1 s/d 2.4)
-- [x] **Minggu 3:** Dashboard Tactical Cyber (Vite + React 19), React Flow Network Graph, Circadian 24/7 Heatmap, Dual-Tier Ledger Table (100% Selesai: Milestone 3.1 s/d 3.4)
-- [x] **Dataset Harvester Engine:** Ekstraksi 60 file CSV dataset mentah aktual pasca-2020 berstandar RFC 4180 (100% Selesai)
-- [ ] **Minggu 4:** Pengujian Menyeluruh (QA Testbed), Video Demo Production, Slide Deck, & Submission (Sedang Berjalan / Current Focus)
+Sebagai platform intelijen yang adaptif terhadap evolusi taktik perang kognitif, berikut adalah peta jalan pembaruan potensial untuk pengembangan strategis pasca-MVP:
+
+1. **🌐 Ekspansi Ekosistem OSINT Lintas Platform:**
+   - Ingesti data real-time untuk platform **TikTok** (analisis komentar video tren, manipulasi tagar, dan *sound hijack*).
+   - Penarikan dan pemantauan kanal publik **Telegram** serta linimasa **Threads** untuk melacak migrasi narasi propaganda lintas platform perpesanan terenkripsi dan media sosial mikroblog.
+   - Ekstraksi halaman publik Facebook dan forum komunitas daring regional.
+
+2. **🧠 On-Premise Defense Domain SLM (Small Language Model):**
+   - Fine-tuning model bahasa terbuka berukuran ringkas (misal: Llama 3.1 8B atau Mistral NeMo 12B) yang dilatih khusus dengan korpus terminologi siber-militer Indonesia dan bahasa percakapan lokal (*slang/singkatan buzzer*).
+   - Memungkinkan pengoperasian 100% *air-gapped* tanpa koneksi internet sama sekali untuk fasilitas ruang kendali militer rahasia (*secure command center / SOC PUSSIBERAD*).
+
+3. **⚡ Telemetri Ancaman Real-Time & Live Battle-Room Streaming:**
+   - Integrasi arsitektur streaming berbasis **Apache Kafka** / **Redis Streams** untuk menyerap dan menganalisis lonjakan narasi propaganda dalam skala ribuan event per detik.
+   - Dashboard situasi taktis (*Live Tactical Situation Map*) dengan notifikasi alert instan via webhook terenkripsi ke sistem SIEM/SOC pertahanan siber.
+
+4. **🛡️ Automated Counter-Narrative & Cognitive Inoculation:**
+   - Modul perancang narasi tandingan berbasis fakta (*evidence-backed rebuttal generator*) yang terverifikasi secara ilmiah untuk menetralkan disinformasi sebelum mencapai saturasi viral.
+   - Peringatan dini berbasis *pre-bunking* untuk memperkuat literasi dan ketahanan kognitif publik terhadap pola kampanye astroturfing yang terdeteksi.
+
+5. **🔗 Desentralisasi Ledger Bukti Digital (Verifiable Cryptographic Proofs):**
+   - Peningkatan rantai bukti digital SHA-256 menuju pencatatan terdistribusi berbasis *Private Permissioned Ledger* untuk menjamin barang bukti forensik digital tidak dapat disangkal (*non-repudiation*) di ranah hukum peradilan militer atau tindak pidana siber.
+
+6. **🚨 Otomasi Pelaporan & Takedown Terintegrasi CSIRT:**
+   - Ekspor otomatis berkas insiden berstandar format **STIX/TAXII 2.1** untuk integrasi langsung dengan platform CERT/CSIRT nasional (BSSN) dan penyedia layanan platform sosial.
 
 ---
 
@@ -345,7 +468,6 @@ Axiom dirancang khusus untuk verifikasi ruang siber dan perlindungan publik:
 * 🛡️ [Kebijakan Keamanan (SECURITY.md)](SECURITY.md) — Pelaporan celah keamanan dan mitigasi kerentanan.
 * 📄 [Lisensi Proyek (LICENSE)](LICENSE) — Lisensi open source MIT.
 * 📊 [Spesifikasi Format Data Scraping](docs/SCRAPING_DATA_FORMAT.md) — Kontrak data standar seluruh platform.
-* 🗺️ [Master Execution Roadmap & Checklist](docs/ROADMAP-CHECKLIST.md) — Panduan eksekusi dan pelacakan target milestone.
 
 ---
 
