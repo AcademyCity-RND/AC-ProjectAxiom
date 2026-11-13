@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SplashTransition } from './SplashTransition';
 import { AdaptiveNavbar } from './AdaptiveNavbar';
 import { HeroSection } from './HeroSection';
@@ -8,14 +8,18 @@ import { VisualWorkflowSection } from './VisualWorkflowSection';
 import { DocumentationViewer } from './DocumentationViewer';
 import { ChangelogTimeline } from './ChangelogTimeline';
 import { TeamSection } from './TeamSection';
+import { FAQSection } from './FAQSection';
 import { AboutManifestoSection } from './AboutManifestoSection';
 import { FooterSection } from './FooterSection';
+import { LegalModal, type LegalModalType } from './LegalModal';
 
 interface LandingPageProps {
   onNavigateLogin: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateLogin }) => {
+  const [legalModalType, setLegalModalType] = useState<LegalModalType>(null);
+
   // Bidirectional Direction-Aware Scroll Reveal using IntersectionObserver
   useEffect(() => {
     const sections = document.querySelectorAll('.reveal-section');
@@ -110,13 +114,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateLogin }) => 
         <TeamSection />
       </div>
 
-      {/* 10. About Axiom & Forensic Integrity */}
+      {/* 10. Frequently Asked Questions (FAQ) */}
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
+        <FAQSection />
+      </div>
+
+      {/* 11. About Axiom & Forensic Integrity */}
       <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <AboutManifestoSection />
       </div>
 
-      {/* 11. Minimalist Footer */}
-      <FooterSection onNavigateLogin={onNavigateLogin} />
+      {/* 12. Minimalist Footer with Privacy Policy & Terms Links */}
+      <FooterSection
+        onNavigateLogin={onNavigateLogin}
+        onOpenPrivacy={() => setLegalModalType('privacy')}
+        onOpenTerms={() => setLegalModalType('terms')}
+      />
+
+      {/* 13. Legal Modal (Privacy Policy & Terms of Service) */}
+      <LegalModal
+        type={legalModalType}
+        onClose={() => setLegalModalType(null)}
+        onSwitchType={(t) => setLegalModalType(t)}
+      />
     </div>
   );
 };

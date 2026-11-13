@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'documentation', label: 'Dokumentasi' },
   { id: 'changelog', label: 'Changelog' },
   { id: 'team', label: 'Tim' },
+  { id: 'faq', label: 'FAQ' },
   { id: 'about', label: 'Tentang' },
 ];
 

@@ -1,67 +1,88 @@
-import { GithubIcon } from '../common/GithubIcon';
 import React from 'react';
 import { Shield, ArrowUp, LogIn } from 'lucide-react';
+import { GithubIcon } from '../common/GithubIcon';
 
 interface FooterSectionProps {
   onNavigateLogin: () => void;
+  onOpenPrivacy?: () => void;
+  onOpenTerms?: () => void;
 }
 
-export const FooterSection: React.FC<FooterSectionProps> = ({ onNavigateLogin }) => {
+export const FooterSection: React.FC<FooterSectionProps> = ({
+  onNavigateLogin,
+  onOpenPrivacy,
+  onOpenTerms,
+}) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <footer className="relative border-t border-slate-800/80 bg-slate-950 py-12 px-4 text-xs text-slate-400">
-      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-        {/* Left: Brand & Military / Research Copyright */}
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
-            <Shield className="w-3.5 h-3.5" />
-          </div>
-          <div>
-            <div className="font-bold text-slate-200">PROJECT AXIOM</div>
-            <div className="text-[11px] text-slate-500">
-              Satuan Tugas Operasi Siber, PUSSIBERAD © 2026. Hak Cipta Dilindungi.
+    <footer className="relative border-t border-slate-800/80 bg-slate-950 py-12 px-6 text-xs text-slate-400">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        {/* Left: Brand, Copyright & Tactical Subtitle (per reference) */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+              <Shield className="w-3.5 h-3.5" />
             </div>
+            <span className="font-bold text-sm tracking-tight text-white">PROJECT AXIOM</span>
+          </div>
+
+          <div className="text-slate-300 font-medium">
+            &copy; 2026 Project Axiom.
+          </div>
+
+          <div className="text-[11px] text-slate-500">
+            Indikator Risiko Amplifikasi Terkoordinasi &amp; Pertahanan Domain Kognitif.
           </div>
         </div>
 
-        {/* Center: System Status Node */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Gateway Online</span>
-          <span className="text-slate-600">•</span>
-          <span>Node JKT-01</span>
-        </div>
-
-        {/* Right: Quick Links & Back to Top */}
-        <div className="flex items-center gap-4 text-xs">
+        {/* Right: GitHub, Privacy Policy, Terms of Service, Login & Scroll-to-Top */}
+        <div className="flex flex-wrap items-center gap-5 sm:gap-6 text-xs font-medium">
           <a
             href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-slate-200 flex items-center gap-1 transition-colors"
+            className="hover:text-white flex items-center gap-1.5 transition-colors"
           >
-            <GithubIcon className="w-3.5 h-3.5" />
+            <GithubIcon className="w-4 h-4 text-slate-300" />
             <span>GitHub</span>
           </a>
 
           <button
+            type="button"
+            onClick={onOpenPrivacy}
+            className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+          >
+            Privacy Policy
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenTerms}
+            className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+          >
+            Terms of Service
+          </button>
+
+          <button
+            type="button"
             onClick={onNavigateLogin}
-            className="hover:text-sky-400 flex items-center gap-1 transition-colors"
+            className="text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors cursor-pointer"
           >
             <LogIn className="w-3.5 h-3.5" />
             <span>Gerbang Masuk</span>
           </button>
 
           <button
+            type="button"
             onClick={scrollToTop}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition-colors"
-            title="Kembali ke puncak halaman"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title="Kembali ke atas"
           >
             <ArrowUp className="w-3.5 h-3.5" />
-            <span>Puncak</span>
+            <span>Atas</span>
           </button>
         </div>
       </div>
