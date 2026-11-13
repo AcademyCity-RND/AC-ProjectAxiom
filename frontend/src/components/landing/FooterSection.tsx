@@ -26,7 +26,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2.5">
             <img
-              src="/axiom-logo-dark.png"
+              src="/axiom-logo.png"
               alt="Project Axiom Forensic & Threat Intelligence"
               className="h-7 sm:h-8 object-contain"
             />

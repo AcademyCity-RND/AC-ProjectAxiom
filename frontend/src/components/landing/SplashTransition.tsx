@@ -52,7 +52,7 @@ export const SplashTransition: React.FC<SplashTransitionProps> = ({ onFinish }) 
 
         <div className="mt-5 text-center flex flex-col items-center">
           <img
-            src="/axiom-logo-dark.png"
+            src="/axiom-logo.png"
             alt="Project Axiom"
             className="h-8 object-contain mb-1.5"
           />

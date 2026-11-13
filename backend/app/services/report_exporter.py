@@ -255,10 +255,12 @@ def get_light_logo_data_uri() -> str:
     if _CACHED_LIGHT_LOGO_URI:
         return _CACHED_LIGHT_LOGO_URI
     candidates = [
+        os.path.join(os.path.dirname(__file__), "..", "static", "axiom-logo.png"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "public", "axiom-logo.png"),
+        "/app/app/static/axiom-logo.png",
+        "/app/static/axiom-logo.png",
         os.path.join(os.path.dirname(__file__), "..", "static", "axiom-logo-light.png"),
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "public", "axiom-logo-light.png"),
         "/app/app/static/axiom-logo-light.png",
-        "/app/static/axiom-logo-light.png",
     ]
     for p in candidates:
         if os.path.exists(p):

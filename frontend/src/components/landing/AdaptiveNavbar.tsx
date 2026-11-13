@@ -148,7 +148,7 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
             title="Project Axiom - Kembali ke Beranda"
           >
             <img
-              src="/axiom-logo-dark.png"
+              src="/axiom-logo.png"
               alt="Project Axiom Forensic & Threat Intelligence"
               className="h-7 sm:h-8 object-contain"
             />

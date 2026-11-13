@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
         )}
         <div className="flex items-center gap-2.5 sm:gap-3">
           <img
-            src="/axiom-logo-dark.png"
+            src="/axiom-logo.png"
             alt="AXIOM Forensic & Threat Intelligence"
             className="h-8 sm:h-9 object-contain"
           />
