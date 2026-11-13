@@ -12,8 +12,15 @@ router = APIRouter()
 
 def ensure_default_users_seeded(db: Session):
     """
-    Memastikan tepat 2 akun default ('admin' dan 'analis') terdaftar di tabel PostgreSQL.
+    Memastikan tabel terinisialisasi dan tepat 2 akun default ('admin' dan 'analis') terdaftar di PostgreSQL.
     """
+    from app.db.base import Base
+    from app.db.session import engine
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        pass
+
     admin_user = db.execute(select(User).where(User.username == "admin")).scalar_one_or_none()
     if not admin_user:
         admin_user = User(
@@ -45,8 +52,13 @@ def login(form_data: UserLogin, db: Session = Depends(get_db)):
     """
     clean_username = form_data.username.strip().lower()
     
-    # Ambil user dari PostgreSQL
-    user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
+    # Ambil user dari PostgreSQL dengan fallback bootstrap jika tabel belum ada
+    try:
+        user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
+    except Exception:
+        db.rollback()
+        ensure_default_users_seeded(db)
+        user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
 
     # Fallback bootstrap jika akun default belum tersimpan di DB
     if not user and clean_username in ("admin", "analis"):
