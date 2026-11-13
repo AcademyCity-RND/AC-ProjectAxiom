@@ -144,7 +144,7 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
               e.preventDefault();
               scrollToSection('hero');
             }}
-            className="flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-sky-400 rounded-lg px-1 py-0.5"
+            className="flex items-center gap-2 group outline-none focus:outline-none focus:ring-0 active:outline-none border-0"
             title="Project Axiom - Kembali ke Beranda"
           >
             <img

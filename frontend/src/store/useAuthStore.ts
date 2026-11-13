@@ -125,14 +125,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
     },
 
-    // Logout resmi: hapus sesi & tendang langsung ke landing/login page
+    // Logout resmi: hapus seluruh sesi, bersihkan memory store, dan refresh halaman ke awal
     logout: () => {
-      // Bersihkan seluruh data kerja dan kasus investigasi saat logout
+      // Bersihkan seluruh data kerja dan kasus investigasi
       useCaseStore.getState().resetStore();
       localStorage.removeItem('axiom_token');
       localStorage.removeItem('axiom_operator');
       localStorage.removeItem('axiom_role');
       localStorage.removeItem('axiom_recent_cases');
+      sessionStorage.clear();
       set({
         token: null,
         user: null,
@@ -141,6 +142,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
         isAuthenticated: false,
         error: null,
       });
+      // Refresh penuh ke halaman utama agar seluruh state komponen dan memori kembali bersih
+      window.location.href = '/';
     },
   };
 });

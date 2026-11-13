@@ -899,7 +899,7 @@ async def guest_analyze(
 
     feats = extract_actor_features(profile_data, tweets_data)
     classifier = get_classifier()
-    pred_class, conf, probs = classifier.predict(feats)
+    pred_class, conf, probs, *extra = classifier.predict(feats)
 
     reasons = []
     if feats.get("burstiness_score", 0) > 0.4:
