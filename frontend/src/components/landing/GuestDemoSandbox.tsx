@@ -361,6 +361,7 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                         <img
                           src={result.avatar_url}
                           alt={result.handle}
+                          referrerPolicy="no-referrer"
                           className="w-12 h-12 rounded-full object-cover border border-slate-700"
                           onError={(e) => {
                             (e.target as HTMLElement).style.display = 'none';
