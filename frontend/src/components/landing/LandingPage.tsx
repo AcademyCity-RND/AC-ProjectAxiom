@@ -3,15 +3,15 @@ import { SplashTransition } from './SplashTransition';
 import { AdaptiveNavbar } from './AdaptiveNavbar';
 import { HeroSection } from './HeroSection';
 import { GuestDemoSandbox } from './GuestDemoSandbox';
+import { AboutManifestoSection } from './AboutManifestoSection';
+import { TeamSection } from './TeamSection';
 import { CoreFeaturesSection } from './CoreFeaturesSection';
 import { VisualWorkflowSection } from './VisualWorkflowSection';
 import { DocumentationViewer } from './DocumentationViewer';
-import { ChangelogTimeline } from './ChangelogTimeline';
-import { TeamSection } from './TeamSection';
 import { FAQSection } from './FAQSection';
-import { AboutManifestoSection } from './AboutManifestoSection';
 import { FooterSection } from './FooterSection';
 import { LegalModal, type LegalModalType } from './LegalModal';
+import { ChangelogModal } from './ChangelogModal';
 
 interface LandingPageProps {
   onNavigateLogin: () => void;
@@ -19,6 +19,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateLogin }) => {
   const [legalModalType, setLegalModalType] = useState<LegalModalType>(null);
+  const [changelogModalOpen, setChangelogModalOpen] = useState<boolean>(false);
 
   // Bidirectional Direction-Aware Scroll Reveal using IntersectionObserver
   useEffect(() => {
@@ -77,41 +78,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateLogin }) => 
       <SplashTransition />
 
       {/* 2. Adaptive Sticky Floating Pill Navbar */}
-      <AdaptiveNavbar onNavigateLogin={onNavigateLogin} />
+      <AdaptiveNavbar
+        onNavigateLogin={onNavigateLogin}
+        onOpenChangelog={() => setChangelogModalOpen(true)}
+      />
 
-      {/* 3. Hero Section (Value Proposition) */}
+      {/* 3. Hero Section (Value Proposition) - Beranda */}
       <div className="reveal-section transition-all duration-700 ease-out opacity-100 translate-y-0">
         <HeroSection />
       </div>
 
-      {/* 4. Live Guest Demo Sandbox (Early Priority) */}
+      {/* 4. Live Guest Demo Sandbox (Early Priority) - Demo */}
       <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <GuestDemoSandbox onNavigateLogin={onNavigateLogin} />
       </div>
 
-      {/* 5. Core Features Section */}
+      {/* 5. About Axiom & Forensic Integrity - Tentang */}
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
+        <AboutManifestoSection />
+      </div>
+
+      {/* 6. Author & Development Team (AcademyCity-RND) */}
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
+        <TeamSection />
+      </div>
+
+      {/* 7. Core Features Section - Fitur */}
       <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <CoreFeaturesSection />
       </div>
 
-      {/* 6. Visual Workflow Section */}
+      {/* 8. Visual Workflow Section - Alur */}
       <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <VisualWorkflowSection />
       </div>
 
-      {/* 7. Documentation & Installation Guide (Laravel Docs-Style) */}
+      {/* 9. Documentation & Installation Guide - Dokumentasi */}
       <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <DocumentationViewer />
-      </div>
-
-      {/* 8. Project Changelog & Roadmap */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
-        <ChangelogTimeline />
-      </div>
-
-      {/* 9. Author & Development Team (AcademyCity-RND) */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
-        <TeamSection />
       </div>
 
       {/* 10. Frequently Asked Questions (FAQ) */}
@@ -119,23 +123,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateLogin }) => 
         <FAQSection />
       </div>
 
-      {/* 11. About Axiom & Forensic Integrity */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
-        <AboutManifestoSection />
-      </div>
-
-      {/* 12. Minimalist Footer with Privacy Policy & Terms Links */}
+      {/* 11. Minimalist Footer with Privacy, Terms, and Changelog */}
       <FooterSection
         onNavigateLogin={onNavigateLogin}
         onOpenPrivacy={() => setLegalModalType('privacy')}
         onOpenTerms={() => setLegalModalType('terms')}
+        onOpenChangelog={() => setChangelogModalOpen(true)}
       />
 
-      {/* 13. Legal Modal (Privacy Policy & Terms of Service) */}
+      {/* 12. Legal Modal (Privacy Policy & Terms of Service) */}
       <LegalModal
         type={legalModalType}
         onClose={() => setLegalModalType(null)}
         onSwitchType={(t) => setLegalModalType(t)}
+      />
+
+      {/* 13. Changelog Pop-up Modal */}
+      <ChangelogModal
+        isOpen={changelogModalOpen}
+        onClose={() => setChangelogModalOpen(false)}
       />
     </div>
   );

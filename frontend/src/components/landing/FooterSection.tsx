@@ -1,17 +1,19 @@
 import React from 'react';
-import { Shield, ArrowUp, LogIn } from 'lucide-react';
+import { Shield, ArrowUp, LogIn, History } from 'lucide-react';
 import { GithubIcon } from '../common/GithubIcon';
 
 interface FooterSectionProps {
   onNavigateLogin: () => void;
   onOpenPrivacy?: () => void;
   onOpenTerms?: () => void;
+  onOpenChangelog?: () => void;
 }
 
 export const FooterSection: React.FC<FooterSectionProps> = ({
   onNavigateLogin,
   onOpenPrivacy,
   onOpenTerms,
+  onOpenChangelog,
 }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -38,8 +40,8 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
           </div>
         </div>
 
-        {/* Right: GitHub, Privacy Policy, Terms of Service, Login & Scroll-to-Top */}
-        <div className="flex flex-wrap items-center gap-5 sm:gap-6 text-xs font-medium">
+        {/* Right: GitHub, Changelog, Privacy Policy, Terms of Service, Login & Scroll-to-Top */}
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs font-medium">
           <a
             href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
             target="_blank"
@@ -49,6 +51,17 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
             <GithubIcon className="w-4 h-4 text-slate-300" />
             <span>GitHub</span>
           </a>
+
+          {onOpenChangelog && (
+            <button
+              type="button"
+              onClick={onOpenChangelog}
+              className="text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <History className="w-3.5 h-3.5 text-sky-400" />
+              <span>Changelog</span>
+            </button>
+          )}
 
           <button
             type="button"

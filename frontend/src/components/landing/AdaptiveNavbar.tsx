@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, LogIn, Menu, X } from 'lucide-react';
+import { Shield, LogIn, Menu, X, History } from 'lucide-react';
 import { GithubIcon } from '../common/GithubIcon';
 
 interface AdaptiveNavbarProps {
   onNavigateLogin: () => void;
+  onOpenChangelog?: () => void;
 }
 
 interface NavItem {
@@ -11,19 +12,33 @@ interface NavItem {
   label: string;
 }
 
+// User-ordered navigation items: Beranda Demo Tentang Fitur Alur Dokumentasi FAQ
 const NAV_ITEMS: NavItem[] = [
   { id: 'hero', label: 'Beranda' },
   { id: 'demo', label: 'Demo' },
+  { id: 'about', label: 'Tentang' },
   { id: 'features', label: 'Fitur' },
   { id: 'workflow', label: 'Alur' },
   { id: 'documentation', label: 'Dokumentasi' },
-  { id: 'changelog', label: 'Changelog' },
-  { id: 'team', label: 'Tim' },
   { id: 'faq', label: 'FAQ' },
-  { id: 'about', label: 'Tentang' },
 ];
 
-export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin }) => {
+// Mapping for section probe so Team section in page correctly maps to 'about' in navbar
+const SECTIONS_TO_PROBE = [
+  { elId: 'hero', navId: 'hero' },
+  { elId: 'demo', navId: 'demo' },
+  { elId: 'about', navId: 'about' },
+  { elId: 'team', navId: 'about' },
+  { elId: 'features', navId: 'features' },
+  { elId: 'workflow', navId: 'workflow' },
+  { elId: 'documentation', navId: 'documentation' },
+  { elId: 'faq', navId: 'faq' },
+];
+
+export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
+  onNavigateLogin,
+  onOpenChangelog,
+}) => {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<string>('hero');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -52,9 +67,9 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin 
         return;
       }
 
-      // Special case: near or at the bottom of the page -> activate 'about'
+      // Special case: near or at the bottom of the page -> activate last item 'faq'
       if (windowHeight + scrollY >= scrollHeight - 80) {
-        setActiveSection('about');
+        setActiveSection('faq');
         ticking = false;
         return;
       }
@@ -65,12 +80,12 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin 
 
       // Find the last section whose top edge has passed or reached the probe line
       let matchedSection = 'hero';
-      for (const item of NAV_ITEMS) {
-        const el = document.getElementById(item.id);
+      for (const item of SECTIONS_TO_PROBE) {
+        const el = document.getElementById(item.elId);
         if (el) {
           const rect = el.getBoundingClientRect();
           if (rect.top <= probeY) {
-            matchedSection = item.id;
+            matchedSection = item.navId;
           }
         }
       }
@@ -144,7 +159,7 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin 
             </div>
           </a>
 
-          {/* Desktop Navigation Menu (Reactive Active States, No Dropdowns) */}
+          {/* Desktop Navigation Menu (Reordered: Beranda, Demo, Tentang, Fitur, Alur, Dokumentasi, FAQ) */}
           <nav className="hidden md:flex items-center gap-1 text-xs font-medium text-slate-300">
             {NAV_ITEMS.map((item) => {
               const isActive = activeSection === item.id;
@@ -166,6 +181,7 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin 
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* GitHub Repo Button */}
             <a
               href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
               target="_blank"
@@ -177,6 +193,18 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin 
               <span>GitHub</span>
             </a>
 
+            {/* Changelog Pop-up Icon Button (History Icon per Screenshot) */}
+            <button
+              type="button"
+              onClick={onOpenChangelog}
+              className="w-8 h-8 rounded-full border border-slate-800 hover:border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+              title="Riwayat Pembaruan & Changelog"
+              aria-label="Lihat Changelog & Riwayat Rilis"
+            >
+              <History className="w-4 h-4" />
+            </button>
+
+            {/* Login Button */}
             <button
               onClick={onNavigateLogin}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs sm:text-sm shadow-md shadow-sky-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -219,6 +247,19 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin 
             })}
 
             <div className="border-t border-slate-800 pt-3 mt-2 flex flex-col gap-2">
+              {/* Changelog in mobile */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenChangelog?.();
+                }}
+                className="flex items-center gap-2 py-2 px-3 rounded-lg text-sm text-slate-300 hover:bg-slate-800 transition-colors text-left"
+              >
+                <History className="w-4 h-4 text-sky-400" />
+                <span>Riwayat Rilis (Changelog)</span>
+              </button>
+
               <a
                 href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
                 target="_blank"
