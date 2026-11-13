@@ -19,14 +19,14 @@ def test_jwt_token_generation_and_login():
     """Uji coba autentikasi login dan penerbitan JWT Bearer Token."""
     # 1. Login gagal jika kredensial salah
     res_fail = client.post("/api/v1/auth/login", json={
-        "username": "user",
+        "username": "analis",
         "password": "WrongPassword123"
     })
     assert res_fail.status_code == 401
 
     # 2. Login berhasil dengan akun demonstrasi
     res_success = client.post("/api/v1/auth/login", json={
-        "username": "user",
+        "username": "analis",
         "password": "AxiomUser2026!"
     })
     assert res_success.status_code == 200
@@ -41,7 +41,7 @@ def test_jwt_token_generation_and_login():
         "Authorization": f"Bearer {token}"
     })
     assert res_me.status_code == 200
-    assert res_me.json()["username"] == "user"
+    assert res_me.json()["username"] == "analis"
 
 
 def test_protected_investigation_endpoint_without_token():
@@ -57,7 +57,7 @@ def test_investigation_input_validation_and_anti_ssrf():
     """Uji coba validasi ketat Pydantic dan mekanisme pencegahan Anti-SSRF."""
     # Dapatkan token pengguna sah
     res_login = client.post("/api/v1/auth/login", json={
-        "username": "user",
+        "username": "analis",
         "password": "AxiomUser2026!"
     })
     token = res_login.json()["access_token"]
