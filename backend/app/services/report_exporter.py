@@ -245,10 +245,39 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
     return dossier_payload
 
 
+import base64
+
+_CACHED_LIGHT_LOGO_URI = None
+
+
+def get_light_logo_data_uri() -> str:
+    global _CACHED_LIGHT_LOGO_URI
+    if _CACHED_LIGHT_LOGO_URI:
+        return _CACHED_LIGHT_LOGO_URI
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "..", "static", "axiom-logo-light.png"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "public", "axiom-logo-light.png"),
+        "/app/app/static/axiom-logo-light.png",
+        "/app/static/axiom-logo-light.png",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "rb") as f:
+                    encoded = base64.b64encode(f.read()).decode("utf-8")
+                    _CACHED_LIGHT_LOGO_URI = f"data:image/png;base64,{encoded}"
+                    return _CACHED_LIGHT_LOGO_URI
+            except Exception as e:
+                logger.warning(f"Failed to load light logo from {p}: {e}")
+    return ""
+
+
 def render_html_dossier(dossier_data: Dict[str, Any]) -> str:
     """
     Merender template Jinja2 `dossier.html` menghasilkan laporan cetak HTML/PDF resmi.
     """
+    if "logo_data_uri" not in dossier_data:
+        dossier_data["logo_data_uri"] = get_light_logo_data_uri()
     template = jinja_env.get_template("dossier.html")
     return template.render(**dossier_data)
 

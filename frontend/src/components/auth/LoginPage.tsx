@@ -58,10 +58,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </button>
         ) : (
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center">
-              <Shield className="w-3.5 h-3.5 text-sky-400" />
-            </div>
-            <span className="font-bold text-sm tracking-tight text-white">PROJECT AXIOM</span>
+            <img
+              src="/axiom-logo-dark.png"
+              alt="Project Axiom"
+              className="h-7 sm:h-8 object-contain"
+            />
           </div>
         )}
 
@@ -80,17 +81,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       {/* Main Centered Content */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 z-10">
         <div className="w-full max-w-md space-y-6">
-          {/* Identity Header */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-sky-400 mb-1">
+          {/* Identity Header with Official Horizontal Logo */}
+          <div className="text-center space-y-2.5">
+            <div className="flex justify-center mb-1">
+              <img
+                src="/axiom-logo-dark.png"
+                alt="Axiom Forensic & Threat Intelligence"
+                className="h-12 sm:h-14 object-contain drop-shadow-[0_4px_24px_rgba(56,189,248,0.2)]"
+              />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-sky-400">
               <Shield className="w-3.5 h-3.5" />
               <span>Gerbang Personel Satgas</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Project Axiom Intel Portal
-            </h1>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Otorisasi analis intelijen siber kognitif &amp; investigasi terkoordinasi CIB
+              Otorisasi analis intelijen siber kognitif &amp; investigasi terkoordinasi CIB PUSSIBERAD
             </p>
           </div>
 

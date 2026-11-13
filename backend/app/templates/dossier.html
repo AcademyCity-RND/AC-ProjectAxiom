@@ -191,15 +191,22 @@
     }
   </script>
 
-  <!-- HEADER MILITER PUSSIBERAD -->
+  <!-- HEADER MILITER PUSSIBERAD DENGAN LOGO RESMI LIGHT -->
   <table class="header-table">
     <tr>
-      <td style="width: 70%;">
+      <td style="width: 28%; vertical-align: middle;">
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Project Axiom" style="max-height: 52px; max-width: 100%; object-fit: contain;" />
+        {% else %}
+        <div style="font-weight: 900; font-size: 13pt; color: #0284c7; letter-spacing: 1px;">PROJECT AXIOM</div>
+        {% endif %}
+      </td>
+      <td style="width: 47%; vertical-align: middle; padding-left: 12px;">
         <div class="military-title">PUSAT SIBER TNI ANGKATAN DARAT</div>
         <div class="sub-title">Satuan Tugas Intelijen Forensik Kognitif & Pertahanan Informasi</div>
-        <div style="font-size: 8pt; color: #718096; margin-top: 4px;">PROJECT AXIOM — COGNITIVE THREAT INTELLIGENCE SYSTEM</div>
+        <div style="font-size: 8pt; color: #718096; margin-top: 3px;">PROJECT AXIOM — COGNITIVE THREAT INTELLIGENCE SYSTEM</div>
       </td>
-      <td style="width: 30%; text-align: right; vertical-align: top;">
+      <td style="width: 25%; text-align: right; vertical-align: middle;">
         <span class="classification-badge">RAHASIA / CLASSIFIED</span>
         <div style="font-size: 8pt; color: #4a5568; margin-top: 6px;">
           TANGGAL: {{ generation_time }}

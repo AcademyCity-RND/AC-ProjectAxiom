@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, ArrowUp, LogIn, History } from 'lucide-react';
+import { ArrowUp, LogIn, History } from 'lucide-react';
 import { GithubIcon } from '../common/GithubIcon';
 
 interface FooterSectionProps {
@@ -23,12 +23,13 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
     <footer className="relative border-t border-slate-800/80 bg-slate-950 py-12 px-6 text-xs text-slate-400">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         {/* Left: Brand, Copyright & Tactical Subtitle (per reference) */}
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
-              <Shield className="w-3.5 h-3.5" />
-            </div>
-            <span className="font-bold text-sm tracking-tight text-white">PROJECT AXIOM</span>
+            <img
+              src="/axiom-logo-dark.png"
+              alt="Project Axiom Forensic & Threat Intelligence"
+              className="h-7 sm:h-8 object-contain"
+            />
           </div>
 
           <div className="text-slate-300 font-medium">

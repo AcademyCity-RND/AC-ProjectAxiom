@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Radio } from 'lucide-react';
 
 interface SplashTransitionProps {
   onFinish?: () => void;
@@ -10,7 +9,7 @@ export const SplashTransition: React.FC<SplashTransitionProps> = ({ onFinish }) 
   const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
-    // 600ms display, lalu mulai fade-out 300ms, total < 950ms
+    // 650ms display, lalu mulai fade-out 300ms, total < 950ms
     const timerFade = setTimeout(() => {
       setIsFading(true);
     }, 650);
@@ -43,16 +42,21 @@ export const SplashTransition: React.FC<SplashTransitionProps> = ({ onFinish }) 
       <div className="relative flex flex-col items-center">
         {/* Radar Ring Glow Effect */}
         <div className="absolute w-24 h-24 rounded-full border border-sky-500/20 animate-ping" />
-        <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl">
-          <Shield className="w-8 h-8 text-sky-400" />
-          <Radio className="w-3.5 h-3.5 text-emerald-400 absolute top-2 right-2 animate-pulse" />
+        <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2.5">
+          <img
+            src="/axiom-icon.png"
+            alt="Axiom Emblem"
+            className="w-full h-full object-contain"
+          />
         </div>
 
-        <div className="mt-5 text-center">
-          <h2 className="text-sm font-semibold tracking-wider text-slate-100 uppercase">
-            Project Axiom
-          </h2>
-          <p className="mt-1 font-mono text-[11px] text-sky-400 tracking-wider">
+        <div className="mt-5 text-center flex flex-col items-center">
+          <img
+            src="/axiom-logo-dark.png"
+            alt="Project Axiom"
+            className="h-8 object-contain mb-1.5"
+          />
+          <p className="font-mono text-[11px] text-sky-400 tracking-wider">
             KERNEL READY • V1.0.0-RC
           </p>
         </div>

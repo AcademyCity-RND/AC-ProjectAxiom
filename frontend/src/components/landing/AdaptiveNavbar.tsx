@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, LogIn, Menu, X, History } from 'lucide-react';
+import { LogIn, Menu, X, History } from 'lucide-react';
 import { GithubIcon } from '../common/GithubIcon';
 
 interface AdaptiveNavbarProps {
@@ -137,26 +137,21 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
               : 'max-w-7xl mx-auto px-6 py-4 bg-transparent border-b border-transparent'
           }`}
         >
-          {/* Brand Logo & Name */}
+          {/* Brand Logo (Official Horizontal Dark Logo) */}
           <a
             href="#"
             onClick={(e) => {
               e.preventDefault();
               scrollToSection('hero');
             }}
-            className="flex items-center gap-2.5 group focus:outline-none focus:ring-2 focus:ring-sky-400 rounded-lg px-1.5 py-1"
+            className="flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-sky-400 rounded-lg px-1 py-0.5"
+            title="Project Axiom - Kembali ke Beranda"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 group-hover:border-sky-400 transition-colors">
-              <Shield className="w-4 h-4 text-sky-400" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold tracking-tight text-slate-100 text-sm sm:text-base flex items-center gap-1.5">
-                AXIOM
-                <span className="hidden sm:inline-block font-mono text-[9px] uppercase px-1.5 py-0.2 bg-slate-800 text-slate-400 rounded border border-slate-700">
-                  Intel
-                </span>
-              </span>
-            </div>
+            <img
+              src="/axiom-logo-dark.png"
+              alt="Project Axiom Forensic & Threat Intelligence"
+              className="h-7 sm:h-8 object-contain"
+            />
           </a>
 
           {/* Desktop Navigation Menu (Reordered: Beranda, Demo, Tentang, Fitur, Alur, Dokumentasi, FAQ) */}

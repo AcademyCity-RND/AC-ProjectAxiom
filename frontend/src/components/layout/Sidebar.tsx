@@ -71,38 +71,61 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         {/* Navigation Modules */}
-        <div className="p-2.5 space-y-4 overflow-y-auto flex-1">
+        <div className="p-2.5 space-y-3 overflow-y-auto flex-1">
+          {/* Sidebar Top: Emblem App Mark (axiom-icon.png) */}
+          {!isCollapsed ? (
+            <div className="flex items-center justify-between px-2 pb-2.5 mb-2 border-b border-slate-800/70">
+              <div className="flex items-center gap-2 min-w-0">
+                <img
+                  src="/axiom-icon.png"
+                  alt="Axiom Emblem"
+                  className="w-7 h-7 rounded-lg object-contain shadow-md shrink-0"
+                />
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold text-xs tracking-tight text-white truncate">PROJECT AXIOM</span>
+                  <span className="text-[9px] font-mono text-sky-400 uppercase tracking-wider truncate">Kognitif Intel</span>
+                </div>
+              </div>
+              {onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  className="hidden md:flex items-center p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Kecilkan Sidebar"
+                >
+                  <PanelLeftClose className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center pb-2 mb-2 border-b border-slate-800/70">
+              <img
+                src="/axiom-icon.png"
+                alt="Axiom"
+                className="w-8 h-8 rounded-lg object-contain shadow-md mb-1.5 cursor-pointer"
+                onClick={onToggleCollapse}
+                title="Project Axiom (Klik untuk memperluas)"
+              />
+              {onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  className="hidden md:flex p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
+                  title="Perluas Sidebar"
+                >
+                  <PanelLeftOpen className="w-3.5 h-3.5 text-sky-400" />
+                </button>
+              )}
+            </div>
+          )}
+
           <div>
-            {!isCollapsed ? (
-              <div className="flex items-center justify-between px-2 mb-2">
+            {!isCollapsed && (
+              <div className="px-2 mb-2">
                 <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 font-mono">
                   MODUL UTAMA
                 </span>
-                {onToggleCollapse && (
-                  <button
-                    type="button"
-                    onClick={onToggleCollapse}
-                    className="hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer text-[10px] font-mono border border-transparent hover:border-slate-700"
-                    title="Kecilkan Sidebar (Mode Ikon Saja)"
-                  >
-                    <PanelLeftClose className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Kecilkan</span>
-                  </button>
-                )}
               </div>
-            ) : (
-              onToggleCollapse && (
-                <div className="flex justify-center mb-2">
-                  <button
-                    type="button"
-                    onClick={onToggleCollapse}
-                    className="hidden md:flex p-1.5 rounded-md text-sky-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer"
-                    title="Perluas Sidebar"
-                  >
-                    <PanelLeftOpen className="w-4 h-4 text-sky-400" />
-                  </button>
-                </div>
-              )
             )}
             <nav className="space-y-1">
               {menuItems.map((item) => {
@@ -142,11 +165,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </nav>
           </div>
 
-          {/* Platform Ingestion Feed Status */}
-          <div>
+          {/* Tactical Scraper Pool Feed Status */}
+          <div className="pt-2 border-t border-slate-800/80">
             {!isCollapsed ? (
               <>
-                <div className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 px-2 mb-2 font-mono">
+                <div className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 font-mono px-2 mb-2">
                   INGESTION FEED
                 </div>
                 <div className="bg-slate-900/60 border border-slate-800/80 rounded-md p-2.5 space-y-2 text-xs shadow-sm">
