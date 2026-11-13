@@ -140,7 +140,12 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
         throw new Error('Format respon analisis tidak sesuai.');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menjalankan analisis akun X. Coba periksa koneksi atau input Anda.');
+      const msg = err?.message || '';
+      if (!msg || msg.includes('status code') || msg.includes('Network Error')) {
+        setErrorMsg('Gagal menjalankan analisis akun X. Server sedang sibuk atau target tidak dapat dijangkau. Silakan coba kembali.');
+      } else {
+        setErrorMsg(msg);
+      }
     } finally {
       clearTimeout(t1);
       clearTimeout(t2);
