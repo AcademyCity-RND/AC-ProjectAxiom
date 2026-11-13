@@ -61,7 +61,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <img
               src="/axiom-logo.png"
               alt="Project Axiom"
-              className="h-7 sm:h-8 object-contain"
+              className="h-11 sm:h-13 object-contain"
             />
           </div>
         )}
@@ -87,7 +87,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <img
                 src="/axiom-logo.png"
                 alt="Axiom Forensic & Threat Intelligence"
-                className="h-12 sm:h-14 object-contain drop-shadow-[0_4px_24px_rgba(56,189,248,0.2)]"
+                className="h-20 sm:h-24 object-contain drop-shadow-[0_4px_28px_rgba(56,189,248,0.25)]"
               />
             </div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-sky-400">

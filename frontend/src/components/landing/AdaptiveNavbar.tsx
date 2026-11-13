@@ -117,7 +117,7 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
     }
     const element = document.getElementById(id);
     if (element) {
-      const navbarOffset = 75; // Account for floating navbar height
+      const navbarOffset = 80; // Account for floating navbar height
       const targetY = element.getBoundingClientRect().top + window.scrollY - navbarOffset;
       window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     }
@@ -137,7 +137,7 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
               : 'max-w-7xl mx-auto px-6 py-4 bg-transparent border-b border-transparent'
           }`}
         >
-          {/* Brand Logo (Official Horizontal Dark Logo) */}
+          {/* Brand Logo (Official Horizontal Transparent Logo - 2x Larger) */}
           <a
             href="#"
             onClick={(e) => {
@@ -150,7 +150,9 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
             <img
               src="/axiom-logo.png"
               alt="Project Axiom Forensic & Threat Intelligence"
-              className="h-7 sm:h-8 object-contain"
+              className={`transition-all duration-300 object-contain ${
+                isScrolled ? 'h-9 sm:h-11' : 'h-13 sm:h-16'
+              }`}
             />
           </a>
 

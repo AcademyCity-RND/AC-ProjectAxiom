@@ -54,7 +54,7 @@ export const SplashTransition: React.FC<SplashTransitionProps> = ({ onFinish }) 
           <img
             src="/axiom-logo.png"
             alt="Project Axiom"
-            className="h-8 object-contain mb-1.5"
+            className="h-14 sm:h-16 object-contain mb-2"
           />
           <p className="font-mono text-[11px] text-sky-400 tracking-wider">
             KERNEL READY • V1.0.0-RC

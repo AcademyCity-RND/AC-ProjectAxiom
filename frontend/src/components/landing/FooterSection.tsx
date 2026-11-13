@@ -28,7 +28,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
             <img
               src="/axiom-logo.png"
               alt="Project Axiom Forensic & Threat Intelligence"
-              className="h-7 sm:h-8 object-contain"
+              className="h-12 sm:h-14 object-contain"
             />
           </div>
 

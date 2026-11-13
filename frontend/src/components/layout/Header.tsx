@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Radio, Activity, UserCheck, ShieldAlert, LogOut, Menu, X } from 'lucide-react';
+import { Radio, Activity, UserCheck, ShieldAlert, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface HeaderProps {
@@ -36,8 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="h-16 shrink-0 border-b border-slate-800/80 bg-[#0A0E17]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between z-30 transition-colors">
-      {/* Brand & Subtitle with Official Horizontal Dark Logo */}
+    <header className="h-18 sm:h-20 shrink-0 border-b border-slate-800/80 bg-[#0A0E17]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between z-30 transition-colors">
+      {/* Brand & Subtitle with Official Horizontal Dark Logo (Enlarged 2x) */}
       <div className="flex items-center gap-2.5 sm:gap-3">
         {onToggleMobileMenu && (
           <button
@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
           <img
             src="/axiom-logo.png"
             alt="AXIOM Forensic & Threat Intelligence"
-            className="h-8 sm:h-9 object-contain"
+            className="h-13 sm:h-15 object-contain"
           />
           <span className="hidden sm:inline-block text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/25 font-semibold font-mono shrink-0">
             PUSSIBERAD
