@@ -28,43 +28,67 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin 
   const [activeSection, setActiveSection] = useState<string>('hero');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
-  // Scroll listener for sticky floating transition & active section tracking
+  // Scroll listener for sticky floating transition & active section tracking using getBoundingClientRect
   useEffect(() => {
-    const handleScroll = () => {
-      // 1. Scrolled state toggle
+    let ticking = false;
+
+    const updateActiveSection = () => {
+      // 1. Scrolled state toggle (pill vs transparent header)
       if (window.scrollY > 40) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
       }
 
-      // 2. Reactive active section detection
-      const scrollPosition = window.scrollY + 180;
-      let currentSection = 'hero';
+      // 2. Reactive active section detection using getBoundingClientRect
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const scrollHeight = document.documentElement.scrollHeight;
 
+      // Special case: at the very top of the page
+      if (scrollY < 80) {
+        setActiveSection('hero');
+        ticking = false;
+        return;
+      }
+
+      // Special case: near or at the bottom of the page -> activate 'about'
+      if (windowHeight + scrollY >= scrollHeight - 80) {
+        setActiveSection('about');
+        ticking = false;
+        return;
+      }
+
+      // Reading probe threshold from top of viewport:
+      // ~220px or 35% of viewport height provides natural user focus alignment
+      const probeY = Math.min(240, windowHeight * 0.35);
+
+      // Find the last section whose top edge has passed or reached the probe line
+      let matchedSection = 'hero';
       for (const item of NAV_ITEMS) {
         const el = document.getElementById(item.id);
         if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPosition >= top && scrollPosition < top + height) {
-            currentSection = item.id;
-            break;
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= probeY) {
+            matchedSection = item.id;
           }
         }
       }
 
-      // Special check: if near bottom of page, activate last item
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 50) {
-        currentSection = 'about';
-      }
+      setActiveSection(matchedSection);
+      ticking = false;
+    };
 
-      setActiveSection(currentSection);
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateActiveSection);
+        ticking = true;
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     // Run once on mount to determine initial section
-    handleScroll();
+    updateActiveSection();
 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -78,7 +102,9 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({ onNavigateLogin 
     }
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      const navbarOffset = 75; // Account for floating navbar height
+      const targetY = element.getBoundingClientRect().top + window.scrollY - navbarOffset;
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     }
   };
 

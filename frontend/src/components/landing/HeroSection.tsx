@@ -6,12 +6,13 @@ export const HeroSection: React.FC = () => {
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+      const targetY = el.getBoundingClientRect().top + window.scrollY - 75;
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="relative min-h-[90vh] flex flex-col justify-center items-center text-center px-4 pt-32 pb-16 overflow-hidden">
+    <section id="hero" className="relative min-h-[90vh] flex flex-col justify-center items-center text-center px-4 pt-32 pb-16 overflow-hidden">
       {/* Background Subtle Radial Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-sky-500/5 blur-[120px] rounded-full pointer-events-none" />
 
