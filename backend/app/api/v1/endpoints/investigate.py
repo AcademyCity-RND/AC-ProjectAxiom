@@ -306,6 +306,14 @@ def list_investigation_cases(
             else:
                 display_name = (actor.display_name or (f"@{actor.username}" if actor and actor.username else None)) if actor else None
 
+        avatar_url = None
+        if actor:
+            avatar_url = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
+        elif is_event and c.result_summary:
+            host_meta = c.result_summary.get("host_metadata", {})
+            creator = host_meta.get("creator", {})
+            avatar_url = creator.get("avatar_url") or host_meta.get("thumbnail_url")
+
         result.append({
             "case_id": c.id,
             "target": c.target,
@@ -314,6 +322,7 @@ def list_investigation_cases(
             "verdict": verdict,
             "confidence": confidence,
             "display_name": display_name,
+            "avatar_url": avatar_url,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "completed_at": c.completed_at.isoformat() if c.completed_at else None,
         })
@@ -368,13 +377,20 @@ def get_investigation_case(
         display_name = creator_name or f"{case.platform.upper()} Event Content"
         bio = content_title or f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)"
 
+        event_avatar = (
+            creator.get("avatar_url")
+            or host_meta.get("thumbnail_url")
+            or (creator.get("profile_image_url") if isinstance(creator, dict) else None)
+        )
         actor_data = {
             "username": creator_name or case.target,
             "display_name": display_name,
             "bio": bio,
+            "avatar_url": event_avatar,
             "followers_count": uniq_c,
             "following_count": tot_c,
             "is_verified": False,
+            "account_created_at": None,
             "profile_metadata": {
                 "is_event": True,
                 "event_url": case.target,
@@ -383,16 +399,20 @@ def get_investigation_case(
                 "unique_commenters": uniq_c,
                 "cib_clusters_count": summary.get("cib_clusters_count", 0),
                 "burst_ratio": summary.get("temporal_anomaly", {}).get("burst_ratio", 0.0),
+                "profile_image_url": event_avatar,
             }
         }
     elif actor:
+        avatar_url = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
         actor_data = {
             "username": actor.username,
             "display_name": actor.display_name,
             "bio": actor.bio,
+            "avatar_url": avatar_url,
             "followers_count": actor.followers_count,
             "following_count": actor.following_count,
             "is_verified": actor.is_verified,
+            "account_created_at": actor.account_created_at.isoformat() if actor.account_created_at else None,
             "profile_metadata": actor.profile_metadata
         }
 
@@ -864,6 +884,28 @@ async def guest_analyze(
             detail="Format target tidak valid. Masukkan username X (@handle) atau URL cuitan yang valid."
         )
 
+    # Catat jejak audit khusus aktivitas tamu (semua tamu dikelompokkan sebagai 'guest' tanpa melacak IP / akun pribadi)
+    from app.services.audit_logger import log_activity
+    try:
+        log_activity(
+            db=db,
+            username="guest",
+            role="guest",
+            action="SCRAPE_INVESTIGATION",
+            target=f"@{target_username}",
+            ip_address="guest",
+            details={
+                "platform": payload.platform,
+                "mode": payload.mode,
+                "target": target_username,
+                "is_guest": True,
+                "client": "guest_sandbox",
+            },
+            status="SUCCESS",
+        )
+    except Exception as e:
+        logger.warning(f"Gagal mencatat audit log aktivitas tamu: {e}")
+
     try:
         # 2. Cek apakah target sudah pernah diinvestigasi secara valid sebelumnya (memiliki ActorProfile & DetectionResult)
         existing_case = (
@@ -973,8 +1015,34 @@ async def guest_analyze(
                         result_summary=res_data
                     )
                     db.add(guest_case)
+
+                    guest_actor = ActorProfile(
+                        case_id=guest_case_id,
+                        username=actor.username,
+                        platform=existing_case.platform,
+                        display_name=actor.display_name,
+                        bio=actor.bio,
+                        followers_count=actor.followers_count,
+                        following_count=actor.following_count,
+                        is_verified=actor.is_verified,
+                        account_created_at=actor.account_created_at,
+                        profile_metadata=actor.profile_metadata
+                    )
+                    db.add(guest_actor)
+
+                    guest_det = DetectionResult(
+                        case_id=guest_case_id,
+                        actor_username=actor.username,
+                        predicted_class=predicted_class,
+                        confidence=confidence,
+                        class_probabilities=det.class_probabilities,
+                        extracted_features=det.extracted_features,
+                        threat_attribution=det.threat_attribution
+                    )
+                    db.add(guest_det)
                     db.commit()
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"Gagal mencatat guest case & actor: {e}")
                     db.rollback()
 
                 return {

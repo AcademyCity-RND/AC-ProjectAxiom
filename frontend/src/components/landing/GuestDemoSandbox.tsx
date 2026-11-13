@@ -123,16 +123,27 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
     setErrorMsg(null);
     setLoadingStep(1);
 
-    // Dynamic step animation timer
-    const t1 = setTimeout(() => setLoadingStep(2), 800);
-    const t2 = setTimeout(() => setLoadingStep(3), 1800);
-
     try {
-      const response = await api.guestAnalyze({
-        target: clean,
-        platform: 'x',
-        mode: treatAsUrl ? 'tweet_url' : 'account',
-      });
+      // Jalankan pemanggilan API bersamaan dengan formalitas visual pipeline multi-step
+      // sehingga kasus yang telah ter-cache tetap memperlihatkan alur radar deteksi secara elegan
+      const [response] = await Promise.all([
+        api.guestAnalyze({
+          target: clean,
+          platform: 'x',
+          mode: treatAsUrl ? 'tweet_url' : 'account',
+        }),
+        (async () => {
+          // Tahap 1: Ingestion & Scraping Gateway (850ms)
+          setLoadingStep(1);
+          await new Promise((resolve) => setTimeout(resolve, 850));
+          // Tahap 2: Ekstraksi 21 Parameter Perilaku Kognitif (950ms)
+          setLoadingStep(2);
+          await new Promise((resolve) => setTimeout(resolve, 950));
+          // Tahap 3: Inferensi Model XGBoost & Audit Forensik (950ms)
+          setLoadingStep(3);
+          await new Promise((resolve) => setTimeout(resolve, 950));
+        })(),
+      ]);
 
       if (response && response.data) {
         setResult(response.data);
@@ -147,8 +158,6 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
         setErrorMsg(msg);
       }
     } finally {
-      clearTimeout(t1);
-      clearTimeout(t2);
       setIsLoading(false);
     }
   };

@@ -154,9 +154,11 @@ export interface ActorSummary {
   username: string;
   display_name?: string;
   bio?: string;
+  avatar_url?: string | null;
   followers_count: number;
   following_count: number;
   is_verified: boolean;
+  account_created_at?: string | null;
   profile_metadata?: Record<string, any>;
 }
 
@@ -250,6 +252,7 @@ export interface CaseSummary {
   verdict?: string;
   confidence?: number | null;
   display_name?: string | null;
+  avatar_url?: string | null;
   created_at?: string | null;
   completed_at?: string | null;
 }

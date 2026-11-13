@@ -143,6 +143,17 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
   const eventBadge = getEventBadge();
 
+  // Extract avatar URL (real photo from X/YouTube/Instagram)
+  const avatarUrl =
+    actor?.avatar_url ||
+    (actor?.profile_metadata as any)?.profile_image_url ||
+    (resultSummary as any)?.actor_avatar_url;
+
+  const hostAvatarUrl =
+    (hostMetadata?.creator as any)?.avatar_url ||
+    (hostMetadata?.creator as any)?.profile_image_url ||
+    (hostMetadata as any)?.thumbnail_url;
+
   const handleAddToWatchlist = async () => {
     setIsAdding(true);
     setWatchlistError(null);
@@ -198,20 +209,44 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Profile / Event Info */}
         <div className="flex items-start gap-3.5 min-w-0 flex-1">
-          <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner">
+          <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner overflow-hidden">
             {isEvent ? (
-              <PlatformIcon
-                platform={platform}
-                className={`w-6 h-6 ${
-                  platform === 'youtube'
-                    ? 'text-rose-400'
-                    : platform === 'instagram'
-                    ? 'text-amber-400'
-                    : 'text-sky-400'
-                }`}
+              hostAvatarUrl ? (
+                <img
+                  src={hostAvatarUrl}
+                  alt={hostMetadata?.creator?.username_or_channel || 'Kreator'}
+                  referrerPolicy="no-referrer"
+                  className="w-12 h-12 rounded-lg object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <PlatformIcon
+                  platform={platform}
+                  className={`w-6 h-6 ${
+                    platform === 'youtube'
+                      ? 'text-rose-400'
+                      : platform === 'instagram'
+                      ? 'text-amber-400'
+                      : 'text-sky-400'
+                  }`}
+                />
+              )
+            ) : avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={actor?.display_name || actor?.username || target}
+                referrerPolicy="no-referrer"
+                className="w-12 h-12 rounded-lg object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
               />
             ) : (
-              <User className="w-6 h-6 text-slate-400" />
+              <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sky-400 text-base font-mono">
+                {(actor?.display_name || actor?.username || target).replace('@', '').charAt(0).toUpperCase()}
+              </div>
             )}
           </div>
 

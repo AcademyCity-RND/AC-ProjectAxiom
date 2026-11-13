@@ -280,16 +280,33 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                       return (
                         <>
                           <td className="py-3.5 px-3.5 sm:px-5 font-medium text-sky-400 group-hover:text-sky-300">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate block max-w-xs md:max-w-sm text-xs font-semibold text-white">
-                                {formatted.label}
-                              </span>
+                            <div className="flex items-center gap-2.5">
+                              {rc.avatar_url ? (
+                                <img
+                                  src={rc.avatar_url}
+                                  alt={formatted.label}
+                                  referrerPolicy="no-referrer"
+                                  className="w-8 h-8 rounded-full object-cover border border-slate-700 shrink-0"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs shrink-0 font-mono">
+                                  {formatted.label.replace('@', '').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <span className="truncate block max-w-xs md:max-w-sm text-xs font-semibold text-white">
+                                  {formatted.label}
+                                </span>
+                                {formatted.subLabel && (
+                                  <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5 truncate max-w-xs">
+                                    {formatted.subLabel}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            {formatted.subLabel && (
-                              <span className="block text-[11px] text-slate-400 font-sans font-normal mt-0.5 truncate max-w-xs">
-                                {formatted.subLabel}
-                              </span>
-                            )}
                           </td>
                           <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs">
                             <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold inline-flex items-center gap-1.5 ${formatted.badgeColor}`}>
