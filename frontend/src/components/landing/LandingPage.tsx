@@ -16,26 +16,47 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateLogin }) => {
-  // Bidirectional Scroll Reveal using IntersectionObserver
+  // Bidirectional Direction-Aware Scroll Reveal using IntersectionObserver
   useEffect(() => {
     const sections = document.querySelectorAll('.reveal-section');
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          const el = entry.target as HTMLElement;
           if (entry.isIntersecting) {
-            entry.target.classList.remove('opacity-0', 'translate-y-8');
-            entry.target.classList.add('opacity-100', 'translate-y-0');
+            // Masuk viewport (baik dari atas maupun dari bawah): kembali ke posisi normal dan opasitas 100
+            el.classList.remove(
+              'opacity-0',
+              'opacity-10',
+              'translate-y-10',
+              '-translate-y-10',
+              'translate-y-8',
+              '-translate-y-8'
+            );
+            el.classList.add('opacity-100', 'translate-y-0');
           } else {
-            // Memudar lembut saat ditinggalkan (dua arah)
-            entry.target.classList.remove('opacity-100', 'translate-y-0');
-            entry.target.classList.add('opacity-10', 'translate-y-8');
+            // Meninggalkan viewport (dua arah):
+            el.classList.remove('opacity-100', 'translate-y-0');
+
+            // Deteksi arah keluar berdasarkan posisi terhadap viewport:
+            if (entry.boundingClientRect.top < 0) {
+              // Elemen berada di ATAS layar (user scroll ke bawah melewati elemen)
+              // Saat user scroll balik ke atas, elemen akan muncul turun dari ATAS ke BAWAH (-translate-y-10 -> 0)
+              el.classList.remove('translate-y-10', 'translate-y-8');
+              el.classList.add('opacity-10', '-translate-y-10');
+            } else {
+              // Elemen berada di BAWAH layar (user scroll ke atas melewati elemen)
+              // Saat user scroll turun, elemen akan muncul naik dari BAWAH ke ATAS (translate-y-10 -> 0)
+              el.classList.remove('-translate-y-10', '-translate-y-8');
+              el.classList.add('opacity-10', 'translate-y-10');
+            }
           }
         });
       },
       {
         threshold: 0.12,
-        rootMargin: '0px 0px -50px 0px',
+        rootMargin: '0px 0px -40px 0px',
       }
     );
 
@@ -60,41 +81,41 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateLogin }) => 
       </div>
 
       {/* 4. Live Guest Demo Sandbox (Early Priority) */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <GuestDemoSandbox onNavigateLogin={onNavigateLogin} />
       </div>
 
       {/* 5. Core Features Section */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <CoreFeaturesSection />
       </div>
 
       {/* 6. Visual Workflow Section */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <VisualWorkflowSection />
       </div>
 
       {/* 7. Documentation & Installation Guide (Laravel Docs-Style) */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <DocumentationViewer />
       </div>
 
       {/* 8. Project Changelog & Roadmap */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <ChangelogTimeline />
       </div>
 
       {/* 9. Author & Development Team (AcademyCity-RND) */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <TeamSection />
       </div>
 
       {/* 10. About Axiom & Forensic Integrity */}
-      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-10">
         <AboutManifestoSection />
       </div>
 
-      {/* 10. Minimalist Footer */}
+      {/* 11. Minimalist Footer */}
       <FooterSection onNavigateLogin={onNavigateLogin} />
     </div>
   );
