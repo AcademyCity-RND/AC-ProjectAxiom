@@ -12,7 +12,7 @@ router = APIRouter()
 
 def ensure_default_users_seeded(db: Session):
     """
-    Memastikan akun default 'admin' dan 'user' terdaftar di tabel PostgreSQL.
+    Memastikan akun default 'admin', 'analis', dan 'user' terdaftar di tabel PostgreSQL.
     """
     admin_user = db.execute(select(User).where(User.username == "admin")).scalar_one_or_none()
     if not admin_user:
@@ -34,6 +34,26 @@ def ensure_default_users_seeded(db: Session):
         )
         db.add(user_acc)
 
+    analis_acc = db.execute(select(User).where(User.username == "analis")).scalar_one_or_none()
+    if not analis_acc:
+        analis_acc = User(
+            username="analis",
+            hashed_password=hash_password("AxiomUser2026!"),
+            role="user",
+            is_active=True,
+        )
+        db.add(analis_acc)
+
+    analisis_siber_acc = db.execute(select(User).where(User.username == "analisis_siber")).scalar_one_or_none()
+    if not analis_siber_acc:
+        analisis_siber_acc = User(
+            username="analisis_siber",
+            hashed_password=hash_password("AxiomUser2026!"),
+            role="user",
+            is_active=True,
+        )
+        db.add(analisis_siber_acc)
+
     db.commit()
 
 
@@ -49,11 +69,11 @@ def login(form_data: UserLogin, db: Session = Depends(get_db)):
     user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
 
     # Fallback bootstrap jika akun default belum tersimpan di DB
-    if not user and clean_username in ("admin", "user", "user01"):
+    if not user and clean_username in ("admin", "user", "analis", "analisis_siber", "analis_siber", "operator", "user01"):
         ensure_default_users_seeded(db)
         user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
-        if not user and clean_username == "user01":
-            user = db.execute(select(User).where(User.username == "user")).scalar_one_or_none()
+        if not user and clean_username in ("analis_siber", "analisis_siber", "operator", "user01"):
+            user = db.execute(select(User).where(User.username.in_(["analis", "user"]))).scalar_one_or_none()
 
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(

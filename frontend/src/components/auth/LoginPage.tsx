@@ -9,9 +9,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Activity,
-  Terminal,
   ArrowLeft,
-  Sparkles,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -53,7 +51,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <button
             type="button"
             onClick={onNavigateBack}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-white transition-all shadow-sm cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-sky-400" />
             <span>Kembali ke Beranda &amp; Demo Publik</span>
@@ -99,47 +97,51 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           {/* Login Card (Matches Landing Page Aesthetic) */}
           <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl space-y-5">
             {/* System Notice */}
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-slate-400 leading-relaxed">
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-[11px] text-slate-400 leading-relaxed font-mono">
               <span className="text-amber-400 font-semibold">• Sistem Internal Tertutup:</span> Akses
-              khusus staf terdaftar. Tidak ada registrasi publik mandiri.
+              khusus personel dinas terdaftar. Tidak ada registrasi mandiri publik.
             </div>
 
-            {/* Quick Role Presets */}
+            {/* Quick Role Presets (1-Click Fill) */}
             <div className="space-y-2">
               <div className="text-[11px] font-semibold uppercase tracking-wider font-mono text-slate-400">
-                Pilih Akun Evaluator (1-Klik Isi):
+                Pilih Akun Personel (Pintasan Evaluasi):
               </div>
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => handleSelectPreset('admin', 'AxiomAdmin2026!')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                     username === 'admin'
                       ? 'border-sky-500/60 bg-sky-500/10 text-white shadow-sm'
                       : 'border-slate-800 bg-slate-950/70 hover:border-slate-700 text-slate-300'
                   }`}
                 >
-                  <div className="text-xs font-bold font-mono flex items-center justify-between">
-                    <span>ADMINISTRATOR</span>
-                    {username === 'admin' && <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" />}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold font-mono text-white">admin</span>
+                    <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      ADMIN ROOT
+                    </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Akses Penuh Audit &amp; Data</div>
+                  <div className="text-[10px] font-mono text-slate-400">AxiomAdmin2026!</div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleSelectPreset('operator', 'AxiomOperator2026!')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    username === 'operator'
+                  onClick={() => handleSelectPreset('analis', 'AxiomUser2026!')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    username === 'analis' || username === 'user' || username === 'analisis_siber'
                       ? 'border-sky-500/60 bg-sky-500/10 text-white shadow-sm'
                       : 'border-slate-800 bg-slate-950/70 hover:border-slate-700 text-slate-300'
                   }`}
                 >
-                  <div className="text-xs font-bold font-mono flex items-center justify-between">
-                    <span>ANALIS SIBER</span>
-                    {username === 'operator' && <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" />}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold font-mono text-white">analis</span>
+                    <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                      ANALIS SIBER
+                    </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Investigasi Kasus Taktis</div>
+                  <div className="text-[10px] font-mono text-slate-400">AxiomUser2026!</div>
                 </button>
               </div>
             </div>
@@ -164,7 +166,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Masukkan username..."
+                    placeholder="Masukkan username operator/analis..."
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 pl-10 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all"
                     required
                   />
@@ -224,8 +226,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 SESI JWT TERENKRIPSI:
               </div>
               <p className="leading-relaxed">
-                Setiap permintaan dilindungi token JWT Bearer (kadaluwarsa 24 jam). Sesi dan IP dicatat
-                dalam log audit kepatuhan.
+                Setiap sesi dilindungi token JWT Bearer (kadaluwarsa 24 jam). Sesi dan alamat IP dicatat
+                dalam log audit forensik militer.
               </p>
             </div>
           </div>
