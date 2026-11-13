@@ -812,28 +812,6 @@ async def guest_analyze(
 
     clean_target = payload.target.strip().lstrip("@")
 
-    # 1. Cek apakah cocok dengan salah satu sampel benchmark cepat
-    samples = get_guest_samples()["samples"]
-    for s in samples:
-        if s["handle"].lower() == clean_target.lower() or (s.get("target_url") and clean_target.lower() in s["target_url"].lower()):
-            case_id = str(uuid.uuid4())
-            case = InvestigationCase(
-                id=case_id,
-                target=s["handle"],
-                platform=payload.platform,
-                status="completed",
-                created_by="guest",
-                created_at=datetime.now(timezone.utc),
-                completed_at=datetime.now(timezone.utc),
-            )
-            db.add(case)
-            db.commit()
-            return {
-                "status": "completed",
-                "case_id": case_id,
-                "is_guest": True,
-                "data": s
-            }
 
     # 2. Cek apakah target sudah pernah diinvestigasi sebelumnya dan berstatus completed
     existing_case = (

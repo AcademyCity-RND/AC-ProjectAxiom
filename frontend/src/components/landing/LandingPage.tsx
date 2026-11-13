@@ -7,6 +7,7 @@ import { CoreFeaturesSection } from './CoreFeaturesSection';
 import { VisualWorkflowSection } from './VisualWorkflowSection';
 import { DocumentationViewer } from './DocumentationViewer';
 import { ChangelogTimeline } from './ChangelogTimeline';
+import { TeamSection } from './TeamSection';
 import { AboutManifestoSection } from './AboutManifestoSection';
 import { FooterSection } from './FooterSection';
 
@@ -83,7 +84,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateLogin }) => 
         <ChangelogTimeline />
       </div>
 
-      {/* 9. About Axiom & Anti-Slop Manifesto */}
+      {/* 9. Author & Development Team (AcademyCity-RND) */}
+      <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
+        <TeamSection />
+      </div>
+
+      {/* 10. About Axiom & Forensic Integrity */}
       <div className="reveal-section transition-all duration-700 ease-out opacity-0 translate-y-8">
         <AboutManifestoSection />
       </div>

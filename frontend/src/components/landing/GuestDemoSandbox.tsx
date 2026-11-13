@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Search,
-  Shield,
   Bot,
   Users,
   UserCheck,
@@ -12,8 +11,12 @@ import {
   Loader2,
   Sparkles,
   CheckCircle,
+  RotateCcw,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { PlatformIcon } from '../common/PlatformIcon';
+import type { PlatformType } from '../../types';
 
 interface GuestDemoSandboxProps {
   onNavigateLogin: () => void;
@@ -40,64 +43,79 @@ interface AnalysisResultData {
 
 export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLogin }) => {
   const [mode, setMode] = useState<'account' | 'tweet'>('account');
+  const [platform, setPlatform] = useState<PlatformType>('x');
   const [inputVal, setInputVal] = useState<string>('');
+  const [sampleCount, setSampleCount] = useState<number>(50);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingStep, setLoadingStep] = useState<number>(1);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResultData | null>(null);
-  const [samples, setSamples] = useState<any[]>([]);
 
-  // Fetch benchmark sample list on mount
-  useEffect(() => {
-    api
-      .getGuestSamples()
-      .then((res) => {
-        if (res?.samples) {
-          setSamples(res.samples);
-          // Set default result to first sample so users immediately see an example
-          const initial = res.samples[0];
-          setResult(initial);
-          setInputVal(`@${initial.handle}`);
-        }
-      })
-      .catch((err) => {
-        console.warn('Gagal memuat sampel guest:', err);
-      });
-  }, []);
+  const detectPlatformFromUrl = (url: string): PlatformType => {
+    const lower = url.toLowerCase();
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
+    if (lower.includes('instagram.com')) return 'instagram';
+    return 'x';
+  };
 
-  const handleSelectSample = (sample: any) => {
+  const isUrlString = (text: string): boolean => {
+    const trimmed = text.trim().toLowerCase();
+    return (
+      trimmed.startsWith('http://') ||
+      trimmed.startsWith('https://') ||
+      trimmed.includes('youtube.com') ||
+      trimmed.includes('youtu.be') ||
+      trimmed.includes('instagram.com') ||
+      trimmed.includes('x.com/') ||
+      trimmed.includes('twitter.com/')
+    );
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputVal(val);
     setErrorMsg(null);
-    setResult(sample);
-    if (sample.mode === 'tweet_url') {
+
+    // Auto-detect platform and mode if user pastes a URL
+    if (isUrlString(val)) {
       setMode('tweet');
-      setInputVal(sample.target_url || `https://x.com/${sample.handle}/status/1852000000000000000`);
-    } else {
+      setPlatform(detectPlatformFromUrl(val));
+    } else if (val.trim().startsWith('@') && mode === 'tweet') {
       setMode('account');
-      setInputVal(`@${sample.handle}`);
+      setPlatform('x');
     }
   };
 
   const handleRunAnalysis = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const clean = inputVal.trim();
+    let clean = inputVal.trim();
     if (!clean) {
-      setErrorMsg('Harap masukkan username atau URL cuitan.');
+      setErrorMsg('Masukkan username target (@handle) atau tautan URL konten.');
       return;
+    }
+
+    const treatAsUrl = mode === 'tweet' || isUrlString(clean);
+    if (treatAsUrl) {
+      if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+        clean = `https://${clean}`;
+      }
+    } else {
+      clean = clean.startsWith('@') ? clean.slice(1) : clean;
     }
 
     setIsLoading(true);
     setErrorMsg(null);
     setLoadingStep(1);
 
-    // Multi-step radar stepper feedback
-    const t1 = setTimeout(() => setLoadingStep(2), 700);
-    const t2 = setTimeout(() => setLoadingStep(3), 1500);
+    // Dynamic step animation timer
+    const t1 = setTimeout(() => setLoadingStep(2), 800);
+    const t2 = setTimeout(() => setLoadingStep(3), 1800);
 
     try {
       const response = await api.guestAnalyze({
         target: clean,
-        platform: 'x',
-        mode: mode === 'tweet' ? 'tweet_url' : 'account',
+        platform: platform,
+        mode: treatAsUrl ? 'tweet_url' : 'account',
       });
 
       if (response && response.data) {
@@ -106,12 +124,18 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
         throw new Error('Format respon analisis tidak sesuai.');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menjalankan analisis akun. Coba beberapa saat lagi.');
+      setErrorMsg(err.message || 'Gagal menjalankan analisis akun. Coba periksa koneksi atau input Anda.');
     } finally {
       clearTimeout(t1);
       clearTimeout(t2);
       setIsLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    setResult(null);
+    setInputVal('');
+    setErrorMsg(null);
   };
 
   const getBadgeStyle = (classification: string) => {
@@ -151,50 +175,92 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-sky-400 mb-3">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Uji Coba Langsung (Guest Mode)</span>
+            <span>Investigasi Publik Mandiri (Guest Mode)</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-100">
             Interactive Guest Demo Sandbox
           </h2>
           <p className="mt-2 text-sm text-slate-400 max-w-xl mx-auto">
-            Uji coba instan deteksi bot dan buzzer tanpa registrasi. Masukkan username atau link
-            cuitan di bawah ini.
+            Audit forensik akun dan konten media sosial secara langsung. Sistem memanen data publik
+            secara real-time dan menguji 21 parameter perilaku kognitif tanpa perlu login.
           </p>
         </div>
 
         {/* Sandbox Container */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-7 shadow-2xl">
-          {/* Mode Tabs */}
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-4 mb-6">
-            <button
-              onClick={() => {
-                setMode('account');
-                setInputVal('@bubbles_boba9');
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                mode === 'account'
-                  ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Mode 1: Analisis Akun X</span>
-            </button>
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-8 shadow-2xl backdrop-blur-md">
+          {/* Form Parameters Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5 mb-6">
+            {/* Mode Toggle */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-950 border border-slate-800 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('account');
+                  setErrorMsg(null);
+                }}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  mode === 'account'
+                    ? 'bg-slate-800 text-sky-400 border border-slate-700 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Akun (@Username)</span>
+              </button>
 
-            <button
-              onClick={() => {
-                setMode('tweet');
-                setInputVal('https://x.com/alutsista_update/status/1852000000000000000');
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                mode === 'tweet'
-                  ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span>Mode 2: Analisis URL Cuitan</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('tweet');
+                  setErrorMsg(null);
+                }}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  mode === 'tweet'
+                    ? 'bg-slate-800 text-sky-400 border border-slate-700 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Postingan (URL Konten)</span>
+              </button>
+            </div>
+
+            {/* Platform Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 hidden lg:inline">Platform:</span>
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                {(['x', 'instagram', 'youtube'] as PlatformType[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPlatform(p)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      platform === p
+                        ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <PlatformIcon platform={p} className="w-3.5 h-3.5" />
+                    <span className="capitalize">{p === 'x' ? 'X / Twitter' : p}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sample Activity Limit */}
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+              <span>Sampel:</span>
+              <select
+                value={sampleCount}
+                onChange={(e) => setSampleCount(Number(e.target.value))}
+                className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-sky-500"
+              >
+                <option value={30}>30 Aktivitas</option>
+                <option value={50}>50 Aktivitas (Rekomendasi)</option>
+                <option value={100}>100 Aktivitas</option>
+              </select>
+            </div>
           </div>
 
           {/* Input Form */}
@@ -204,11 +270,11 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
               <input
                 type="text"
                 value={inputVal}
-                onChange={(e) => setInputVal(e.target.value)}
+                onChange={handleInputChange}
                 placeholder={
                   mode === 'account'
-                    ? 'Masukkan handle misal: @bubbles_boba9'
-                    : 'Masukkan URL cuitan misal: https://x.com/.../status/...'
+                    ? 'Masukkan username target, misal: jokowi, prabowo, alutsista_ri...'
+                    : 'Tempel tautan URL postingan, misal: https://x.com/.../status/...'
                 }
                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent font-mono"
               />
@@ -217,7 +283,7 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-3 rounded-xl bg-sky-400 hover:bg-sky-300 disabled:bg-slate-800 text-slate-950 disabled:text-slate-500 font-semibold text-sm transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-sky-500/20"
+              className="px-6 py-3 rounded-xl bg-sky-400 hover:bg-sky-300 disabled:bg-slate-800 text-slate-950 disabled:text-slate-500 font-semibold text-sm transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-sky-500/20 active:scale-[0.98] cursor-pointer"
             >
               {isLoading ? (
                 <>
@@ -226,38 +292,23 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                 </>
               ) : (
                 <>
-                  <span>Eksekusi Analisis</span>
+                  <span>Mulai Investigasi</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Pre-cached Sample Pills */}
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-            <span className="text-slate-500">Uji Cepat Sampel:</span>
-            {samples.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => handleSelectSample(s)}
-                className="px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors font-mono text-[11px] border border-slate-700/60"
-              >
-                @{s.handle}
-              </button>
-            ))}
-          </div>
-
           {/* Multi-Step Loading Radar Banner */}
           {isLoading && (
-            <div className="mt-6 p-4 rounded-xl bg-slate-950/80 border border-sky-500/30 flex flex-col gap-2 animate-in fade-in duration-150">
+            <div className="mt-6 p-4 rounded-xl bg-slate-950/90 border border-sky-500/30 flex flex-col gap-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs text-slate-300">
                 <span className="font-mono text-sky-400 font-medium">
                   {loadingStep === 1 && '[Tahap 1/3] Menghubungkan gateway OSINT & memanen aktivitas...'}
                   {loadingStep === 2 && '[Tahap 2/3] Mengekstraksi 21 parameter perilaku kognitif...'}
                   {loadingStep === 3 && '[Tahap 3/3] Menjalankan inferensi model XGBoost terkalibrasi...'}
                 </span>
-                <span className="text-slate-500 font-mono">{loadingStep * 33}%</span>
+                <span className="text-slate-400 font-mono font-bold">{loadingStep * 33}%</span>
               </div>
               <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                 <div
@@ -271,8 +322,24 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
           {/* Error Message Alert */}
           {errorMsg && (
             <div className="mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
               <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Clean Ready State Placeholder (When No Analysis Has Been Run) */}
+          {!result && !isLoading && !errorMsg && (
+            <div className="mt-8 p-8 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center flex flex-col items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mb-3">
+                <Search className="w-5 h-5 text-sky-400" />
+              </div>
+              <h4 className="text-sm font-semibold text-slate-200">
+                Konsol Investigasi Siap Digunakan
+              </h4>
+              <p className="text-xs text-slate-400 max-w-md mt-1 leading-relaxed">
+                Ketikkan handle akun target (@username) atau tautan konten media sosial pada kolom di
+                atas untuk memulai pemindaian otomatis. Sistem tidak menyimpan jejak pencarian Anda.
+              </p>
             </div>
           )}
 
@@ -284,9 +351,20 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-200 text-base">
-                        {result.display_name?.charAt(0)?.toUpperCase() || 'U'}
-                      </div>
+                      {result.avatar_url ? (
+                        <img
+                          src={result.avatar_url}
+                          alt={result.handle}
+                          className="w-12 h-12 rounded-full object-cover border border-slate-700"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-200 text-base">
+                          {result.display_name?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                      )}
                       <div>
                         <h4 className="font-bold text-slate-100 text-base leading-tight">
                           {result.display_name}
@@ -312,7 +390,7 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                     <div>
                       <span className="text-slate-500 text-[11px] block">Sampel Dianalisis:</span>
                       <span className="font-medium text-slate-200">
-                        {result.sample_posts_count || 50} aktivitas
+                        {result.sample_posts_count || sampleCount} aktivitas
                       </span>
                     </div>
                     <div>
@@ -332,9 +410,14 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
 
                 <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                   <span>ID Kasus: {result.id}</span>
-                  <span className="text-emerald-400 flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" /> Data Tervalidasi
-                  </span>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Uji Target Lain</span>
+                  </button>
                 </div>
               </div>
 
@@ -386,6 +469,13 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                     {result.explanation}
                   </p>
                 </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-emerald-400 font-mono">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" /> Data Tervalidasi
+                  </span>
+                  <span className="text-slate-500 font-sans">Model XGBoost Terkalibrasi</span>
+                </div>
               </div>
             </div>
           )}
@@ -398,7 +488,7 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
               </div>
               <div>
                 <h5 className="text-xs sm:text-sm font-semibold text-slate-200">
-                  Ingin melihat Graf Jejaring (SNA) & 100% Audit Komentator?
+                  Ingin melihat Graf Jejaring (SNA) &amp; 100% Audit Komentator?
                 </h5>
                 <p className="text-[11px] text-slate-400">
                   Konsol penuh PUSSIBERAD menyediakan peta interaksi aktor, heatmap sirkadian 24/7,

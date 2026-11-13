@@ -115,10 +115,10 @@ export const DocumentationViewer: React.FC = () => {
                     Langkah 1: Kloning Repositori
                   </h4>
                   <div className="relative p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 flex items-center justify-between">
-                    <code>git clone https://github.com/axiom/project-axiom.git</code>
+                    <code>git clone https://github.com/AcademyCity-RND/AC-ProjectAxiom.git</code>
                     <button
                       onClick={() =>
-                        copyToClipboard('git clone https://github.com/axiom/project-axiom.git', 'c1')
+                        copyToClipboard('git clone https://github.com/AcademyCity-RND/AC-ProjectAxiom.git', 'c1')
                       }
                       className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
                       title="Salin Perintah"

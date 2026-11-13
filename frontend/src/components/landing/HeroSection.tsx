@@ -60,7 +60,7 @@ export const HeroSection: React.FC = () => {
           </button>
 
           <a
-            href="https://github.com"
+            href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-800/80 hover:border-slate-700 bg-slate-950/60 hover:bg-slate-900 text-slate-400 hover:text-slate-200 text-sm font-medium transition-colors"

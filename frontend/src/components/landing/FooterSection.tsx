@@ -38,7 +38,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onNavigateLogin })
         {/* Right: Quick Links & Back to Top */}
         <div className="flex items-center gap-4 text-xs">
           <a
-            href="https://github.com"
+            href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-slate-200 flex items-center gap-1 transition-colors"
