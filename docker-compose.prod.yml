@@ -36,6 +36,27 @@ services:
     networks:
       - axiom_prod_net
 
+  instagram-scraper:
+    image: ac-instagram-scraper:1.0.0
+    build:
+      context: ../AC-InstagramScraper
+      dockerfile: Dockerfile
+    container_name: axiom_instagram_scraper_prod
+    restart: always
+    ports:
+      # Port 8005 di host agar tidak bertabrakan dengan Axiom Backend (8000) & ChromaDB (8001)
+      - "127.0.0.1:${SCRAPER_HOST_PORT:-8005}:8000"
+    environment:
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - axiom_prod_net
+
   backend:
     image: axiom-backend:1.0.0
     build:
@@ -52,6 +73,8 @@ services:
       - "127.0.0.1:8000:8000"
     env_file:
       - .env
+    environment:
+      - INSTAGRAM_SCRAPER_URL=http://instagram-scraper:8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -62,6 +85,8 @@ services:
       postgres:
         condition: service_healthy
       chromadb:
+        condition: service_started
+      instagram-scraper:
         condition: service_started
     networks:
       - axiom_prod_net
