@@ -172,7 +172,12 @@ def _get_scraper_base_urls() -> List[str]:
     env_url = os.getenv("INSTAGRAM_SCRAPER_URL", "").strip().rstrip("/")
     if env_url:
         urls.append(env_url)
-    for default_url in ["http://instagram-scraper:8000", "http://127.0.0.1:8005", "http://localhost:8005"]:
+    for default_url in [
+        "http://host.docker.internal:8005",
+        "http://instagram-scraper:8000",
+        "http://127.0.0.1:8005",
+        "http://localhost:8005"
+    ]:
         if default_url not in urls:
             urls.append(default_url)
     return urls
@@ -189,16 +194,28 @@ def fetch_instagram_metadata_from_scraper(shortcode: str) -> Optional[Dict[str, 
                     owner = data.get("owner") or {}
                     owner_uname = owner.get("username") or "unknown_creator"
                     owner_name = owner.get("full_name") or owner_uname.replace("_", " ").replace(".", " ").title()
+                    owner_avatar = (
+                        owner.get("profile_picture")
+                        or owner.get("profile_pic_url")
+                        or owner.get("avatar_url")
+                        or ""
+                    )
+                    stats = data.get("stats") or {}
+                    likes = int(stats.get("like_count") or data.get("like_count") or 0)
+                    comments_cnt = int(stats.get("comment_count") or data.get("comment_count") or 0)
+                    thumb_url = data.get("image") or data.get("display_url") or owner_avatar or ""
+
                     return {
                         "shortcode": shortcode,
                         "owner_username": owner_uname,
                         "owner_full_name": owner_name,
                         "owner_followers": owner.get("followers_count", 0),
+                        "owner_avatar_url": owner_avatar,
                         "caption": data.get("caption") or "",
-                        "likes_count": int(data.get("like_count") or 0),
-                        "comments_count": int(data.get("comment_count") or 0),
+                        "likes_count": likes,
+                        "comments_count": comments_cnt,
                         "published_at": data.get("published_at"),
-                        "thumbnail_url": data.get("display_url") or "",
+                        "thumbnail_url": thumb_url,
                         "is_verified": bool(owner.get("is_verified", False))
                     }
         except Exception as e:
@@ -829,6 +846,8 @@ def audit_instagram_event(
             "content_url": f"https://www.instagram.com/{'reels' if ctype == 'reel' else 'p'}/{shortcode}/",
             "content_type": ctype,
             "title_or_caption": meta.get("caption", ""),
+            "title": (meta.get("caption", "") or "").split("\n")[0][:120],
+            "thumbnail_url": meta.get("thumbnail_url") or meta.get("owner_avatar_url") or "",
             "published_at": meta.get("published_at") or datetime.now(timezone.utc).isoformat(),
             "creator": {
                 "username_or_channel": meta.get("owner_username", "Unknown"),
@@ -836,7 +855,8 @@ def audit_instagram_event(
                 "display_name": meta.get("owner_full_name") or meta.get("owner_username"),
                 "subscribers_or_followers": meta.get("owner_followers", 0),
                 "is_verified": meta.get("is_verified", False),
-                "profile_url": f"https://www.instagram.com/{meta.get('owner_username')}/"
+                "profile_url": f"https://www.instagram.com/{meta.get('owner_username')}/",
+                "avatar_url": meta.get("owner_avatar_url") or meta.get("thumbnail_url") or ""
             },
             "engagement": {
                 "views_count": 0,

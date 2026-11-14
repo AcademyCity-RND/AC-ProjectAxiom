@@ -101,6 +101,17 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
         except Exception:
             pass
 
+    # Hitung statistik per username terlebih dahulu
+    from collections import Counter
+    author_counts = Counter()
+    author_sample_comments: Dict[str, str] = {}
+    for act in activities:
+        author = actor_map.get(act.actor_id)
+        uname = author.username if author else "unknown"
+        author_counts[uname] += 1
+        if uname not in author_sample_comments and act.content:
+            author_sample_comments[uname] = act.content.strip()
+
     # 6. Susun Full Comprehensive Commenter Audit Ledger (Tier 2 - 100% Data)
     full_ledger: List[Dict[str, Any]] = []
     for idx, act in enumerate(activities, 1):
@@ -109,17 +120,21 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
         in_cib = username in cib_actors
         in_burst = username in burst_actors
         sim_score = cib_sim_map.get(username, 0.0)
+        c_count = author_counts.get(username, 1)
 
-        # Klasifikasi estimasi individual
+        # Klasifikasi estimasi individual yang terkalibrasi:
         if in_cib or sim_score >= 0.85:
             est_class = "BUZZER"
             risk = 0.90
-        elif in_burst:
+        elif c_count >= 3 and in_burst:
             est_class = "BOT"
-            risk = 0.75
+            risk = 0.70
+        elif c_count >= 2:
+            est_class = "SUSPICIOUS"
+            risk = 0.25
         else:
             est_class = "ORGANIC"
-            risk = 0.15
+            risk = 0.05
 
         metrics = act.metrics or {}
         likes = metrics.get("likes") or metrics.get("likes_count") or 0
@@ -127,7 +142,7 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
 
         full_ledger.append({
             "index": idx,
-            "username": username,
+            "username": username.lstrip("@"),
             "platform": case.platform,
             "post_id": act.platform_post_id or str(act.id),
             "published_at": act.posted_at.isoformat() if act.posted_at else "",
@@ -142,27 +157,54 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
         })
 
     # 7. Susun Top 10 Core Attackers (Tier 1)
-    top_10_attackers = summary.get("top_10_attackers")
-    if not top_10_attackers:
-        # Hitung ranking dari full ledger jika belum ada di summary
-        from collections import Counter
-        user_counts = Counter(item["username"] for item in full_ledger)
+    raw_top_attackers = summary.get("top_10_attackers")
+    top_10_attackers = []
+    if raw_top_attackers:
+        for att in raw_top_attackers:
+            clean_u = str(att.get("username", "")).lstrip("@")
+            sample_c = att.get("sample_comment") or author_sample_comments.get(att.get("username"), "") or author_sample_comments.get(clean_u, "") or author_sample_comments.get(f"@{clean_u}", "")
+            top_10_attackers.append({
+                **att,
+                "username": clean_u,
+                "sample_comment": sample_c
+            })
+    else:
         ranked = []
-        for uname, count in user_counts.items():
+        for uname, count in author_counts.items():
             in_cib = uname in cib_actors
             in_burst = uname in burst_actors
             cl_conn = 1 if in_cib else 0
-            risk = round((0.5 if in_cib else 0.0) + (0.3 if in_burst else 0.0) + min(0.2, count * 0.05), 2)
-            cat = "BUZZER" if in_cib else ("BOT" if in_burst else ("SUSPICIOUS" if risk > 0.3 else "ORGANIC"))
+            if in_cib:
+                cat = "BUZZER"
+                risk = 0.85
+            elif count >= 3 and in_burst:
+                cat = "BOT"
+                risk = 0.65
+            elif count >= 2:
+                cat = "SUSPICIOUS"
+                risk = 0.20
+            else:
+                cat = "ORGANIC"
+                risk = 0.05
+
+            clean_u = uname.lstrip("@")
+            sample_c = author_sample_comments.get(uname, "")
             ranked.append({
-                "username": uname,
+                "username": clean_u,
                 "comment_count": count,
                 "cluster_connections": cl_conn,
                 "posted_in_burst_window": in_burst,
                 "risk_score": risk,
-                "estimated_category": cat
+                "estimated_category": cat,
+                "sample_comment": sample_c
             })
-        ranked.sort(key=lambda x: (x["risk_score"], x["comment_count"]), reverse=True)
+        ranked.sort(
+            key=lambda x: (
+                1 if x["estimated_category"] == "BUZZER" else (2 if x["estimated_category"] == "BOT" else (3 if x["estimated_category"] == "SUSPICIOUS" else 4)),
+                -x["risk_score"],
+                -x["comment_count"]
+            )
+        )
         top_10_attackers = ranked[:10]
 
     # 8. Analitik Sirkadian, Entropi, Narrative Drift

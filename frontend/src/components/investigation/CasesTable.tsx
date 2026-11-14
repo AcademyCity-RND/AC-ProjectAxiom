@@ -24,13 +24,20 @@ interface CasesTableProps {
 
 // Helper to format clean 6-channel display labels & badges
 // Rule: Untuk X tweet maupun user ditulis username penulis saja, untuk 4 sisanya (YT Video, YT Shorts, IG Reel, IG Post) gunakan judul
-const formatTargetDisplay = (target: string, platform: string, displayName?: string | null) => {
+const formatTargetDisplay = (
+  target: string,
+  platform: string,
+  displayName?: string | null,
+  creatorName?: string | null,
+  contentTitle?: string | null
+) => {
   const lower = target.toLowerCase();
   const isUrl = target.startsWith('http://') || target.startsWith('https://');
 
   // Channel 1: X User / Aktor
   if (!isUrl) {
     return {
+      isUrl: false,
       label: target.startsWith('@') ? target : `@${target}`,
       subLabel: displayName && displayName !== target ? displayName : null,
       badge: 'X Aktor',
@@ -48,10 +55,11 @@ const formatTargetDisplay = (target: string, platform: string, displayName?: str
       }
     } catch {}
 
-    const label = authorHandle || (displayName?.startsWith('@') ? displayName : null) || `@${target.split('/status/')[0].split('/').pop()}`;
+    const handle = authorHandle || (displayName?.startsWith('@') ? displayName : null) || `@${target.split('/status/')[0].split('/').pop()}`;
     return {
-      label,
-      subLabel: null,
+      isUrl: true,
+      label: `Cuitan ${handle}`,
+      subLabel: contentTitle || (displayName && !displayName.startsWith('@') ? displayName : 'Audit Komentar Cuitan X'),
       badge: 'X Tweet',
       badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
     };
@@ -59,9 +67,11 @@ const formatTargetDisplay = (target: string, platform: string, displayName?: str
 
   // Channel 3: YouTube Shorts (Judul Konten)
   if (lower.includes('/shorts/')) {
+    const creator = creatorName || displayName || 'YouTube Creator';
     return {
-      label: displayName || 'Video YouTube Shorts',
-      subLabel: null,
+      isUrl: true,
+      label: contentTitle || 'YouTube Shorts',
+      subLabel: `Kreator: ${creator}`,
       badge: 'YT Shorts',
       badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
     };
@@ -69,9 +79,11 @@ const formatTargetDisplay = (target: string, platform: string, displayName?: str
 
   // Channel 4: YouTube Video (Judul Konten)
   if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+    const creator = creatorName || displayName || 'YouTube Creator';
     return {
-      label: displayName || 'Video YouTube Publik',
-      subLabel: null,
+      isUrl: true,
+      label: contentTitle || 'Video YouTube Publik',
+      subLabel: `Kreator: ${creator}`,
       badge: 'YT Video',
       badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
     };
@@ -79,9 +91,11 @@ const formatTargetDisplay = (target: string, platform: string, displayName?: str
 
   // Channel 5: Instagram Reel (Judul / Keterangan Reel)
   if (lower.includes('/reel/') || lower.includes('/reels/')) {
+    const creator = creatorName || displayName || 'Instagram User';
     return {
-      label: displayName || 'Instagram Reels Video',
-      subLabel: null,
+      isUrl: true,
+      label: contentTitle || 'Instagram Reels Video',
+      subLabel: `Kreator: @${creator.replace(/^@+/, '')}`,
       badge: 'IG Reel',
       badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
     };
@@ -89,17 +103,20 @@ const formatTargetDisplay = (target: string, platform: string, displayName?: str
 
   // Channel 6: Instagram Post (Judul / Keterangan Postingan)
   if (lower.includes('instagram.com/p/')) {
+    const creator = creatorName || displayName || 'Instagram User';
     return {
-      label: displayName || 'Instagram Feed Post',
-      subLabel: null,
+      isUrl: true,
+      label: contentTitle || 'Instagram Feed Post',
+      subLabel: `Kreator: @${creator.replace(/^@+/, '')}`,
       badge: 'IG Post',
       badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
     };
   }
 
   return {
-    label: displayName || target,
-    subLabel: null,
+    isUrl: true,
+    label: contentTitle || displayName || target,
+    subLabel: creatorName ? `Kreator: ${creatorName}` : null,
     badge: `${platform.toUpperCase()} Event`,
     badgeColor: 'text-slate-400 bg-slate-800 border-slate-700',
   };
@@ -276,7 +293,13 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                     className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
                   >
                     {(() => {
-                      const formatted = formatTargetDisplay(rc.target, rc.platform, (rc as any).display_name);
+                      const formatted = formatTargetDisplay(
+                        rc.target,
+                        rc.platform,
+                        (rc as any).display_name,
+                        (rc as any).creator_name,
+                        (rc as any).content_title
+                      );
                       return (
                         <>
                           <td className="py-3.5 px-3.5 sm:px-5 font-medium text-sky-400 group-hover:text-sky-300">
@@ -286,14 +309,14 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                                   src={rc.avatar_url}
                                   alt={formatted.label}
                                   referrerPolicy="no-referrer"
-                                  className="w-8 h-8 rounded-full object-cover border border-slate-700 shrink-0"
+                                  className={`w-8 h-8 ${formatted.isUrl ? 'rounded-md' : 'rounded-full'} object-cover border border-slate-700 shrink-0`}
                                   onError={(e) => {
                                     (e.target as HTMLElement).style.display = 'none';
                                   }}
                                 />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs shrink-0 font-mono">
-                                  {formatted.label.replace('@', '').charAt(0).toUpperCase()}
+                                <div className={`w-8 h-8 ${formatted.isUrl ? 'rounded-md' : 'rounded-full'} bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs shrink-0 font-mono`}>
+                                  {formatted.label.replace(/^[@"']/, '').charAt(0).toUpperCase()}
                                 </div>
                               )}
                               <div className="min-w-0">
@@ -318,7 +341,11 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                       );
                     })()}
                     <td className="py-3.5 px-3.5 sm:px-5">
-                      <ThreatBadge type="class" value={rc.verdict || rc.status} />
+                      <ThreatBadge
+                        type="class"
+                        value={rc.verdict || rc.status}
+                        isEvent={rc.target.startsWith('http://') || rc.target.startsWith('https://') || rc.platform === 'youtube' || rc.platform === 'instagram'}
+                      />
                     </td>
                     <td className="py-3.5 px-3.5 sm:px-5 font-mono text-xs text-slate-400">
                       {rc.created_at

@@ -117,9 +117,9 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                   <th className="py-3 px-4">Peringkat &amp; Akun</th>
                   <th className="py-3 px-4">Kategori Ancaman</th>
                   <th className="py-3 px-4 text-center">Volume Post</th>
-                  <th className="py-3 px-4 text-center">Usia Akun</th>
                   <th className="py-3 px-4 text-center">Klaster CIB</th>
                   <th className="py-3 px-4 text-center">Burst Window</th>
+                  <th className="py-3 px-4">Bukti Komentar / Narasi Terverifikasi</th>
                   <th className="py-3 px-4 text-right">Skor Risiko</th>
                   <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
@@ -153,9 +153,10 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                             ? 'HIGH'
                             : 'LOW';
 
+                        const cleanHandle = atk.username.replace(/^@+/, '');
                         const matchedComments = fullLedger
                           .filter(
-                            (l) => l.username.toLowerCase() === atk.username.toLowerCase()
+                            (l) => l.username.replace(/^@+/, '').toLowerCase() === cleanHandle.toLowerCase()
                           )
                           .map((l) => ({
                             text: l.content,
@@ -163,8 +164,16 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                             likes: l.likes,
                           }));
 
+                        if (matchedComments.length === 0 && (atk as any).sample_comment) {
+                          matchedComments.push({
+                            text: (atk as any).sample_comment,
+                            timestamp: (atk as any).account_created_at || '',
+                            likes: (atk as any).total_likes || 0,
+                          });
+                        }
+
                         onInspectRow({
-                          title: `@${atk.username.replace(/^@/, '')}`,
+                          title: `@${cleanHandle}`,
                           subtitle: `Top Attacker #${idx + 1} • Skor Risiko ${pctScore}%`,
                           threatClass: atk.estimated_category,
                           confidence: pctScore / 100,
@@ -192,26 +201,13 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                     >
                       <td className="py-3 px-4 font-mono font-medium text-sky-400 group-hover:text-sky-300">
                         <span className="text-slate-500 mr-2 text-xs">#{idx + 1}</span>
-                        {atk.username}
+                        @{atk.username.replace(/^@+/, '')}
                       </td>
                       <td className="py-3 px-4">
                         <ThreatBadge type="class" value={atk.estimated_category} />
                       </td>
                       <td className="py-3 px-4 text-center font-mono tabular-nums text-xs text-slate-200">
                         {atk.comment_count}
-                      </td>
-                      <td className="py-3 px-4 text-center font-mono tabular-nums text-xs">
-                        {atk.account_age_days_at_comment !== undefined ? (
-                          atk.account_age_days_at_comment <= 7 ? (
-                            <span className="text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30">
-                              {atk.account_age_days_at_comment} hari (Baru)
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">{atk.account_age_days_at_comment} hari</span>
-                          )
-                        ) : (
-                          <span className="text-slate-500">N/A</span>
-                        )}
                       </td>
                       <td className="py-3 px-4 text-center font-mono tabular-nums text-xs">
                         {(atk.cluster_connections ?? 0) > 0 ? (
@@ -230,8 +226,19 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                           <span className="text-[11px] text-slate-500 font-mono">Reguler</span>
                         )}
                       </td>
+                      <td className="py-3 px-4 text-xs font-sans text-slate-300 italic max-w-xs truncate">
+                        {(atk as any).sample_comment ? (
+                          <span>&ldquo;{(atk as any).sample_comment}&rdquo;</span>
+                        ) : (
+                          <span className="text-slate-600">-</span>
+                        )}
+                      </td>
                       <td className="py-3 px-4 text-right font-mono font-bold tabular-nums text-xs text-rose-400">
-                        {atk.risk_score.toFixed(1)}
+                        {typeof atk.risk_score === 'number'
+                          ? atk.risk_score <= 1.0
+                            ? `${Math.round(atk.risk_score * 100)}%`
+                            : `${atk.risk_score.toFixed(0)}%`
+                          : atk.risk_score}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">

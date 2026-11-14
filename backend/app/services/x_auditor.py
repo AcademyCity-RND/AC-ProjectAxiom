@@ -127,6 +127,11 @@ async def fetch_tweet_metadata(tweet_id: int, url: str = "") -> Dict[str, Any]:
                     metadata["author_followers"] = getattr(u, "followersCount", 0) or 0
                     metadata["author_following"] = getattr(u, "friendsCount", 0) or 0
                     metadata["author_verified"] = getattr(u, "verified", False) or False
+                    metadata["author_avatar_url"] = (
+                        getattr(u, "profileImageUrl", None)
+                        or getattr(u, "profile_image_url", None)
+                        or getattr(u, "avatar_url", None)
+                    )
                     if getattr(u, "created", None):
                         c_dt = parse_datetime(u.created)
                         metadata["author_created_at"] = c_dt.isoformat() if hasattr(c_dt, "isoformat") else str(c_dt)
@@ -424,6 +429,8 @@ async def audit_x_tweet_event(
             "content_url": meta.get("content_url") or f"https://x.com/x/status/{tweet_id}",
             "content_type": "tweet",
             "title_or_caption": meta.get("text", ""),
+            "title": meta.get("text", "")[:120],
+            "thumbnail_url": meta.get("author_avatar_url") or "",
             "published_at": meta.get("published_at") or datetime.now(timezone.utc).isoformat(),
             "creator": {
                 "username_or_channel": meta.get("author_username", "Unknown"),
@@ -433,7 +440,8 @@ async def audit_x_tweet_event(
                 "following_count": meta.get("author_following", 0),
                 "is_verified": meta.get("author_verified", False),
                 "account_created_at": meta.get("author_created_at"),
-                "profile_url": f"https://x.com/{meta.get('author_username')}"
+                "profile_url": f"https://x.com/{meta.get('author_username')}",
+                "avatar_url": meta.get("author_avatar_url") or ""
             },
             "engagement": {
                 "views_count": meta.get("views_count", 0),

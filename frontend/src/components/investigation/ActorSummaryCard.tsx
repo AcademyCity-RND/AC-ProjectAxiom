@@ -263,7 +263,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
                 {/* Creator Attribution */}
                 {hostMetadata?.creator ? (
                   <div className="flex items-center gap-2 text-xs text-slate-300 font-mono flex-wrap">
-                    <span className="text-slate-400">Kreator:</span>
+                    <span className="text-slate-400">Kreator Konten:</span>
                     <span className="font-semibold text-sky-400">
                       {hostMetadata.creator.username_or_channel}
                     </span>
@@ -278,6 +278,9 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
                         {platform === 'youtube' ? 'Subscribers' : 'Followers'})
                       </span>
                     )}
+                    <span className="text-[10px] bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30">
+                      Objek Audit: Kolom Komentar
+                    </span>
                   </div>
                 ) : (
                   <div className="text-xs text-slate-400 font-mono truncate max-w-sm">
@@ -361,14 +364,21 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
           <div className="space-y-1">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
-              KLASIFIKASI MODEL
+              {isEvent ? 'AUDIT KOLOM KOMENTAR' : 'KLASIFIKASI MODEL'}
             </div>
-            <ThreatBadge type="class" value={predictedClass} />
+            <ThreatBadge type="class" value={predictedClass} isEvent={isEvent} />
             <div className="text-[11px] font-mono text-slate-400">
-              {predictedClass === 'BOT' && 'Otomasi Skrip / Botnet'}
-              {predictedClass === 'BUZZER' && 'Koordinasi Opini Siber'}
-              {predictedClass === 'HUMAN' && 'Perilaku Wajar / Organik'}
-              {predictedClass === 'UNKNOWN' && 'Evaluasi Diperlukan'}
+              {isEvent ? (
+                predictedClass === 'BOT' ? 'Anomali Botnet Spam' :
+                predictedClass === 'BUZZER' ? 'Infiltrasi Buzzer CIB' :
+                predictedClass === 'HUMAN' ? 'Komentar Bersih & Organik' :
+                'Evaluasi Diperlukan'
+              ) : (
+                predictedClass === 'BOT' ? 'Otomasi Skrip / Botnet' :
+                predictedClass === 'BUZZER' ? 'Koordinasi Opini Siber' :
+                predictedClass === 'HUMAN' ? 'Perilaku Wajar / Organik' :
+                'Evaluasi Diperlukan'
+              )}
             </div>
           </div>
         </div>

@@ -279,6 +279,9 @@ def list_investigation_cases(
             or c.target.startswith("https://")
             or c.platform in ("youtube", "instagram")
         )
+        creator_name = None
+        title = None
+
         if is_event and c.result_summary:
             host_meta = c.result_summary.get("host_metadata", {})
             creator = host_meta.get("creator", {})
@@ -286,8 +289,9 @@ def list_investigation_cases(
                 creator.get("username_or_channel")
                 or creator.get("channel_title")
                 or creator.get("display_name")
+                or creator.get("author_username")
             )
-            title = host_meta.get("title") or host_meta.get("caption")
+            title = host_meta.get("title") or host_meta.get("title_or_caption") or host_meta.get("caption")
 
             # Khusus X (tweet / user): tulis username penulis saja
             if "/status/" in c.target.lower():
@@ -307,12 +311,21 @@ def list_investigation_cases(
                 display_name = (actor.display_name or (f"@{actor.username}" if actor and actor.username else None)) if actor else None
 
         avatar_url = None
-        if actor:
-            avatar_url = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
-        elif is_event and c.result_summary:
+        if is_event and c.result_summary:
             host_meta = c.result_summary.get("host_metadata", {})
             creator = host_meta.get("creator", {})
-            avatar_url = creator.get("avatar_url") or host_meta.get("thumbnail_url")
+            avatar_url = (
+                creator.get("avatar_url")
+                or host_meta.get("thumbnail_url")
+                or (creator.get("profile_image_url") if isinstance(creator, dict) else None)
+            )
+            if not avatar_url and c.platform == "youtube":
+                from app.services.youtube_auditor import extract_youtube_video_id
+                vid = extract_youtube_video_id(c.target)
+                if vid:
+                    avatar_url = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+        elif actor:
+            avatar_url = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
 
         result.append({
             "case_id": c.id,
@@ -322,6 +335,9 @@ def list_investigation_cases(
             "verdict": verdict,
             "confidence": confidence,
             "display_name": display_name,
+            "creator_name": creator_name if is_event else None,
+            "content_title": title if is_event else None,
+            "is_event": is_event,
             "avatar_url": avatar_url,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "completed_at": c.completed_at.isoformat() if c.completed_at else None,
@@ -373,7 +389,7 @@ def get_investigation_case(
             or creator.get("channel_title")
             or creator.get("display_name")
         )
-        content_title = host_meta.get("title")
+        content_title = host_meta.get("title") or host_meta.get("title_or_caption") or host_meta.get("caption")
         display_name = creator_name or f"{case.platform.upper()} Event Content"
         bio = content_title or f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)"
 
@@ -382,6 +398,11 @@ def get_investigation_case(
             or host_meta.get("thumbnail_url")
             or (creator.get("profile_image_url") if isinstance(creator, dict) else None)
         )
+        if not event_avatar and case.platform == "youtube":
+            from app.services.youtube_auditor import extract_youtube_video_id
+            vid = extract_youtube_video_id(case.target)
+            if vid:
+                event_avatar = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
         actor_data = {
             "username": creator_name or case.target,
             "display_name": display_name,

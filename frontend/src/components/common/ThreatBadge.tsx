@@ -8,6 +8,7 @@ interface ThreatBadgeProps {
   value: ThreatClass | ThreatLevel;
   confidence?: number;
   className?: string;
+  isEvent?: boolean;
 }
 
 export const ThreatBadge: React.FC<ThreatBadgeProps> = ({
@@ -15,6 +16,7 @@ export const ThreatBadge: React.FC<ThreatBadgeProps> = ({
   value,
   confidence,
   className = '',
+  isEvent = false,
 }) => {
   const normalized = value?.toUpperCase() || '';
 
@@ -63,7 +65,7 @@ export const ThreatBadge: React.FC<ThreatBadgeProps> = ({
         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] text-xs font-semibold bg-emerald-500/10 text-[#34D399] border border-emerald-500/30 font-mono tracking-wider ${className}`}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-        HUMAN / AUTENTIK
+        {isEvent ? 'KOMENTAR BERSIH' : 'HUMAN / AUTENTIK'}
         {confidence !== undefined && (
           <span className="text-[10px] tabular-nums font-mono opacity-80">
             ({Math.round(confidence * 100)}%)
@@ -79,7 +81,7 @@ export const ThreatBadge: React.FC<ThreatBadgeProps> = ({
         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] text-xs font-semibold bg-amber-500/10 text-[#FBBF24] border border-amber-500/30 font-mono tracking-wider ${className}`}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-        BUZZER / TERKOORDINASI
+        {isEvent ? 'INFILTRASI BUZZER' : 'BUZZER / TERKOORDINASI'}
         {confidence !== undefined && (
           <span className="text-[10px] tabular-nums font-mono opacity-80">
             ({Math.round(confidence * 100)}%)
@@ -95,7 +97,7 @@ export const ThreatBadge: React.FC<ThreatBadgeProps> = ({
         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] text-xs font-semibold bg-rose-500/10 text-[#F87171] border border-rose-500/30 font-mono tracking-wider ${className}`}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-        BOT / OTOMATIS
+        {isEvent ? 'ANOMALI BOT SPAM' : 'BOT / OTOMATIS'}
         {confidence !== undefined && (
           <span className="text-[10px] tabular-nums font-mono opacity-80">
             ({Math.round(confidence * 100)}%)
