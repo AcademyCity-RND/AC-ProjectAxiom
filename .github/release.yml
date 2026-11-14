@@ -1,0 +1,34 @@
+changelog:
+  exclude:
+    labels:
+      - ignore
+      - no-changelog
+    authors:
+      - dependabot
+  categories:
+    - title: "🚀 Fitur Baru (Features)"
+      labels:
+        - feature
+        - feat
+        - enhancement
+    - title: "🐛 Perbaikan Bug (Bug Fixes)"
+      labels:
+        - fix
+        - bug
+        - bugfix
+    - title: "🛡️ Keamanan & Forensik (Security & Forensic Scrapers)"
+      labels:
+        - security
+        - forensic
+        - scraper
+    - title: "📚 Dokumentasi & Arsitektur (Documentation)"
+      labels:
+        - documentation
+        - docs
+    - title: "🔧 Infrastruktur & CI/CD (Maintenance & Docker)"
+      labels:
+        - ci
+        - chore
+        - docker
+        - refactor
+        - performance

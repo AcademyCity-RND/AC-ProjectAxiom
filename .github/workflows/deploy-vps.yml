@@ -1,0 +1,49 @@
+name: Auto Deploy to VPS Production
+
+on:
+  workflow_run:
+    workflows: ["Release & GHCR Packages"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-production:
+    name: SSH Zero-Downtime Deployment
+    runs-on: ubuntu-latest
+    # Guard: Jalankan hanya jika event workflow_run sukses dan secrets.VPS_HOST sudah dikonfigurasi di GitHub Settings
+    # Jika VPS_HOST belum diisi, job ini otomatis di-SKIP tanpa gagal/merah!
+    if: "${{ (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && secrets.VPS_HOST != '' }}"
+
+    steps:
+      - name: Announce Deployment Target
+        run: |
+          echo "Memulai auto-deploy ke VPS Production Host: ${{ secrets.VPS_HOST }}"
+
+      - name: Execute Remote Deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_SSH_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            echo "=== [1/4] Masuk ke Direktori Proyek VPS ==="
+            cd /opt/axiom || cd ~/axiom || { echo "Direktori axiom tidak ditemukan di VPS!"; exit 1; }
+
+            echo "=== [2/4] Melakukan Authentikasi GHCR (Opsional/Bila Diperlukan) ==="
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || true
+
+            echo "=== [3/4] Menarik Kontainer Versi Terbaru dari Registry ==="
+            docker compose -f docker-compose.prod.yml pull || docker compose pull
+
+            echo "=== [4/4] Menerapkan Kontainer Baru (Zero-Downtime Restart) ==="
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans || docker compose up -d --remove-orphans
+
+            echo "=== Membersihkan Cache Image Usang ==="
+            docker image prune -f
+
+            echo "✅ Deployment AXIOM Production Berhasil Diselesaikan!"
