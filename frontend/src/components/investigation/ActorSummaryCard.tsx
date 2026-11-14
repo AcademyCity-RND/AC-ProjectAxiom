@@ -36,6 +36,34 @@ interface ActorSummaryCardProps {
   resultSummary?: Record<string, any> | null;
 }
 
+const CardAvatar: React.FC<{
+  url?: string | null;
+  alt: string;
+  fallbackIcon?: React.ReactNode;
+  fallbackInitial?: string;
+}> = ({ url, alt, fallbackIcon, fallbackInitial }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!url || hasError) {
+    if (fallbackIcon) return <>{fallbackIcon}</>;
+    return (
+      <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sky-400 text-base font-mono">
+        {(fallbackInitial || '?').replace(/^[@"']/, '').charAt(0).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt={alt}
+      referrerPolicy="no-referrer"
+      className="w-12 h-12 rounded-lg object-cover"
+      onError={() => setHasError(true)}
+    />
+  );
+};
+
 export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   actor,
   detection,
@@ -211,42 +239,28 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
         <div className="flex items-start gap-3.5 min-w-0 flex-1">
           <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner overflow-hidden">
             {isEvent ? (
-              hostAvatarUrl ? (
-                <img
-                  src={hostAvatarUrl}
-                  alt={hostMetadata?.creator?.username_or_channel || 'Kreator'}
-                  referrerPolicy="no-referrer"
-                  className="w-12 h-12 rounded-lg object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <PlatformIcon
-                  platform={platform}
-                  className={`w-6 h-6 ${
-                    platform === 'youtube'
-                      ? 'text-rose-400'
-                      : platform === 'instagram'
-                      ? 'text-amber-400'
-                      : 'text-sky-400'
-                  }`}
-                />
-              )
-            ) : avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={actor?.display_name || actor?.username || target}
-                referrerPolicy="no-referrer"
-                className="w-12 h-12 rounded-lg object-cover"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
+              <CardAvatar
+                url={hostAvatarUrl}
+                alt={hostMetadata?.creator?.username_or_channel || 'Kreator'}
+                fallbackIcon={
+                  <PlatformIcon
+                    platform={platform}
+                    className={`w-6 h-6 ${
+                      platform === 'youtube'
+                        ? 'text-rose-400'
+                        : platform === 'instagram'
+                        ? 'text-amber-400'
+                        : 'text-sky-400'
+                    }`}
+                  />
+                }
               />
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sky-400 text-base font-mono">
-                {(actor?.display_name || actor?.username || target).replace('@', '').charAt(0).toUpperCase()}
-              </div>
+              <CardAvatar
+                url={avatarUrl}
+                alt={actor?.display_name || actor?.username || target}
+                fallbackInitial={actor?.display_name || actor?.username || target}
+              />
             )}
           </div>
 

@@ -23,6 +23,29 @@ interface CasesTableProps {
 }
 
 // Helper to format clean 6-channel display labels & badges
+const CaseAvatar: React.FC<{ url?: string | null; label: string; isUrl?: boolean }> = ({ url, label, isUrl }) => {
+  const [hasError, setHasError] = React.useState(false);
+  const initial = (label || '').replace(/^[@"']/, '').charAt(0).toUpperCase() || '?';
+
+  if (!url || hasError) {
+    return (
+      <div className={`w-8 h-8 ${isUrl ? 'rounded-md' : 'rounded-full'} bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs shrink-0 font-mono`}>
+        {initial}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt={label}
+      referrerPolicy="no-referrer"
+      className={`w-8 h-8 ${isUrl ? 'rounded-md' : 'rounded-full'} object-cover border border-slate-700 shrink-0`}
+      onError={() => setHasError(true)}
+    />
+  );
+};
+
 // Rule: Untuk X tweet maupun user ditulis username penulis saja, untuk 4 sisanya (YT Video, YT Shorts, IG Reel, IG Post) gunakan judul
 const formatTargetDisplay = (
   target: string,
@@ -304,21 +327,11 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                         <>
                           <td className="py-3.5 px-3.5 sm:px-5 font-medium text-sky-400 group-hover:text-sky-300">
                             <div className="flex items-center gap-2.5">
-                              {rc.avatar_url ? (
-                                <img
-                                  src={rc.avatar_url}
-                                  alt={formatted.label}
-                                  referrerPolicy="no-referrer"
-                                  className={`w-8 h-8 ${formatted.isUrl ? 'rounded-md' : 'rounded-full'} object-cover border border-slate-700 shrink-0`}
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <div className={`w-8 h-8 ${formatted.isUrl ? 'rounded-md' : 'rounded-full'} bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs shrink-0 font-mono`}>
-                                  {formatted.label.replace(/^[@"']/, '').charAt(0).toUpperCase()}
-                                </div>
-                              )}
+                              <CaseAvatar
+                                url={rc.avatar_url}
+                                label={formatted.label}
+                                isUrl={formatted.isUrl}
+                              />
                               <div className="min-w-0">
                                 <span className="truncate block max-w-xs md:max-w-sm text-xs font-semibold text-white">
                                   {formatted.label}
