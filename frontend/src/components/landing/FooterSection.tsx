@@ -1,9 +1,9 @@
 import React from 'react';
-import { ArrowUp, LogIn, History } from 'lucide-react';
+import { ArrowUp, History } from 'lucide-react';
 import { GithubIcon } from '../common/GithubIcon';
 
 interface FooterSectionProps {
-  onNavigateLogin: () => void;
+  onNavigateLogin?: () => void;
   onOpenPrivacy?: () => void;
   onOpenTerms?: () => void;
   onOpenChangelog?: () => void;
@@ -78,15 +78,6 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
             className="text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             Terms of Service
-          </button>
-
-          <button
-            type="button"
-            onClick={onNavigateLogin}
-            className="text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Gerbang Masuk</span>
           </button>
 
           <button

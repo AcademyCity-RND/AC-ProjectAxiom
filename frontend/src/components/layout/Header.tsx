@@ -5,11 +5,13 @@ import { useAuthStore } from '../../store/useAuthStore';
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
   isMobileMenuOpen?: boolean;
+  onNavigateOverview?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileMenu,
   isMobileMenuOpen,
+  onNavigateOverview,
 }) => {
   const { operatorName, operatorRole, logout } = useAuthStore();
   const isAdmin = operatorRole?.toLowerCase() === 'admin';
@@ -49,7 +51,19 @@ export const Header: React.FC<HeaderProps> = ({
             {isMobileMenuOpen ? <X className="w-4 h-4 text-sky-400" /> : <Menu className="w-4 h-4" />}
           </button>
         )}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div
+          onClick={onNavigateOverview}
+          className={`flex items-center gap-2.5 sm:gap-3 ${onNavigateOverview ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+          title={onNavigateOverview ? 'Kembali ke Dashboard Overview' : undefined}
+          role={onNavigateOverview ? 'button' : undefined}
+          tabIndex={onNavigateOverview ? 0 : undefined}
+          onKeyDown={(e) => {
+            if (onNavigateOverview && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              onNavigateOverview();
+            }
+          }}
+        >
           <img
             src="/axiom-logo.png"
             alt="AXIOM Forensic & Threat Intelligence"
