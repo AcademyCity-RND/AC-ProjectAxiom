@@ -178,19 +178,7 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2">
-            {/* GitHub Repo Button */}
-            <a
-              href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-800 hover:border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-slate-100 text-xs font-medium transition-colors"
-              title="Kunjungi Repositori GitHub"
-            >
-              <GithubIcon className="w-3.5 h-3.5" />
-              <span>GitHub</span>
-            </a>
-
-            {/* Changelog Pop-up Icon Button (History Icon per Screenshot) */}
+            {/* 1. Changelog Pop-up Icon Button */}
             <button
               type="button"
               onClick={onOpenChangelog}
@@ -201,7 +189,19 @@ export const AdaptiveNavbar: React.FC<AdaptiveNavbarProps> = ({
               <History className="w-4 h-4" />
             </button>
 
-            {/* Login Button */}
+            {/* 2. GitHub Repo Icon Button (Ukuran & gaya identik dengan Changelog) */}
+            <a
+              href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-full border border-slate-800 hover:border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+              title="Kunjungi Repositori GitHub"
+              aria-label="Kunjungi Repositori GitHub"
+            >
+              <GithubIcon className="w-4 h-4" />
+            </a>
+
+            {/* 3. Login Button */}
             <button
               onClick={onNavigateLogin}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs sm:text-sm shadow-md shadow-sky-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"

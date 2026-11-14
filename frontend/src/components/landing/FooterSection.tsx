@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUp, History } from 'lucide-react';
+import { ArrowUp, History, Code2 } from 'lucide-react';
 import { GithubIcon } from '../common/GithubIcon';
 
 interface FooterSectionProps {
@@ -41,38 +41,8 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
           </div>
         </div>
 
-        {/* Right: GitHub, Changelog, Privacy Policy, Terms of Service, Login & Scroll-to-Top */}
+        {/* Right: Privacy Policy - Terms of Service - Swagger API - Changelog - GitHub - Atas */}
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs font-medium">
-          <a
-            href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white flex items-center gap-1.5 transition-colors"
-          >
-            <GithubIcon className="w-4 h-4 text-slate-300" />
-            <span>GitHub</span>
-          </a>
-
-          <a
-            href="/api/v1/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-slate-400 hover:text-sky-400 flex items-center gap-1 transition-colors"
-          >
-            <span>Swagger API</span>
-          </a>
-
-          {onOpenChangelog && (
-            <button
-              type="button"
-              onClick={onOpenChangelog}
-              className="text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <History className="w-3.5 h-3.5 text-sky-400" />
-              <span>Changelog</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={onOpenPrivacy}
@@ -88,6 +58,37 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
           >
             Terms of Service
           </button>
+
+          <a
+            href="/api/v1/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
+          >
+            <Code2 className="w-3.5 h-3.5 text-sky-400" />
+            <span>Swagger API</span>
+          </a>
+
+          {onOpenChangelog && (
+            <button
+              type="button"
+              onClick={onOpenChangelog}
+              className="text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <History className="w-3.5 h-3.5 text-sky-400" />
+              <span>Changelog</span>
+            </button>
+          )}
+
+          <a
+            href="https://github.com/AcademyCity-RND/AC-ProjectAxiom"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-white flex items-center gap-1.5 transition-colors"
+          >
+            <GithubIcon className="w-4 h-4 text-slate-300" />
+            <span>GitHub</span>
+          </a>
 
           <button
             type="button"

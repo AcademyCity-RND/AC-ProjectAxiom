@@ -53,15 +53,15 @@ export const TeamSection: React.FC = () => {
         {/* Section Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-sky-400 mb-3">
-            <Users className="w-3.5 h-3.5" />
-            <span>Divisi Rekayasa &amp; Riset Teknologi</span>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Laboratorium Riset &amp; Eksperimen Terbuka</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-100 flex items-center justify-center gap-2">
             <span>Tim Pengembang (Development Team)</span>
           </h2>
           <p className="mt-2 text-sm text-slate-400 max-w-xl mx-auto">
-            Arsitektur, model analitik, dan sistem forensik Project Axiom dikembangkan dan diuji secara
-            kolaboratif di bawah naungan organisasi riset siber AcademyCity-RND.
+            Arsitektur, model analitik, dan sistem Project Axiom dikembangkan dan diuji secara
+            kolaboratif sebagai bagian dari inisiatif riset di bawah naungan AcademyCity-RND.
           </p>
         </div>
 
@@ -85,12 +85,14 @@ export const TeamSection: React.FC = () => {
                   AcademyCity-RND
                 </h3>
                 <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30">
-                  Organisasi GitHub
+                  R&amp;D Hub &amp; Lab
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1 max-w-lg">
-                Pusat kolaborasi riset intelijen siber, sistem automasi, machine learning, dan rekayasa
-                perangkat lunak berstandar produksi.
+              <p className="text-xs text-sky-400/90 font-mono mt-1 italic">
+                &ldquo;Exploring the frontiers of Artificial Intelligence, Next-Gen Web Engineering, and Automated Systems.&rdquo;
+              </p>
+              <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                Laboratorium eksperimental dan showcase proyek riset mandiri yang berfokus pada AI/NLP pipelines, arsitektur perangkat lunak berkinerja tinggi, sistem automasi, serta rekayasa web modern.
               </p>
             </div>
           </div>
