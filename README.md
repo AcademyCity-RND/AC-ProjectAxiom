@@ -46,30 +46,31 @@ Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-
 
 1. **Target Actor Profiling (X / Twitter Engine):**
    - Investigasi mendalam riwayat akun `@username`: tweet orisinal, replies, reposts, dan jejaring interaksi via `twscrape` (1 akun burner aman via cookies browser tanpa risiko banned).
-2. **Multi-Platform Event & Incident Auditing:**
+2. **Public Landing Page & Interactive Guest Demo Sandbox:**
+   - Evaluasi instan akun `@username` atau link cuitan X secara *real-time* langsung di landing page publik tanpa perlu login/registrasi, dengan simulasi orkestrator multi-tahap, skor keyakinan XGBoost, alasan utama XAI, serta pencatatan audit log anonim.
+3. **Multi-Platform Event & Incident Auditing (6 Skenario):**
    - Deteksi amplifikasi terkoordinasi pada konten viral lintas platform:
-     - **X (Twitter):** Cuitan tunggal & seluruh pohon balasan (*replies*).
-     - **Instagram:** Feed Post (`/p/`) & Reels (`/reel/`) via **Multi-Tier Zero-Auth Architecture**:
-       - **Tier 1 (Microservice Scraper):** Ekstraksi live hingga 400 komentar utama tanpa login & tanpa risiko banned via browser TLS impersonation (`curl_cffi`).
-       - **Tier 2/3 (Authenticated Session):** Penelusuran pohon balasan (*threaded replies*) opsional jika sesi akun burner (`INSTAGRAM_SESSIONID`) disediakan.
-       - **Tier 4 (Contextual Forensics Fallback):** Fail-safe anti-crash cerdas berbasis konteks nyata postingan.
-     - **YouTube:** Video Panjang (`/watch`) & Shorts (`/shorts/`) via streaming parser Innertube HTTP.
-3. **Tri-Class AI Classification Engine:**
+     - **X (Twitter):** Cuitan tunggal & seluruh pohon percakapan balasan (*conversation tree & nested thread replies*).
+     - **Instagram:** Feed Post (`/p/`) & Reels (`/reel/`) via **Multi-Tier Zero-Auth Architecture** dengan *safety limit* maksimal 200 komentar demi ketahanan anti-rate-limit.
+     - **YouTube:** Video Panjang (`/watch`) & Shorts (`/shorts/`) lengkap dengan pemetaan seluruh balasan komentar (*nested replies*).
+     - **Pilihan Kuota Sampel:** 100, 150 (Standar), 200, dan 400 Sampel (*Maks / Deep Audit* untuk X & YouTube), dengan proteksi *auto-clamp* 200 untuk Instagram.
+     - **Secure Image Proxy (`/api/v1/investigate/proxy-image`):** Layanan proxy gambar terisolasi dengan header `Cross-Origin-Resource-Policy: cross-origin` untuk mengatasi restriksi pemblokiran rendering gambar dari CDN Meta/Instagram (`fbcdn.net`).
+4. **Tri-Class AI Classification Engine:**
    - Membedakan tiga entitas dengan presisi tinggi menggunakan XGBoost Classifier:
      - **Bot (Automated):** Skrip terjadwal, entropi waktu rendah, minim variasi kata.
      - **Buzzer (Astroturfer):** Akun manusia/semi-otomatis dengan pola jam kerja terstruktur (08.00–18.00 WIB) dan konsentrasi narasi ekstrem pada figur/isu tertentu.
      - **Manusia (Autentik):** Pola sirkadian alami, minat heterogen, interaksi sosial organik.
-4. **Coordinated Inauthentic Behavior (CIB) Cluster Mapping:**
+5. **Coordinated Inauthentic Behavior (CIB) Cluster Mapping:**
    - Visualisasi graf interaktif (React Flow / Cytoscape) yang memetakan keterkaitan antar-akun yang menyebarkan narasi parafrase serupa dalam jendela waktu sempit via ChromaDB vector similarity (`all-MiniLM-L6-v2`).
-5. **Circadian 24/7 Heatmap & Temporal Entropy:**
+6. **Circadian 24/7 Heatmap & Temporal Entropy:**
    - Visualisasi jadwal aktif mingguan (24x7 matrix & uji Chi-Square goodness-of-fit) untuk mendeteksi jam kerja buzzer bayaran vs operasional bot 24 jam nonstop.
-6. **Explainable AI (XAI) Threat Attribution & Prompt Defense:**
+7. **Explainable AI (XAI) Threat Attribution & Prompt Defense:**
    - Menggunakan Llama 3.3 70B (via Groq LPU) untuk menghasilkan poin-poin pembuktian logis (*evidence points*) mengapa akun dicap berbahaya.
    - Dilengkapi *Adversarial Prompt Guard* (`[REDACTED_CONTROL_TOKEN]`) anti-jailbreak dari komentar bot/buzzer.
-7. **Dual-Tier Forensic Ledger & Dossier Export:**
-   - Tabel ringkasan Top 10 Attackers serta Audit Ledger 100% seluruh komentator.
+8. **Dual-Tier Forensic Ledger & Dossier Export:**
+   - Tabel ringkasan Top 10 Attackers lengkap dengan **bukti kutipan teks komentar nyata (*verified comment quotes*)** serta Audit Ledger 100% seluruh komentator.
    - Ekspor berkas dossier resmi siap cetak (A4 PDF/HTML dengan kop dinas PUSSIBERAD) disertai rantai bukti kriptografis (*Digital Chain of Custody* SHA-256).
-8. **Research Dataset Harvester (RFC 4180):**
+9. **Research Dataset Harvester (RFC 4180):**
    - CLI Tooling mandiri dengan **arsitektur paralel 6-worker simultan** untuk ekstraksi dataset riset empiris aktual di 6 skenario (X User, X Tweet, IG Post, IG Reels, YT Shorts, YT Video) berstandar RFC 4180 dengan fitur auto-resume, checkpoint, dan sinkronisasi 2-arah cerdas (`Sync-NewerFile`).
 
 ---
@@ -409,6 +410,33 @@ pnpm install
 pnpm dev
 ```
 Aplikasi frontend akan tersedia di `http://localhost:5173` (Vite dev) dan mem-proxy API ke port `8000`.
+
+---
+
+## 🚀 CI/CD, Registry GHCR, & Auto-Deployment VPS
+
+Project Axiom menerapkan pipeline pengiriman otomatis (*Continuous Delivery*) berbasis GitHub Actions berstandar industri dengan pemisahan lingkungan kerja yang ketat:
+
+### 1. Struktur Pemicu Pipeline (Git Flow)
+| Branch / Event | Target Workflow | Tindakan & Output |
+| :--- | :--- | :--- |
+| **`feat/*` & `dev`** | `.github/workflows/ci.yml` | Pengujian unit (`pytest`), verifikasi migrasi Alembic, build frontend typecheck, dan validasi sintaks Docker Compose. *Tidak mempublikasikan image ke registry atau membuat rilis.* |
+| **`main` (Merge / Tag)** | `.github/workflows/release-ghcr.yml` | **1)** Build multi-arch container image dan publish ke **GitHub Packages (GHCR)**.<br>**2)** Pembuatan **GitHub Release** resmi disertai *auto-generated changelog* terstruktur. |
+| **Production VPS** | `.github/workflows/deploy-vps.yml` | Auto-deploy zero-downtime via SSH ke VPS produksi. Dilindungi *safety guard* (`if: secrets.VPS_HOST != ''`) sehingga aman dan tidak akan gagal saat secrets belum disiapkan. |
+
+### 2. Paket Kontainer Resmi (GitHub Container Registry)
+Image Docker produksi dapat ditarik langsung dari GHCR publik/organisasi:
+* **Backend API Engine:** `ghcr.io/academycity-rnd/axiom-backend:latest`
+* **Frontend Web Dashboard:** `ghcr.io/academycity-rnd/axiom-frontend:latest`
+
+### 3. Prosedur Konfigurasi Auto-Deployment VPS
+Setelah VPS produksi (Ubuntu 22.04 LTS) dipersiapkan dan Docker terpasang, cukup daftarkan 4 variabel rahasia pada menu **Repository Settings ➔ Secrets and variables ➔ Actions**:
+1. `VPS_HOST`: Alamat IP Publik VPS Anda (contoh: `103.xxx.xxx.xxx`).
+2. `VPS_SSH_USER`: Username SSH VPS (contoh: `root` atau `ubuntu`).
+3. `VPS_SSH_KEY`: Kunci privat SSH (Ed25519 atau RSA) yang diizinkan di VPS.
+4. `VPS_PORT`: Port SSH VPS (default: `22`).
+
+Setiap kali pembaruan di-merge ke branch `main`, GitHub Actions akan otomatis melakukan SSH ke VPS, menarik image kontainer terbaru dari GHCR, dan me-restart layanan dengan *zero downtime*. Anda juga dapat memicu deployment manual kapan saja melalui tombol **Run workflow** di tab Actions GitHub.
 
 ---
 

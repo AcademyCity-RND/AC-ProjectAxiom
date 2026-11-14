@@ -422,6 +422,30 @@ Mengacu pada jadwal resmi **Kartika Cyber Hackathon 2026**:
 
 ---
 
+## 9.1 Fitur Tambahan Terverifikasi (Production Hardening & CI/CD)
+
+1. **Live Guest Demo Sandbox (Platform X):**
+   * Pengujian langsung di Landing Page tanpa login menggunakan live scraper `twscrape` (10–400 sampel) dengan streaming progress orkestrator dan penjelasan XAI.
+   * Pencatatan audit trail yang diagregasikan sebagai `GUEST` tanpa merekam data privat pengunjung.
+
+2. **Ekspansi 6-Kanal Forensik & Deep Scraping:**
+   * **X Cuitan (Status):** Penelusuran pohon percakapan lengkap (*conversation tree*) mencakup balasan langsung dan percakapan berantai (*nested thread replies*).
+   * **YouTube Video & Shorts:** Ekstraksi komentar beserta seluruh balasan bertingkat (*nested replies*).
+   * **Instagram Reels & Post:** Scraper zero-auth dengan pembatasan ketat di 200 sampel untuk menjamin stabilitas IP scraper terhadap rate limiting Meta.
+   * **Pilihan Kuota Sampel:** 100, 150, 200, dan 400 Sampel (*Deep Audit*), dengan auto-clamp 200 untuk Instagram.
+
+3. **Secure Image Proxy Service (`/api/v1/investigate/proxy-image`):**
+   * Endpoint internal terisolasi untuk menyalurkan aset gambar dari CDN Meta/Instagram dengan injeksi header `Cross-Origin-Resource-Policy: cross-origin` guna mengatasi pemblokiran rendering gambar pada browser modern.
+
+4. **Dual-Tier Attacker Ledger & Verified Comment Evidence:**
+   * Menampilkan bukti kutipan nyata teks komentar yang ditulis oleh Top 10 Penyerang Inti untuk verifikasi faktual tim analis.
+
+5. **CI/CD Pipeline, Registry GHCR, & Auto-Deployment VPS:**
+   * Workflow rilis otomatis khusus branch `main` (`release-ghcr.yml`) yang mem-build image Docker dan menerbitkan GitHub Release dengan auto-generated changelog.
+   * Workflow deployment zero-downtime (`deploy-vps.yml`) dengan *safety guard* (`if: secrets.VPS_HOST != ''`) sehingga tidak gagal saat rahasia VPS belum dipasang.
+
+---
+
 ## 10. Rencana Pembaruan Potensial (Potential Future Updates)
 
 Peta jalan pengembangan strategis pasca-MVP untuk kesiapan operasional pertahanan siber kognitif tingkat lanjut:
