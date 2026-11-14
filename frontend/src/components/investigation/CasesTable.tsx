@@ -23,11 +23,31 @@ interface CasesTableProps {
 }
 
 // Helper to format clean 6-channel display labels & badges
-const CaseAvatar: React.FC<{ url?: string | null; label: string; isUrl?: boolean }> = ({ url, label, isUrl }) => {
+const CaseAvatar: React.FC<{
+  url?: string | null;
+  fallbackUrl?: string | null;
+  label: string;
+  isUrl?: boolean;
+}> = ({ url, fallbackUrl, label, isUrl }) => {
+  const [currentUrl, setCurrentUrl] = React.useState<string | null>(url || fallbackUrl || null);
   const [hasError, setHasError] = React.useState(false);
   const initial = (label || '').replace(/^[@"']/, '').charAt(0).toUpperCase() || '?';
 
-  if (!url || hasError) {
+  React.useEffect(() => {
+    setCurrentUrl(url || fallbackUrl || null);
+    setHasError(false);
+  }, [url, fallbackUrl]);
+
+  const handleImageError = () => {
+    // Jika url postingan gagal, coba foto profil kreator
+    if (currentUrl === url && fallbackUrl && fallbackUrl !== url) {
+      setCurrentUrl(fallbackUrl);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  if (!currentUrl || hasError) {
     return (
       <div className={`w-8 h-8 ${isUrl ? 'rounded-md' : 'rounded-full'} bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs shrink-0 font-mono`}>
         {initial}
@@ -35,13 +55,20 @@ const CaseAvatar: React.FC<{ url?: string | null; label: string; isUrl?: boolean
     );
   }
 
+  // Jika URL fbcdn belum lewat proxy, otomatis arahkan lewat proxy backend
+  const safeSrc =
+    (currentUrl.includes('fbcdn.net') || currentUrl.includes('cdninstagram.com') || currentUrl.includes('instagram.com')) &&
+    !currentUrl.startsWith('/api/')
+      ? `/api/v1/investigate/proxy-image?url=${encodeURIComponent(currentUrl)}`
+      : currentUrl;
+
   return (
     <img
-      src={url}
+      src={safeSrc}
       alt={label}
       referrerPolicy="no-referrer"
       className={`w-8 h-8 ${isUrl ? 'rounded-md' : 'rounded-full'} object-cover border border-slate-700 shrink-0`}
-      onError={() => setHasError(true)}
+      onError={handleImageError}
     />
   );
 };
@@ -329,6 +356,7 @@ export const CasesTable: React.FC<CasesTableProps> = ({
                             <div className="flex items-center gap-2.5">
                               <CaseAvatar
                                 url={rc.avatar_url}
+                                fallbackUrl={rc.creator_avatar_url}
                                 label={formatted.label}
                                 isUrl={formatted.isUrl}
                               />

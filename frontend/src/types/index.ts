@@ -252,7 +252,10 @@ export interface CaseSummary {
   verdict?: string;
   confidence?: number | null;
   display_name?: string | null;
+  creator_name?: string | null;
+  content_title?: string | null;
   avatar_url?: string | null;
+  creator_avatar_url?: string | null;
   created_at?: string | null;
   completed_at?: string | null;
 }

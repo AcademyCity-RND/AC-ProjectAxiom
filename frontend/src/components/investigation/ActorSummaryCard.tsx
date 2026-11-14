@@ -38,13 +38,28 @@ interface ActorSummaryCardProps {
 
 const CardAvatar: React.FC<{
   url?: string | null;
+  fallbackUrl?: string | null;
   alt: string;
   fallbackIcon?: React.ReactNode;
   fallbackInitial?: string;
-}> = ({ url, alt, fallbackIcon, fallbackInitial }) => {
+}> = ({ url, fallbackUrl, alt, fallbackIcon, fallbackInitial }) => {
+  const [currentUrl, setCurrentUrl] = useState<string | null>(url || fallbackUrl || null);
   const [hasError, setHasError] = useState(false);
 
-  if (!url || hasError) {
+  React.useEffect(() => {
+    setCurrentUrl(url || fallbackUrl || null);
+    setHasError(false);
+  }, [url, fallbackUrl]);
+
+  const handleImageError = () => {
+    if (currentUrl === url && fallbackUrl && fallbackUrl !== url) {
+      setCurrentUrl(fallbackUrl);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  if (!currentUrl || hasError) {
     if (fallbackIcon) return <>{fallbackIcon}</>;
     return (
       <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sky-400 text-base font-mono">
@@ -53,13 +68,19 @@ const CardAvatar: React.FC<{
     );
   }
 
+  const safeSrc =
+    (currentUrl.includes('fbcdn.net') || currentUrl.includes('cdninstagram.com') || currentUrl.includes('instagram.com')) &&
+    !currentUrl.startsWith('/api/')
+      ? `/api/v1/investigate/proxy-image?url=${encodeURIComponent(currentUrl)}`
+      : currentUrl;
+
   return (
     <img
-      src={url}
+      src={safeSrc}
       alt={alt}
       referrerPolicy="no-referrer"
       className="w-12 h-12 rounded-lg object-cover"
-      onError={() => setHasError(true)}
+      onError={handleImageError}
     />
   );
 };
@@ -177,10 +198,21 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
     (actor?.profile_metadata as any)?.profile_image_url ||
     (resultSummary as any)?.actor_avatar_url;
 
-  const hostAvatarUrl =
+  const hostThumbnailUrl =
+    (hostMetadata as any)?.thumbnail_url ||
+    (actor?.profile_metadata as any)?.thumbnail_url ||
+    (resultSummary as any)?.thumbnail_url;
+
+  const hostCreatorAvatar =
     (hostMetadata?.creator as any)?.avatar_url ||
     (hostMetadata?.creator as any)?.profile_image_url ||
-    (hostMetadata as any)?.thumbnail_url;
+    (actor?.profile_metadata as any)?.creator_avatar_url ||
+    (resultSummary as any)?.creator_avatar_url;
+
+  const hostAvatarUrl =
+    hostThumbnailUrl ||
+    hostCreatorAvatar ||
+    actor?.avatar_url;
 
   const handleAddToWatchlist = async () => {
     setIsAdding(true);
@@ -240,7 +272,8 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
           <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner overflow-hidden">
             {isEvent ? (
               <CardAvatar
-                url={hostAvatarUrl}
+                url={hostThumbnailUrl || hostAvatarUrl}
+                fallbackUrl={hostCreatorAvatar}
                 alt={hostMetadata?.creator?.username_or_channel || 'Kreator'}
                 fallbackIcon={
                   <PlatformIcon

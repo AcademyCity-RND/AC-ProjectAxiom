@@ -1,8 +1,10 @@
 import uuid
 import logging
+import urllib.parse
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from fastapi import APIRouter, Depends, status, Request, BackgroundTasks, HTTPException
+import httpx
+from fastapi import APIRouter, Depends, status, Request, BackgroundTasks, HTTPException, Response, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -23,6 +25,70 @@ from app.services.audit_logger import log_activity
 
 logger = logging.getLogger("axiom.investigate")
 router = APIRouter()
+
+ALLOWED_IMAGE_PROXY_DOMAINS = (
+    "fbcdn.net",
+    "cdninstagram.com",
+    "instagram.com",
+    "twimg.com",
+    "ytimg.com",
+    "youtube.com",
+    "googleusercontent.com",
+    "ggpht.com",
+)
+
+
+def wrap_proxy_image(url: Optional[str]) -> Optional[str]:
+    """Membungkus URL gambar yang terdampak proteksi CORP (Meta/Instagram fbcdn) dengan endpoint proxy lokal."""
+    if not url:
+        return None
+    if "/api/v1/investigate/proxy-image" in url:
+        return url
+    if any(d in url.lower() for d in ("fbcdn.net", "cdninstagram.com", "instagram.com")):
+        return f"/api/v1/investigate/proxy-image?url={urllib.parse.quote(url, safe='')}"
+    return url
+
+
+@router.get("/proxy-image", summary="Proxy gambar eksternal (Instagram / CDN) untuk mengatasi restriksi CORP / CORS")
+async def proxy_image(url: str = Query(..., description="URL gambar eksternal")):
+    """
+    Mengunduh gambar dari URL eksternal (seperti CDN Instagram/Facebook)
+    dan mengalirkannya ke browser dengan header Cross-Origin-Resource-Policy: cross-origin.
+    """
+    if not url.startswith("http://") and not url.startswith("https://"):
+        raise HTTPException(status_code=400, detail="URL gambar tidak valid.")
+
+    parsed = urllib.parse.urlparse(url)
+    domain = parsed.netloc.lower().split(":")[0]
+
+    # Validasi whitelist domain untuk proteksi SSRF
+    if not any(domain.endswith(allowed) for allowed in ALLOWED_IMAGE_PROXY_DOMAINS):
+        raise HTTPException(status_code=403, detail="Domain gambar tidak diizinkan untuk di-proxy.")
+
+    try:
+        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
+            resp = await client.get(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                },
+            )
+            if resp.status_code != 200:
+                raise HTTPException(status_code=resp.status_code, detail="Gagal mengambil gambar dari CDN sumber.")
+
+            content_type = resp.headers.get("content-type", "image/jpeg")
+            headers = {
+                "Cache-Control": "public, max-age=86400",
+                "Access-Control-Allow-Origin": "*",
+                "Cross-Origin-Resource-Policy": "cross-origin",
+            }
+            return Response(content=resp.content, media_type=content_type, headers=headers)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Proxy gambar gagal untuk '{url}': {e}")
+        raise HTTPException(status_code=502, detail=f"Proxy gambar gagal: {str(e)}")
 
 
 @router.post("/actor", summary="Memulai Investigasi Target Kognitif", status_code=status.HTTP_200_OK)
@@ -311,21 +377,29 @@ def list_investigation_cases(
                 display_name = (actor.display_name or (f"@{actor.username}" if actor and actor.username else None)) if actor else None
 
         avatar_url = None
+        creator_avatar_url = None
         if is_event and c.result_summary:
             host_meta = c.result_summary.get("host_metadata", {})
             creator = host_meta.get("creator", {})
-            avatar_url = (
+            thumb = host_meta.get("thumbnail_url")
+            c_avatar = (
                 creator.get("avatar_url")
-                or host_meta.get("thumbnail_url")
                 or (creator.get("profile_image_url") if isinstance(creator, dict) else None)
             )
-            if not avatar_url and c.platform == "youtube":
+            # Prioritaskan media postingan / video thumbnail, jika kosong fallback ke foto profil (pp) kreator
+            raw_img = thumb or c_avatar
+            if not raw_img and c.platform == "youtube":
                 from app.services.youtube_auditor import extract_youtube_video_id
                 vid = extract_youtube_video_id(c.target)
                 if vid:
-                    avatar_url = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+                    raw_img = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+
+            avatar_url = wrap_proxy_image(raw_img)
+            creator_avatar_url = wrap_proxy_image(c_avatar)
         elif actor:
-            avatar_url = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
+            raw_actor_img = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
+            avatar_url = wrap_proxy_image(raw_actor_img)
+            creator_avatar_url = avatar_url
 
         result.append({
             "case_id": c.id,
@@ -339,6 +413,7 @@ def list_investigation_cases(
             "content_title": title if is_event else None,
             "is_event": is_event,
             "avatar_url": avatar_url,
+            "creator_avatar_url": creator_avatar_url,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "completed_at": c.completed_at.isoformat() if c.completed_at else None,
         })
@@ -393,21 +468,29 @@ def get_investigation_case(
         display_name = creator_name or f"{case.platform.upper()} Event Content"
         bio = content_title or f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)"
 
-        event_avatar = (
+        thumb = host_meta.get("thumbnail_url")
+        c_avatar = (
             creator.get("avatar_url")
-            or host_meta.get("thumbnail_url")
             or (creator.get("profile_image_url") if isinstance(creator, dict) else None)
         )
-        if not event_avatar and case.platform == "youtube":
+        raw_event_avatar = thumb or c_avatar
+        if not raw_event_avatar and case.platform == "youtube":
             from app.services.youtube_auditor import extract_youtube_video_id
             vid = extract_youtube_video_id(case.target)
             if vid:
-                event_avatar = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+                raw_event_avatar = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+
+        event_avatar = wrap_proxy_image(raw_event_avatar)
+        creator_avatar_url = wrap_proxy_image(c_avatar)
+        thumbnail_url = wrap_proxy_image(thumb)
+
         actor_data = {
             "username": creator_name or case.target,
             "display_name": display_name,
             "bio": bio,
             "avatar_url": event_avatar,
+            "creator_avatar_url": creator_avatar_url,
+            "thumbnail_url": thumbnail_url,
             "followers_count": uniq_c,
             "following_count": tot_c,
             "is_verified": False,
@@ -421,15 +504,19 @@ def get_investigation_case(
                 "cib_clusters_count": summary.get("cib_clusters_count", 0),
                 "burst_ratio": summary.get("temporal_anomaly", {}).get("burst_ratio", 0.0),
                 "profile_image_url": event_avatar,
+                "creator_avatar_url": creator_avatar_url,
+                "thumbnail_url": thumbnail_url,
             }
         }
     elif actor:
-        avatar_url = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
+        raw_actor_img = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
+        avatar_url = wrap_proxy_image(raw_actor_img)
         actor_data = {
             "username": actor.username,
             "display_name": actor.display_name,
-            "bio": actor.bio,
+            "bio": bio,
             "avatar_url": avatar_url,
+            "creator_avatar_url": avatar_url,
             "followers_count": actor.followers_count,
             "following_count": actor.following_count,
             "is_verified": actor.is_verified,
@@ -1138,7 +1225,7 @@ async def guest_analyze(
         # Ekstraksi atribut tampilan profil
         avatar_url = None
         if profile_data.get("profile_metadata") and isinstance(profile_data["profile_metadata"], dict):
-            avatar_url = profile_data["profile_metadata"].get("profile_image_url")
+            avatar_url = wrap_proxy_image(profile_data["profile_metadata"].get("profile_image_url"))
 
         created_val = profile_data.get("account_created_at")
         if isinstance(created_val, datetime):
