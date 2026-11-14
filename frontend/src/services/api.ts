@@ -289,6 +289,25 @@ export const api = {
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
   },
 
+  // 7d. Verifikasi Kriptografis & Penelusuran Dokumen via SHA-256 / ID Kasus
+  verifyDossierHash: async (
+    query: string
+  ): Promise<{
+    is_verified: boolean;
+    match_type: string;
+    case_id: string | null;
+    target: string | null;
+    platform: string | null;
+    status: string | null;
+    cryptographic_hash: string | null;
+    created_at: string | null;
+    dossier_url: string | null;
+    message: string;
+  }> => {
+    const response = await apiClient.get(`/export/verify-hash/${encodeURIComponent(query.trim())}`);
+    return response.data;
+  },
+
   // 8. Health Check Sistem
   checkHealth: async (): Promise<{ status: string }> => {
     const targetUrl = API_BASE_URL.startsWith('http')

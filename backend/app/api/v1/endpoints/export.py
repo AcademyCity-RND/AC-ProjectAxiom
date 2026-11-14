@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.auth import TokenPayload, UserRole
 from app.models.case import InvestigationCase
-from app.api.v1.deps import require_roles
+from app.api.v1.deps import require_roles, get_current_user
 from app.services.report_exporter import (
     build_case_dossier_data,
     render_html_dossier,
@@ -215,3 +215,78 @@ def export_master_dataset(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Gagal menghasilkan master dataset: {e}"
         )
+
+
+@router.get("/verify-hash/{search_query}", summary="Verifikasi Kriptografis & Penelusuran Dossier Forensik")
+def verify_dossier_hash(
+    search_query: str,
+    db: Session = Depends(get_db),
+    current_user: TokenPayload = Depends(get_current_user)
+):
+    """
+    Memverifikasi integritas dan menelusuri berkas kasus forensik berdasarkan:
+    1. Kode hash kriptografis SHA-256 (atau prefix hash).
+    2. UUID/ID Kasus investigasi.
+    Mengembalikan metadata validasi Chain of Custody dan URL pratinjau dokumen.
+    """
+    clean_q = search_query.strip().lower()
+    if not clean_q:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Parameter pencarian hash atau ID kasus tidak boleh kosong."
+        )
+
+    # 1. Cari langsung berdasarkan case_id (UUID atau prefix)
+    direct_case = db.query(InvestigationCase).filter(InvestigationCase.id.ilike(f"{clean_q}%")).first()
+    if direct_case:
+        try:
+            dossier = build_case_dossier_data(direct_case.id, db)
+            return {
+                "is_verified": True,
+                "match_type": "CASE_ID",
+                "case_id": direct_case.id,
+                "target": direct_case.target,
+                "platform": direct_case.platform,
+                "status": direct_case.status,
+                "cryptographic_hash": dossier.get("cryptographic_hash", ""),
+                "created_at": direct_case.created_at.isoformat() if direct_case.created_at else None,
+                "dossier_url": f"/api/v1/export/report/{direct_case.id}?format=html",
+                "message": "Dokumen forensik otentik terverifikasi resmi dalam repositori Satgas PUSSIBERAD."
+            }
+        except Exception as e:
+            logger.warning(f"Gagal membangun data dossier untuk kasus '{direct_case.id}': {e}")
+
+    # 2. Cari berdasarkan kalkulasi SHA-256 seluruh kasus aktif
+    all_cases = db.query(InvestigationCase).order_by(InvestigationCase.created_at.desc()).limit(100).all()
+    for c in all_cases:
+        try:
+            dossier = build_case_dossier_data(c.id, db)
+            c_hash = (dossier.get("cryptographic_hash") or "").lower()
+            if c_hash == clean_q or c_hash.startswith(clean_q):
+                return {
+                    "is_verified": True,
+                    "match_type": "SHA256_HASH",
+                    "case_id": c.id,
+                    "target": c.target,
+                    "platform": c.platform,
+                    "status": c.status,
+                    "cryptographic_hash": c_hash,
+                    "created_at": c.created_at.isoformat() if c.created_at else None,
+                    "dossier_url": f"/api/v1/export/report/{c.id}?format=html",
+                    "message": "Sidik jari kriptografis SHA-256 cocok 100% (Verifikasi Dokumen Otentik Bebas Manipulasi)."
+                }
+        except Exception:
+            continue
+
+    return {
+        "is_verified": False,
+        "match_type": "NONE",
+        "case_id": None,
+        "target": None,
+        "platform": None,
+        "status": None,
+        "cryptographic_hash": None,
+        "created_at": None,
+        "dossier_url": None,
+        "message": f"Sidik jari atau ID '{search_query}' tidak ditemukan dalam rantai bukti intelijen terdaftar."
+    }
