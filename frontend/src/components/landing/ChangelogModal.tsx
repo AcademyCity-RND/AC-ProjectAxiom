@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, History, GitCommit, CheckCircle2, ExternalLink } from 'lucide-react';
 import { GithubIcon } from '../common/GithubIcon';
 
@@ -54,6 +54,9 @@ const VERSIONS: VersionItem[] = [
 ];
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
+  const [versionList, setVersionList] = useState<VersionItem[]>(VERSIONS);
+  const [isLive, setIsLive] = useState<boolean>(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -61,6 +64,48 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
+
+      // Ambil changelog rilis resmi secara realtime dari GitHub Releases API
+      fetch('https://api.github.com/repos/AcademyCity-RND/AC-ProjectAxiom/releases')
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error('GitHub API response not ok'))))
+        .then((releases) => {
+          if (Array.isArray(releases) && releases.length > 0) {
+            const parsed: VersionItem[] = releases.map((rel: any, idx: number) => {
+              const dateStr = rel.published_at
+                ? new Date(rel.published_at).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+                : 'Terbaru';
+
+              const body = rel.body || '';
+              const lines = body
+                .split('\n')
+                .map((l: string) => l.trim())
+                .filter((l: string) => l.startsWith('-') || l.startsWith('*') || (l.length > 8 && !l.startsWith('#')));
+
+              const highlights =
+                lines.length > 0
+                  ? lines.slice(0, 6).map((l: string) => l.replace(/^[-*]\s*/, '').replace(/\*\*/g, ''))
+                  : [rel.name || `Pembaruan rilis resmi ${rel.tag_name || 'AXIOM'}`];
+
+              return {
+                version: rel.tag_name || rel.name || `v1.0.${idx}`,
+                date: dateStr,
+                badge: idx === 0 ? 'Rilis Terkini (Live)' : 'Rilis Resmi',
+                badgeColor:
+                  idx === 0
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+                highlights,
+              };
+            });
+            setVersionList(parsed);
+            setIsLive(true);
+          }
+        })
+        .catch(() => {
+          // Fallback anggun ke data statis
+          setVersionList(VERSIONS);
+          setIsLive(false);
+        });
     }
     return () => {
       document.body.style.overflow = 'auto';
@@ -86,9 +131,17 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
               <History className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm sm:text-base text-white tracking-tight">
-                Riwayat Rilis &amp; Changelog
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm sm:text-base text-white tracking-tight">
+                  Riwayat Rilis &amp; Changelog
+                </h3>
+                {isLive && (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Live GitHub API
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-slate-400">
                 Rekam jejak evolusi dan pembaruan arsitektur Project Axiom
               </p>
@@ -108,7 +161,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
         {/* Scrollable Timeline Body */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-7 space-y-8 text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
           <div className="relative border-l border-slate-800 ml-3 sm:ml-4 space-y-8">
-            {VERSIONS.map((ver) => (
+            {versionList.map((ver) => (
               <div key={ver.version} className="relative pl-6 sm:pl-7 group">
                 {/* Dot Node */}
                 <div className="absolute -left-[14px] top-1 w-7 h-7 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 group-hover:border-sky-400 group-hover:text-sky-400 transition-colors">
