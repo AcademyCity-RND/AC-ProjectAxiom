@@ -271,7 +271,8 @@ axiom/
 │   ├── chromadb/              # Persistent Vector Collections
 │   ├── models/                # Trained XGBoost Artifacts (xgboost_tri_class.json)
 │   └── raw_datasets/          # Harvested Datasets (X, Instagram, YouTube)
-├── docker-compose.yml         # Local Infrastructure Orchestration (4 Containers)
+├── docker-compose.yml         # Local Infrastructure Orchestration (Dev Mode, Hot-Reload)
+├── docker-compose.prod.yml    # Production-Hardened Orchestration (Full Isolation)
 ├── run_harvester.ps1          # One-Click Harvester Execution Script
 ├── .env.example               # Complete Environment Configuration Template
 ├── .gitignore                 # Sanitized Git Ignore (PII & Sessions Locked)
@@ -315,13 +316,23 @@ Buka file `.env` di teks editor favorit (VS Code, Notepad, dll):
 
 ### 3. Menjalankan via Docker Compose (Rekomendasi Utama)
 
-Cukup **satu perintah** untuk menjalankan seluruh arsitektur (PostgreSQL, ChromaDB, FastAPI Backend, & Nginx React Frontend):
+Project AXIOM menyediakan **2 pilihan mode Docker Compose** yang sudah disinkronkan untuk menjalankan seluruh arsitektur secara terpadu (PostgreSQL, ChromaDB, AC-InstagramScraper, FastAPI Backend, & Nginx React Frontend):
 
+#### 🟢 Opsi A: Mode Pengembangan / Development (Hot-Reload)
+Gunakan opsi ini saat mengembangkan kode atau eksperimen lokal. File perubahan di backend dan frontend akan terbaca secara otomatis:
 ```bash
-# Jalankan seluruh kontainer di latar belakang
+# Jalankan seluruh service mode development di latar belakang
 docker compose up -d --build
 ```
-> *(Catatan: Perintah `docker-compose up -d --build` juga didukung penuh untuk versi Docker Compose v1).*
+
+#### 🚀 Opsi B: Mode Produksi / Production (Hardened & Terisolasi Penuh)
+Gunakan opsi ini untuk demonstrasi final, simulasi penjurian hackathon, atau deployment produksi VPS. Seluruh service dibundel mandiri ke dalam image kontainer terisolasi tanpa bind-mount host, menjamin performa maksimal dan stabilitas permission file:
+```bash
+# Jalankan seluruh service mode produksi di latar belakang
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+> *(Catatan: Perintah `docker-compose up -d --build` / `docker-compose -f docker-compose.prod.yml up -d --build` juga didukung penuh untuk versi Docker Compose v1).*
 
 #### 🌐 Akses Layanan:
 | Layanan | Alamat URL / Akses | Keterangan |
@@ -345,14 +356,20 @@ Axiom menerapkan arsitektur scraping multi-tier untuk menjamin analisis media so
 
 #### 🛠️ Perintah Operasional Docker:
 ```bash
-# Cek status kesehatan seluruh kontainer
+# 1. Cek status kesehatan seluruh kontainer
 docker compose ps
+# (atau untuk mode produksi)
+docker compose -f docker-compose.prod.yml ps
 
-# Memantau live logs backend
+# 2. Memantau live logs backend
 docker compose logs -f backend
+# (atau untuk mode produksi)
+docker compose -f docker-compose.prod.yml logs -f backend
 
-# Menghentikan seluruh kontainer
+# 3. Menghentikan seluruh kontainer
 docker compose down
+# (atau untuk mode produksi)
+docker compose -f docker-compose.prod.yml down
 ```
 
 ---
