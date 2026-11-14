@@ -53,6 +53,15 @@ export const FooterSection: React.FC<FooterSectionProps> = ({
             <span>GitHub</span>
           </a>
 
+          <a
+            href="/api/v1/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-400 hover:text-sky-400 flex items-center gap-1 transition-colors"
+          >
+            <span>Swagger API</span>
+          </a>
+
           {onOpenChangelog && (
             <button
               type="button"

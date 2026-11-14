@@ -441,8 +441,10 @@ Mengacu pada jadwal resmi **Kartika Cyber Hackathon 2026**:
    * Menampilkan bukti kutipan nyata teks komentar yang ditulis oleh Top 10 Penyerang Inti untuk verifikasi faktual tim analis.
 
 5. **CI/CD Pipeline, Registry GHCR, & Auto-Deployment VPS:**
-   * Workflow rilis otomatis khusus branch `main` (`release-ghcr.yml`) yang mem-build image Docker dan menerbitkan GitHub Release dengan auto-generated changelog.
+   * Workflow rilis otomatis khusus branch `main` (`release-ghcr.yml`) dengan auto-kalkulasi **Semantic Versioning (SemVer)** berbasis *Conventional Commits*, publikasi paket kontainer ke **GHCR**, dan penerbitan **GitHub Release** dengan auto-generated changelog.
+   * Visibilitas workflow ganda di branch `dev` dan `main` dengan *skip guard* pengaman.
    * Workflow deployment zero-downtime (`deploy-vps.yml`) dengan *safety guard* (`if: secrets.VPS_HOST != ''`) sehingga tidak gagal saat rahasia VPS belum dipasang.
+   * Dokumentasi OpenAPI terintegrasi langsung pada antarmuka dashboard landing page menuju `/api/v1/docs` (Swagger UI) dan `/api/v1/redoc`.
 
 ---
 

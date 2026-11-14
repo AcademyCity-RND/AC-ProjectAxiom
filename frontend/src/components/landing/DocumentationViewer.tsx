@@ -11,6 +11,7 @@ import {
   Info,
   AlertCircle,
   FileDown,
+  ExternalLink,
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -206,6 +207,39 @@ EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2`}
                   <p className="mt-2 text-xs sm:text-sm text-slate-400 leading-relaxed">
                     Seluruh endpoint terlindungi rate-limiting dinamis dan mematuhi standar JSON kanonikal.
                   </p>
+                </div>
+
+                {/* Interactive API Docs Link Banner */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-gradient-to-r from-sky-950/40 via-slate-900 to-slate-950 border border-sky-500/30 shadow-inner">
+                  <div>
+                    <div className="text-xs font-semibold text-sky-400 flex items-center gap-1.5">
+                      <Code2 className="w-4 h-4 text-sky-400" />
+                      <span>Dokumentasi API Interaktif (FastAPI OpenAPI)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Uji coba langsung seluruh endpoint analitik secara real-time via antarmuka Swagger UI atau ReDoc.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <a
+                      href="/api/v1/docs"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-semibold shadow-md shadow-sky-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <span>Swagger UI</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href="/api/v1/redoc"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <span>ReDoc</span>
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                    </a>
+                  </div>
                 </div>
 
                 <div className="space-y-3">

@@ -28,17 +28,70 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Ref: ${{ github.ref }}"
           if [ "${{ github.ref }}" == "refs/heads/main" ] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "Status: Branch target adalah MAIN / TAG rilis. Job build GHCR dan pembuatan Release akan dijalankan penuh."
+            echo "Status: Branch target adalah MAIN / TAG rilis. Job kalkulasi SemVer, build GHCR, dan pembuatan Release akan dijalankan penuh."
           else
-            echo "Status: Branch target adalah DEV / PR (${{ github.ref }}). Workflow terbaca sukses; job build GHCR dan Release akan di-SKIP dengan aman."
+            echo "Status: Branch target adalah DEV / PR (${{ github.ref }}). Workflow terbaca sukses; job kalkulasi SemVer, build GHCR, dan Release akan di-SKIP dengan aman."
+          fi
+
+  determine-version:
+    name: Determine & Bump Semantic Version (SemVer)
+    needs: check-environment
+    runs-on: ubuntu-latest
+    # Hanya kalkulasi dan bump versi pada merge/push ke main atau rilis tag eksplisit, bukan pada event PR
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && github.event_name != 'pull_request'
+    outputs:
+      release_tag: ${{ steps.resolve_tag.outputs.tag }}
+      is_prerelease: ${{ steps.resolve_tag.outputs.is_prerelease }}
+      bump_type: ${{ steps.resolve_tag.outputs.bump_type }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1. Jika di-push/merge ke main, gunakan mathieudutour/github-tag-action untuk kalkulasi SemVer otomatis dari Conventional Commits
+      - name: Auto-Bump SemVer on Main (Conventional Commits)
+        if: github.ref == 'refs/heads/main'
+        id: semver_bump
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          tag_prefix: v
+          release_branches: main
+          fetch_all_tags: true
+
+      # 2. Tentukan tag rilis final (Manual Tag vs Auto SemVer vs Fallback)
+      - name: Resolve Final Release Tag
+        id: resolve_tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            MANUAL_TAG="${GITHUB_REF#refs/tags/}"
+            echo "tag=${MANUAL_TAG}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "bump_type=manual" >> $GITHUB_OUTPUT
+            echo "Menggunakan tag manual: ${MANUAL_TAG}"
+          elif [ -n "${{ steps.semver_bump.outputs.new_tag }}" ]; then
+            AUTO_TAG="${{ steps.semver_bump.outputs.new_tag }}"
+            echo "tag=${AUTO_TAG}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "bump_type=${{ steps.semver_bump.outputs.part }}" >> $GITHUB_OUTPUT
+            echo "Berhasil auto-bump SemVer dari commit history: ${AUTO_TAG} (Tipe: ${{ steps.semver_bump.outputs.part }})"
+          else
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            DATE_TAG=$(date +'%Y.%m.%d')
+            FALLBACK_TAG="v${DATE_TAG}-${SHORT_SHA}"
+            echo "tag=${FALLBACK_TAG}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "bump_type=fallback" >> $GITHUB_OUTPUT
+            echo "Menggunakan fallback tag: ${FALLBACK_TAG}"
           fi
 
   build-and-push-ghcr:
     name: Build & Push Docker Images to GHCR
-    needs: check-environment
+    needs: [check-environment, determine-version]
     runs-on: ubuntu-latest
-    # Hanya jalankan publish ke GHCR jika branch adalah main atau tag rilis, dan bukan PR event
-    # Pada branch dev atau PR, job ini otomatis di-SKIP secara anggun (centang hijau/abu-abu netral)
     if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && github.event_name != 'pull_request'
 
     steps:
@@ -67,9 +120,8 @@ jobs:
           images: ghcr.io/${{ github.repository_owner }}/axiom-backend
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ needs.determine-version.outputs.release_tag }}
             type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
 
       - name: Build and Push Backend Image
@@ -93,9 +145,8 @@ jobs:
           images: ghcr.io/${{ github.repository_owner }}/axiom-frontend
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ needs.determine-version.outputs.release_tag }}
             type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
 
       - name: Build and Push Frontend Image
@@ -111,7 +162,7 @@ jobs:
 
   create-github-release:
     name: Generate Auto-Changelog & Publish GitHub Release
-    needs: build-and-push-ghcr
+    needs: [determine-version, build-and-push-ghcr]
     runs-on: ubuntu-latest
     if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main') && github.event_name != 'pull_request'
 
@@ -121,33 +172,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine Release Tag
-        id: tag_info
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-            echo "is_prerelease=false" >> $GITHUB_OUTPUT
-          else
-            # Untuk merge ke main tanpa git tag eksplisit, generate auto tag berdasarkan commit count / date
-            SHORT_SHA=$(git rev-parse --short HEAD)
-            DATE_TAG=$(date +'%Y.%m.%d')
-            AUTO_TAG="v${DATE_TAG}-${SHORT_SHA}"
-            echo "tag=${AUTO_TAG}" >> $GITHUB_OUTPUT
-            echo "is_prerelease=false" >> $GITHUB_OUTPUT
-            
-            # Buat git tag lokal dan push ke origin
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git tag -a "${AUTO_TAG}" -m "Production Release ${AUTO_TAG}"
-            git push origin "${AUTO_TAG}"
-          fi
-
       - name: Create Official GitHub Release with Auto Changelog
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag_info.outputs.tag }}
-          name: "Project Axiom Release ${{ steps.tag_info.outputs.tag }}"
+          tag_name: ${{ needs.determine-version.outputs.release_tag }}
+          name: "Project Axiom Release ${{ needs.determine-version.outputs.release_tag }}"
           generate_release_notes: true
-          prerelease: ${{ steps.tag_info.outputs.is_prerelease == 'true' }}
+          prerelease: ${{ needs.determine-version.outputs.is_prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

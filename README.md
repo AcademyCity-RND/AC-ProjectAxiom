@@ -323,7 +323,8 @@ docker compose up -d --build
 | Layanan | Alamat URL / Akses | Keterangan |
 | :--- | :--- | :--- |
 | **Frontend Web Dashboard** | [http://localhost:3000](http://localhost:3000) | Antarmuka analisis investigasi SOC PUSSIBERAD |
-| **FastAPI Interactive Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Dokumentasi & pengujian endpoint Swagger UI |
+| **FastAPI Swagger UI Docs** | [http://localhost:3000/api/v1/docs](http://localhost:3000/api/v1/docs) / [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs) | Dokumentasi interaktif OpenAPI & pengujian endpoint langsung |
+| **FastAPI ReDoc** | [http://localhost:3000/api/v1/redoc](http://localhost:3000/api/v1/redoc) / [http://localhost:8000/api/v1/redoc](http://localhost:8000/api/v1/redoc) | Dokumentasi teknis terstruktur spesifikasi REST API v1 |
 | **Instagram Scraper Service** | [http://localhost:8005](http://localhost:8005) | Microservice zero-auth TLS scraper (`/axiom/comments`) |
 | **ChromaDB Vector Store** | [http://localhost:8001](http://localhost:8001) | Endpoint koleksi narasi semantik CIB |
 | **PostgreSQL Database** | `localhost:5434` | DB utama *(port host 5434 untuk mencegah konflik lokal 5432)* |
@@ -420,8 +421,8 @@ Project Axiom menerapkan pipeline pengiriman otomatis (*Continuous Delivery*) be
 ### 1. Struktur Pemicu Pipeline (Git Flow)
 | Branch / Event | Target Workflow | Tindakan & Output |
 | :--- | :--- | :--- |
-| **`feat/*` & `dev`** | `.github/workflows/ci.yml` | Pengujian unit (`pytest`), verifikasi migrasi Alembic, build frontend typecheck, dan validasi sintaks Docker Compose. *Tidak mempublikasikan image ke registry atau membuat rilis.* |
-| **`main` (Merge / Tag)** | `.github/workflows/release-ghcr.yml` | **1)** Build multi-arch container image dan publish ke **GitHub Packages (GHCR)**.<br>**2)** Pembuatan **GitHub Release** resmi disertai *auto-generated changelog* terstruktur. |
+| **`feat/*` & `dev`** | `.github/workflows/ci.yml` & `.github/workflows/release-ghcr.yml` | Pengujian unit (`pytest`), verifikasi migrasi Alembic, build frontend typecheck, dan validasi sintaks. Pada branch `dev`, workflow rilis & GHCR terbaca sukses namun tugas berat di-skip secara aman (*skip guard*). |
+| **`main` (Merge / Tag)** | `.github/workflows/release-ghcr.yml` | **1)** Auto-kalkulasi & penomoran versi **SemVer** (`vMAJOR.MINOR.PATCH`) dari Conventional Commits.<br>**2)** Build multi-arch container image dan publish ke **GitHub Packages (GHCR)**.<br>**3)** Pembuatan **GitHub Release** resmi disertai *auto-generated changelog* terstruktur. |
 | **Production VPS** | `.github/workflows/deploy-vps.yml` | Auto-deploy zero-downtime via SSH ke VPS produksi. Dilindungi *safety guard* (`if: secrets.VPS_HOST != ''`) sehingga aman dan tidak akan gagal saat secrets belum disiapkan. |
 
 ### 2. Paket Kontainer Resmi (GitHub Container Registry)
