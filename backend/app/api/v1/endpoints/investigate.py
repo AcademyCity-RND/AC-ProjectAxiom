@@ -513,13 +513,13 @@ def get_investigation_case(
         avatar_url = wrap_proxy_image(raw_actor_img)
         actor_data = {
             "username": actor.username,
-            "display_name": actor.display_name,
-            "bio": bio,
+            "display_name": actor.display_name or actor.username,
+            "bio": actor.bio or "",
             "avatar_url": avatar_url,
             "creator_avatar_url": avatar_url,
-            "followers_count": actor.followers_count,
-            "following_count": actor.following_count,
-            "is_verified": actor.is_verified,
+            "followers_count": actor.followers_count or 0,
+            "following_count": actor.following_count or 0,
+            "is_verified": actor.is_verified or False,
             "account_created_at": actor.account_created_at.isoformat() if actor.account_created_at else None,
             "profile_metadata": actor.profile_metadata
         }
