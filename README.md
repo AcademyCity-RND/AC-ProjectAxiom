@@ -9,6 +9,7 @@
 [![Security Policy](https://img.shields.io/badge/Security-Policy-red.svg)](SECURITY.md)
 [![CI Pipeline](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml/badge.svg)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions/workflows/ci.yml)
 [![Core Engine: Axiom-Core](https://img.shields.io/badge/Powered%20by-Axiom--Core-blueviolet.svg?logo=python&logoColor=white)](https://github.com/AcademyCity-RND/AC-AxiomCore)
+[![Scraper Microservice: AC-InstagramScraper](https://img.shields.io/badge/Microservice-AC--InstagramScraper-E4405F.svg?logo=instagram&logoColor=white)](https://github.com/AcademyCity-RND/AC-InstagramScraper)
 [![Citation: CFF](https://img.shields.io/badge/Cite-CITATION.cff-informational.svg)](CITATION.cff)
 [![Tests: 72/72 Passed](https://img.shields.io/badge/Tests-72%2F72%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](https://github.com/AcademyCity-RND/AC-ProjectAxiom/actions)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg?logo=python&logoColor=white)](https://www.python.org/)
@@ -20,7 +21,8 @@
 > **Kategori:** 04 Cognitive Domain (Siber Sosial)  
 > **Institusi:** Pusat Siber TNI Angkatan Darat (PUSSIBERAD) & CODEPOLITAN  
 > **Status:** MVP Prototype Development (Target Submission: 15 November 2026)  
-> **Core Engine:** [Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore) (*Open-Source Threat Profiling & Inauthentic Behavior Detection Engine*)
+> **Core Engine:** [Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore) (*Open-Source Threat Profiling & Inauthentic Behavior Detection Engine*)  
+> **Scraper Microservice:** [AC-InstagramScraper](https://github.com/AcademyCity-RND/AC-InstagramScraper) (*Zero-Auth TLS Instagram Scraping Microservice*)
 
 ---
 
@@ -37,8 +39,9 @@
 Sistem ini mentransformasi proses investigasi manual yang memakan waktu berhari-hari menjadi analisis otomatis dalam hitungan detik, memberikan atribusi ancaman nyata bagi pertahanan kedaulatan informasi nasional.
 
 > [!NOTE]
-> 🔬 **Ditenagai oleh Engine Riset Mandiri: [Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore)**  
-> Seluruh fondasi matematis 21 fitur behavioral ($H_{norm}$ Shannon temporal entropy, $\chi^2$ uji sirkadian 24/7, parameter burstiness $B$), pipeline klasifikasi tri-class XGBoost, filter pertahanan *Adversarial Prompt Guard*, dan harvester data multi-kanal ditenagai oleh framework riset mandiri kami: **[Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore)**. Dokumentasi teknis dan formulasi ilmiah lengkap dapat dipelajari di [Spesifikasi Framework Axiom-Core](docs/AXIOM_CORE_FRAMEWORK.md).
+> 🔬 **Ditenagai oleh Engine Riset Mandiri: [Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore)** & **Microservice: [AC-InstagramScraper](https://github.com/AcademyCity-RND/AC-InstagramScraper)**  
+> - Seluruh fondasi matematis 21 fitur behavioral ($H_{norm}$ Shannon temporal entropy, $\chi^2$ uji sirkadian 24/7, parameter burstiness $B$), pipeline klasifikasi tri-class XGBoost, filter pertahanan *Adversarial Prompt Guard*, dan harvester data multi-kanal ditenagai oleh framework riset mandiri kami: **[Axiom-Core](https://github.com/AcademyCity-RND/AC-AxiomCore)**. Dokumentasi teknis dan formulasi ilmiah lengkap dapat dipelajari di [Spesifikasi Framework Axiom-Core](docs/AXIOM_CORE_FRAMEWORK.md).  
+> - Layanan penarikan data Instagram tanpa kredensial login (*Zero-Auth TLS Architecture*) dijalankan secara mandiri oleh microservice terisolasi kami: **[AC-InstagramScraper](https://github.com/AcademyCity-RND/AC-InstagramScraper)**.
 
 ---
 
@@ -268,7 +271,8 @@ axiom/
 │   ├── chromadb/              # Persistent Vector Collections
 │   ├── models/                # Trained XGBoost Artifacts (xgboost_tri_class.json)
 │   └── raw_datasets/          # Harvested Datasets (X, Instagram, YouTube)
-├── docker-compose.yml         # Local Infrastructure Orchestration (4 Containers)
+├── docker-compose.yml         # Local Infrastructure Orchestration (Dev Mode, Hot-Reload)
+├── docker-compose.prod.yml    # Production-Hardened Orchestration (Full Isolation)
 ├── run_harvester.ps1          # One-Click Harvester Execution Script
 ├── .env.example               # Complete Environment Configuration Template
 ├── .gitignore                 # Sanitized Git Ignore (PII & Sessions Locked)
@@ -290,8 +294,9 @@ axiom/
 ### 2. Kloning & Konfigurasi `.env`
 
 ```bash
-# 1. Kloning repositori
+# 1. Kloning repositori utama & microservice Instagram scraper berdampingan
 git clone https://github.com/AcademyCity-RND/AC-ProjectAxiom.git
+git clone https://github.com/AcademyCity-RND/AC-InstagramScraper.git
 cd AC-ProjectAxiom
 
 # 2. Salin template konfigurasi
@@ -311,13 +316,23 @@ Buka file `.env` di teks editor favorit (VS Code, Notepad, dll):
 
 ### 3. Menjalankan via Docker Compose (Rekomendasi Utama)
 
-Cukup **satu perintah** untuk menjalankan seluruh arsitektur (PostgreSQL, ChromaDB, FastAPI Backend, & Nginx React Frontend):
+Project AXIOM menyediakan **2 pilihan mode Docker Compose** yang sudah disinkronkan untuk menjalankan seluruh arsitektur secara terpadu (PostgreSQL, ChromaDB, AC-InstagramScraper, FastAPI Backend, & Nginx React Frontend):
 
+#### 🟢 Opsi A: Mode Pengembangan / Development (Hot-Reload)
+Gunakan opsi ini saat mengembangkan kode atau eksperimen lokal. File perubahan di backend dan frontend akan terbaca secara otomatis:
 ```bash
-# Jalankan seluruh kontainer di latar belakang
+# Jalankan seluruh service mode development di latar belakang
 docker compose up -d --build
 ```
-> *(Catatan: Perintah `docker-compose up -d --build` juga didukung penuh untuk versi Docker Compose v1).*
+
+#### 🚀 Opsi B: Mode Produksi / Production (Hardened & Terisolasi Penuh)
+Gunakan opsi ini untuk demonstrasi final, simulasi penjurian hackathon, atau deployment produksi VPS. Seluruh service dibundel mandiri ke dalam image kontainer terisolasi tanpa bind-mount host, menjamin performa maksimal dan stabilitas permission file:
+```bash
+# Jalankan seluruh service mode produksi di latar belakang
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+> *(Catatan: Perintah `docker-compose up -d --build` / `docker-compose -f docker-compose.prod.yml up -d --build` juga didukung penuh untuk versi Docker Compose v1).*
 
 #### 🌐 Akses Layanan:
 | Layanan | Alamat URL / Akses | Keterangan |
@@ -325,7 +340,7 @@ docker compose up -d --build
 | **Frontend Web Dashboard** | [http://localhost:3000](http://localhost:3000) | Antarmuka analisis investigasi SOC PUSSIBERAD |
 | **FastAPI Swagger UI Docs** | [http://localhost:3000/api/v1/docs](http://localhost:3000/api/v1/docs) / [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs) | Dokumentasi interaktif OpenAPI & pengujian endpoint langsung |
 | **FastAPI ReDoc** | [http://localhost:3000/api/v1/redoc](http://localhost:3000/api/v1/redoc) / [http://localhost:8000/api/v1/redoc](http://localhost:8000/api/v1/redoc) | Dokumentasi teknis terstruktur spesifikasi REST API v1 |
-| **Instagram Scraper Service** | [http://localhost:8005](http://localhost:8005) | Microservice zero-auth TLS scraper (`/axiom/comments`) |
+| **Instagram Scraper Service** | [http://localhost:8005](http://localhost:8005) | Microservice zero-auth TLS scraper [AC-InstagramScraper](https://github.com/AcademyCity-RND/AC-InstagramScraper) (`/axiom/comments`) |
 | **ChromaDB Vector Store** | [http://localhost:8001](http://localhost:8001) | Endpoint koleksi narasi semantik CIB |
 | **PostgreSQL Database** | `localhost:5434` | DB utama *(port host 5434 untuk mencegah konflik lokal 5432)* |
 
@@ -341,14 +356,20 @@ Axiom menerapkan arsitektur scraping multi-tier untuk menjamin analisis media so
 
 #### 🛠️ Perintah Operasional Docker:
 ```bash
-# Cek status kesehatan seluruh kontainer
+# 1. Cek status kesehatan seluruh kontainer
 docker compose ps
+# (atau untuk mode produksi)
+docker compose -f docker-compose.prod.yml ps
 
-# Memantau live logs backend
+# 2. Memantau live logs backend
 docker compose logs -f backend
+# (atau untuk mode produksi)
+docker compose -f docker-compose.prod.yml logs -f backend
 
-# Menghentikan seluruh kontainer
+# 3. Menghentikan seluruh kontainer
 docker compose down
+# (atau untuk mode produksi)
+docker compose -f docker-compose.prod.yml down
 ```
 
 ---
@@ -478,6 +499,69 @@ Untuk menjamin keandalan level militer dan operasional siber pertahanan yang tan
 - **Jinja2 3.1.6:** Menutup celah sandbox escape dan arbitrary code execution (CVE-2024-56326 & CVE-2025-27516).
 - **Vite SPA + React 19:** Arsitektur murni *Client-Side Rendering (CSR)* yang mengeliminasi vektor serangan *Server-Side Request Forgery (SSRF)* dan kelemahan *Server Actions* pada dashboard operasional internal.
 - **Docker Isolation & Network Hardening:** Loopback bind `127.0.0.1` pada port PostgreSQL & ChromaDB untuk mencegah akses eksternal di luar mesin host.
+
+---
+
+## 📌 Panduan Standar Git Commit & Auto-Versioning Tim AXIOM
+
+Halo tim! 👋  
+Mulai sekarang repositori **Project AXIOM** sudah terintegrasi dengan **CI/CD Auto-Semantic Versioning (SemVer)**.  
+Pesan commit yang kita tulis akan otomatis dibaca oleh GitHub Actions untuk:
+1. Menentukan kenaikan versi aplikasi (`v1.0.0` ➔ `v1.0.1` / `v1.1.0` / `v2.0.0`).
+2. Otomatis membuatkan catatan rilis (**Changelog**) di GitHub & dashboard.
+
+Oleh karena itu, wajib gunakan format **Conventional Commits** berikut saat melakukan `git commit`:
+
+---
+
+### 📝 Struktur Format Commit
+```text
+<tipe>(<scope opsional>): <deskripsi singkat perubahan>
+```
+*Gunakan huruf kecil semua pada prefix tipe dan jangan akhiri dengan titik.*
+
+---
+
+### 🏷️ Daftar Tipe Commit & Pengaruhnya ke Versi
+
+| Prefix | Arti & Kapan Digunakan | Pengaruh Versi |
+| :--- | :--- | :--- |
+| **`feat:`** | Menambah fitur atau kapabilitas baru | 🚀 **MINOR** (`v1.0.0` ➔ `v1.1.0`) |
+| **`fix:`** | Memperbaiki bug, error, atau typo | 🛠️ **PATCH** (`v1.0.0` ➔ `v1.0.1`) |
+| **`docs:`** | Update dokumentasi (README, PRD, docs) | 📄 Tidak naik versi / Patch |
+| **`style:`** | Styling UI, CSS, perapihan spasi/formatting | 🎨 Tidak naik versi / Patch |
+| **`refactor:`** | Merapikan kode tanpa ubah fitur / bugfix | ♻️ Tidak naik versi / Patch |
+| **`test:`** | Menambah / memperbaiki unit test (pytest) | 🧪 Tidak naik versi |
+| **`ci:`** / **`chore:`**| Update workflow GitHub Actions, Docker, config | ⚙️ Tidak naik versi |
+| **`feat!:`** / `BREAKING CHANGE:` | Perubahan drastis yang merusak backward-compatibility | 💥 **MAJOR** (`v1.0.0` ➔ `v2.0.0`) |
+
+---
+
+### 💡 Contoh Nyata di Project AXIOM (Siap Contoh)
+
+✅ **Fitur Baru:**
+- `feat(scraper): tambah opsi ekstraksi 400 sampel untuk X dan YouTube`
+- `feat(export): tambah terminal verifikasi bukti via SHA-256`
+
+✅ **Perbaikan Bug:**
+- `fix(api): perbaiki unbound local variable bio di endpoint detail kasus`
+- `fix(avatar): fallback inisial huruf saat avatar profil gagal dimuat`
+
+✅ **UI & Tampilan:**
+- `style(navbar): sesuaikan urutan tombol changelog, github, dan login`
+- `style(team): perbarui narasi laboratorium riset organisasi R&D`
+
+✅ **Dokumentasi & Environment:**
+- `docs(readme): perbarui panduan setup database postgres dan endpoint api`
+- `chore(env): rapikan template env.example ke dalam 5 blok konfigurasi`
+
+---
+
+### ⚠️ Aturan Emas (Golden Rules)
+1. **Gunakan Huruf Kecil:** Tulis `feat:` atau `fix:`, jangan `Feat:` atau `FIX:`.
+2. **Spasi setelah titik dua:** Formatnya `feat: deskripsi`, bukan `feat:deskripsi`.
+3. **Atomic Commit:** Usahakan 1 commit fokus pada 1 tugas/perbaikan spesifik.
+4. **JANGAN COMMIT `.env`:** File `.env` berisi cookie dan token pribadi, pastikan tidak pernah ter-commit ke git!
 
 ---
 
