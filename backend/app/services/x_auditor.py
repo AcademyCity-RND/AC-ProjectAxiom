@@ -276,46 +276,110 @@ async def fetch_x_tweet_replies(
         service = TwscrapeService()
         has_account = await service.has_active_account()
         if has_account:
-            raw_replies = await gather(service.api.tweet_replies(tweet_id, limit=max_comments))
-            for rep in raw_replies:
-                cid = str(rep.id)
-                text = getattr(rep, "rawContent", None) or getattr(rep, "content", "")
-                user_obj = getattr(rep, "user", None)
-                username = getattr(user_obj, "username", "unknown") if user_obj else "unknown"
-                display_name = getattr(user_obj, "displayname", username) if user_obj else username
-                followers = getattr(user_obj, "followersCount", 0) if user_obj else 0
-                following = getattr(user_obj, "friendsCount", 0) if user_obj else 0
-                created_date = None
-                if user_obj and getattr(user_obj, "created", None):
-                    c_dt = parse_datetime(user_obj.created)
-                    created_date = c_dt.isoformat() if hasattr(c_dt, "isoformat") else str(c_dt)
+            from contextlib import aclosing
+            from twscrape.models import parse_tweets
 
-                pub_date = datetime.now(timezone.utc).isoformat()
-                if getattr(rep, "date", None):
-                    p_dt = parse_datetime(rep.date)
-                    pub_date = p_dt.isoformat() if hasattr(p_dt, "isoformat") else str(p_dt)
+            seen_ids = set()
+            try:
+                # 1. Coba ekstraksi seluruh pohon percakapan (Direct Replies + Nested Replies ke sesama komentator)
+                async with aclosing(service.api.tweet_replies_raw(tweet_id, limit=max_comments)) as gen:
+                    async for rep_raw in gen:
+                        batch = parse_tweets(rep_raw.json(), max_comments)
+                        for rep in batch:
+                            if rep.id == tweet_id or rep.id in seen_ids:
+                                continue
+                            seen_ids.add(rep.id)
 
-                replies.append({
-                    "comment_id": cid,
-                    "video_id": str(tweet_id),
-                    "author_id": f"x_{username}",
-                    "author_username": f"@{username}",
-                    "author_name": f"@{username}",
-                    "author_display_name": display_name,
-                    "author_followers": followers,
-                    "author_following": following,
-                    "author_created_at": created_date,
-                    "text": text,
-                    "published_at": pub_date,
-                    "likes": getattr(rep, "likeCount", 0) or 0,
-                    "retweets_count": getattr(rep, "retweetCount", 0) or 0,
-                    "replies_count": getattr(rep, "replyCount", 0) or 0,
-                    "is_reply": True,
-                    "platform": "x"
-                })
+                            cid = str(rep.id)
+                            text = getattr(rep, "rawContent", None) or getattr(rep, "content", "")
+                            user_obj = getattr(rep, "user", None)
+                            username = getattr(user_obj, "username", "unknown") if user_obj else "unknown"
+                            display_name = getattr(user_obj, "displayname", username) if user_obj else username
+                            followers = getattr(user_obj, "followersCount", 0) if user_obj else 0
+                            following = getattr(user_obj, "friendsCount", 0) if user_obj else 0
+                            created_date = None
+                            if user_obj and getattr(user_obj, "created", None):
+                                c_dt = parse_datetime(user_obj.created)
+                                created_date = c_dt.isoformat() if hasattr(c_dt, "isoformat") else str(c_dt)
 
-                if len(replies) >= max_comments:
-                    break
+                            pub_date = datetime.now(timezone.utc).isoformat()
+                            if getattr(rep, "date", None):
+                                p_dt = parse_datetime(rep.date)
+                                pub_date = p_dt.isoformat() if hasattr(p_dt, "isoformat") else str(p_dt)
+
+                            is_nested = bool(rep.inReplyToTweetId and rep.inReplyToTweetId != tweet_id)
+
+                            replies.append({
+                                "comment_id": cid,
+                                "video_id": str(tweet_id),
+                                "parent_comment_id": str(rep.inReplyToTweetId) if rep.inReplyToTweetId else None,
+                                "author_id": f"x_{username}",
+                                "author_username": f"@{username}",
+                                "author_name": f"@{username}",
+                                "author_display_name": display_name,
+                                "author_followers": followers,
+                                "author_following": following,
+                                "author_created_at": created_date,
+                                "text": text,
+                                "published_at": pub_date,
+                                "likes": getattr(rep, "likeCount", 0) or 0,
+                                "retweets_count": getattr(rep, "retweetCount", 0) or 0,
+                                "replies_count": getattr(rep, "replyCount", 0) or 0,
+                                "is_reply": True,
+                                "is_nested_reply": is_nested,
+                                "platform": "x"
+                            })
+                            if len(replies) >= max_comments:
+                                break
+                        if len(replies) >= max_comments:
+                            break
+            except Exception as raw_e:
+                logger.debug(f"Ekstraksi pohon cuitan via tweet_replies_raw lewat ({raw_e}). Menggunakan endpoint langsung...")
+
+            # Fallback ke tweet_replies langsung jika raw tidak mengembalikan data
+            if not replies:
+                raw_replies = await gather(service.api.tweet_replies(tweet_id, limit=max_comments))
+                for rep in raw_replies:
+                    cid = str(rep.id)
+                    text = getattr(rep, "rawContent", None) or getattr(rep, "content", "")
+                    user_obj = getattr(rep, "user", None)
+                    username = getattr(user_obj, "username", "unknown") if user_obj else "unknown"
+                    display_name = getattr(user_obj, "displayname", username) if user_obj else username
+                    followers = getattr(user_obj, "followersCount", 0) if user_obj else 0
+                    following = getattr(user_obj, "friendsCount", 0) if user_obj else 0
+                    created_date = None
+                    if user_obj and getattr(user_obj, "created", None):
+                        c_dt = parse_datetime(user_obj.created)
+                        created_date = c_dt.isoformat() if hasattr(c_dt, "isoformat") else str(c_dt)
+
+                    pub_date = datetime.now(timezone.utc).isoformat()
+                    if getattr(rep, "date", None):
+                        p_dt = parse_datetime(rep.date)
+                        pub_date = p_dt.isoformat() if hasattr(p_dt, "isoformat") else str(p_dt)
+
+                    replies.append({
+                        "comment_id": cid,
+                        "video_id": str(tweet_id),
+                        "parent_comment_id": str(rep.inReplyToTweetId) if rep.inReplyToTweetId else None,
+                        "author_id": f"x_{username}",
+                        "author_username": f"@{username}",
+                        "author_name": f"@{username}",
+                        "author_display_name": display_name,
+                        "author_followers": followers,
+                        "author_following": following,
+                        "author_created_at": created_date,
+                        "text": text,
+                        "published_at": pub_date,
+                        "likes": getattr(rep, "likeCount", 0) or 0,
+                        "retweets_count": getattr(rep, "retweetCount", 0) or 0,
+                        "replies_count": getattr(rep, "replyCount", 0) or 0,
+                        "is_reply": True,
+                        "is_nested_reply": False,
+                        "platform": "x"
+                    })
+
+                    if len(replies) >= max_comments:
+                        break
     except Exception as e:
         logger.warning(f"Ekstraksi live balasan tweet '{tweet_id}' via twscrape gagal ({e}).")
 
