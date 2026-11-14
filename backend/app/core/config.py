@@ -1,5 +1,5 @@
 from typing import List, Union
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import AnyHttpUrl, field_validator, Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,12 +30,18 @@ class Settings(BaseSettings):
             return v
         return []
 
-    # Database
-    POSTGRES_SERVER: str = "postgres"
+    # Database (Mendukung alias POSTGRES_SERVER dan POSTGRES_HOST)
+    POSTGRES_SERVER: str = Field(
+        default="postgres",
+        validation_alias=AliasChoices("POSTGRES_SERVER", "POSTGRES_HOST")
+    )
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "axiom_db"
-    POSTGRES_PORT: int = 5432
+    POSTGRES_PORT: int = Field(
+        default=5432,
+        validation_alias=AliasChoices("POSTGRES_PORT", "POSTGRES_SERVER_PORT")
+    )
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
