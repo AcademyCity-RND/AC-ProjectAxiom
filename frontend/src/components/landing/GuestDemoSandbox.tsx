@@ -131,6 +131,7 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
           target: clean,
           platform: 'x',
           mode: treatAsUrl ? 'tweet_url' : 'account',
+          sample_count: sampleCount,
         }),
         (async () => {
           // Tahap 1: Ingestion & Scraping Gateway (850ms)
@@ -273,6 +274,8 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                   <option value={30}>30 Aktivitas</option>
                   <option value={50}>50 Aktivitas</option>
                   <option value={100}>100 Aktivitas</option>
+                  <option value={200}>200 Aktivitas</option>
+                  <option value={400}>400 Aktivitas (Maks)</option>
                 </select>
               </div>
             </div>

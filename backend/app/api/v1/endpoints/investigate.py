@@ -738,6 +738,7 @@ class GuestAnalyzeRequest(BaseModel):
     target: str = Field(..., min_length=2, max_length=500, description="Username (@handle) atau URL Tweet")
     platform: str = Field("x", description="Platform target: x, youtube, instagram")
     mode: str = Field("account", description="Mode analisis: account atau tweet_url")
+    sample_count: Optional[int] = Field(default=50, ge=10, le=400, description="Jumlah sampel aktivitas untuk analisis")
 
 
 @router.get("/guest/samples", summary="Mengambil Sampel Benchmark Analisis Akun untuk Tamu")
@@ -1076,10 +1077,11 @@ async def guest_analyze(
         # 3. Live Scraping Data Target secara Real-Time via twscrape
         profile_data = None
         tweets_data = []
+        sample_limit = min(400, max(10, payload.sample_count or 50))
 
         try:
             profile_data = await scraper.get_user_profile(target_username)
-            tweets_data = await scraper.get_user_tweets(target_username, count=30)
+            tweets_data = await scraper.get_user_tweets(target_username, count=sample_limit)
         except TargetNotFoundException:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

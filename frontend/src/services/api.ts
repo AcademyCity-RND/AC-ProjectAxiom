@@ -359,7 +359,7 @@ export const api = {
     return response.data;
   },
 
-  guestAnalyze: async (payload: { target: string; platform?: string; mode?: string }): Promise<any> => {
+  guestAnalyze: async (payload: { target: string; platform?: string; mode?: string; sample_count?: number }): Promise<any> => {
     const response = await apiClient.post('/investigate/guest/analyze', payload);
     return response.data;
   },

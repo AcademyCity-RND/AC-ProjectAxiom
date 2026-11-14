@@ -760,6 +760,9 @@ def audit_instagram_event(
     if not shortcode:
         raise ValueError(f"URL atau Shortcode Instagram tidak valid: {url_or_shortcode}")
 
+    # Batasi sampel maksimum Instagram di 200 demi keamanan rate limit zero-auth
+    max_comments = min(200, max(10, max_comments))
+
     ctype = detect_instagram_content_type(url_or_shortcode)
     logger.info(f"Menjalankan audit Instagram ({ctype}) shortcode: {shortcode}...")
 

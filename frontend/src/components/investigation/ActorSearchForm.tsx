@@ -48,7 +48,11 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
     // Smart auto-detect: jika input adalah URL, otomatis beralih ke mode event & platform terkait
     if (isUrlString(val)) {
       setMode('event');
-      setPlatform(detectPlatformFromUrl(val));
+      const detected = detectPlatformFromUrl(val);
+      setPlatform(detected);
+      if (detected === 'instagram' && maxCount > 200) {
+        setMaxCount(200);
+      }
     } else if (val.trim().startsWith('@') && mode === 'event') {
       setMode('actor');
       setPlatform('x');
@@ -71,9 +75,10 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
         trimmed = `https://${trimmed}`;
       }
       const targetPlatform = detectPlatformFromUrl(trimmed);
+      const actualMax = targetPlatform === 'instagram' ? Math.min(200, maxCount) : maxCount;
       setPlatform(targetPlatform);
       setMode('event');
-      await onSearch(trimmed, targetPlatform, maxCount, true);
+      await onSearch(trimmed, targetPlatform, actualMax, true);
     } else {
       const sanitized = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
       if (!/^[a-zA-Z0-9_]{1,50}$/.test(sanitized)) {
@@ -190,7 +195,10 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
               </button>
               <button
                 type="button"
-                onClick={() => setPlatform('instagram')}
+                onClick={() => {
+                  setPlatform('instagram');
+                  if (maxCount > 200) setMaxCount(200);
+                }}
                 className={`px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                   platform === 'instagram'
                     ? 'bg-slate-800 text-amber-400 border border-slate-700/80 shadow-sm'
@@ -222,9 +230,20 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
             disabled={isLoading}
             className="h-10 px-3 bg-slate-950 border border-slate-800 rounded-md text-xs text-slate-300 font-mono tabular-nums focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 shrink-0 cursor-pointer shadow-inner"
           >
-            <option value={100}>100 Sampel</option>
-            <option value={150}>150 Sampel (Standar)</option>
-            <option value={200}>200 Sampel (Maks)</option>
+            {platform === 'instagram' ? (
+              <>
+                <option value={100}>100 Komentar</option>
+                <option value={150}>150 Komentar (Standar)</option>
+                <option value={200}>200 Komentar (Maks IG)</option>
+              </>
+            ) : (
+              <>
+                <option value={100}>100 Sampel</option>
+                <option value={150}>150 Sampel (Standar)</option>
+                <option value={200}>200 Sampel</option>
+                <option value={400}>400 Sampel (Maks / Deep Audit)</option>
+              </>
+            )}
           </select>
 
           {/* Single Solid Primary CTA Button */}
