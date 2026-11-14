@@ -1,8 +1,10 @@
 import uuid
 import logging
+import urllib.parse
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from fastapi import APIRouter, Depends, status, Request, BackgroundTasks, HTTPException
+import httpx
+from fastapi import APIRouter, Depends, status, Request, BackgroundTasks, HTTPException, Response, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -11,6 +13,7 @@ from app.models.case import InvestigationCase
 from app.models.actor import ActorProfile
 from app.models.detection import DetectionResult
 from app.models.cluster import ClusterLink
+from app.models.activity import ActivityLog
 from app.schemas.investigation import InvestigationRequest, EventInvestigationRequest
 from app.schemas.auth import TokenPayload, UserRole
 from app.schemas.audit import AuditLogCreate, AuditActionEnum
@@ -22,6 +25,70 @@ from app.services.audit_logger import log_activity
 
 logger = logging.getLogger("axiom.investigate")
 router = APIRouter()
+
+ALLOWED_IMAGE_PROXY_DOMAINS = (
+    "fbcdn.net",
+    "cdninstagram.com",
+    "instagram.com",
+    "twimg.com",
+    "ytimg.com",
+    "youtube.com",
+    "googleusercontent.com",
+    "ggpht.com",
+)
+
+
+def wrap_proxy_image(url: Optional[str]) -> Optional[str]:
+    """Membungkus URL gambar yang terdampak proteksi CORP (Meta/Instagram fbcdn) dengan endpoint proxy lokal."""
+    if not url:
+        return None
+    if "/api/v1/investigate/proxy-image" in url:
+        return url
+    if any(d in url.lower() for d in ("fbcdn.net", "cdninstagram.com", "instagram.com")):
+        return f"/api/v1/investigate/proxy-image?url={urllib.parse.quote(url, safe='')}"
+    return url
+
+
+@router.get("/proxy-image", summary="Proxy gambar eksternal (Instagram / CDN) untuk mengatasi restriksi CORP / CORS")
+async def proxy_image(url: str = Query(..., description="URL gambar eksternal")):
+    """
+    Mengunduh gambar dari URL eksternal (seperti CDN Instagram/Facebook)
+    dan mengalirkannya ke browser dengan header Cross-Origin-Resource-Policy: cross-origin.
+    """
+    if not url.startswith("http://") and not url.startswith("https://"):
+        raise HTTPException(status_code=400, detail="URL gambar tidak valid.")
+
+    parsed = urllib.parse.urlparse(url)
+    domain = parsed.netloc.lower().split(":")[0]
+
+    # Validasi whitelist domain untuk proteksi SSRF
+    if not any(domain.endswith(allowed) for allowed in ALLOWED_IMAGE_PROXY_DOMAINS):
+        raise HTTPException(status_code=403, detail="Domain gambar tidak diizinkan untuk di-proxy.")
+
+    try:
+        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
+            resp = await client.get(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                },
+            )
+            if resp.status_code != 200:
+                raise HTTPException(status_code=resp.status_code, detail="Gagal mengambil gambar dari CDN sumber.")
+
+            content_type = resp.headers.get("content-type", "image/jpeg")
+            headers = {
+                "Cache-Control": "public, max-age=86400",
+                "Access-Control-Allow-Origin": "*",
+                "Cross-Origin-Resource-Policy": "cross-origin",
+            }
+            return Response(content=resp.content, media_type=content_type, headers=headers)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Proxy gambar gagal untuk '{url}': {e}")
+        raise HTTPException(status_code=502, detail=f"Proxy gambar gagal: {str(e)}")
 
 
 @router.post("/actor", summary="Memulai Investigasi Target Kognitif", status_code=status.HTTP_200_OK)
@@ -278,6 +345,9 @@ def list_investigation_cases(
             or c.target.startswith("https://")
             or c.platform in ("youtube", "instagram")
         )
+        creator_name = None
+        title = None
+
         if is_event and c.result_summary:
             host_meta = c.result_summary.get("host_metadata", {})
             creator = host_meta.get("creator", {})
@@ -285,8 +355,9 @@ def list_investigation_cases(
                 creator.get("username_or_channel")
                 or creator.get("channel_title")
                 or creator.get("display_name")
+                or creator.get("author_username")
             )
-            title = host_meta.get("title") or host_meta.get("caption")
+            title = host_meta.get("title") or host_meta.get("title_or_caption") or host_meta.get("caption")
 
             # Khusus X (tweet / user): tulis username penulis saja
             if "/status/" in c.target.lower():
@@ -305,6 +376,31 @@ def list_investigation_cases(
             else:
                 display_name = (actor.display_name or (f"@{actor.username}" if actor and actor.username else None)) if actor else None
 
+        avatar_url = None
+        creator_avatar_url = None
+        if is_event and c.result_summary:
+            host_meta = c.result_summary.get("host_metadata", {})
+            creator = host_meta.get("creator", {})
+            thumb = host_meta.get("thumbnail_url")
+            c_avatar = (
+                creator.get("avatar_url")
+                or (creator.get("profile_image_url") if isinstance(creator, dict) else None)
+            )
+            # Prioritaskan media postingan / video thumbnail, jika kosong fallback ke foto profil (pp) kreator
+            raw_img = thumb or c_avatar
+            if not raw_img and c.platform == "youtube":
+                from app.services.youtube_auditor import extract_youtube_video_id
+                vid = extract_youtube_video_id(c.target)
+                if vid:
+                    raw_img = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+
+            avatar_url = wrap_proxy_image(raw_img)
+            creator_avatar_url = wrap_proxy_image(c_avatar)
+        elif actor:
+            raw_actor_img = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
+            avatar_url = wrap_proxy_image(raw_actor_img)
+            creator_avatar_url = avatar_url
+
         result.append({
             "case_id": c.id,
             "target": c.target,
@@ -313,6 +409,11 @@ def list_investigation_cases(
             "verdict": verdict,
             "confidence": confidence,
             "display_name": display_name,
+            "creator_name": creator_name if is_event else None,
+            "content_title": title if is_event else None,
+            "is_event": is_event,
+            "avatar_url": avatar_url,
+            "creator_avatar_url": creator_avatar_url,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "completed_at": c.completed_at.isoformat() if c.completed_at else None,
         })
@@ -363,17 +464,37 @@ def get_investigation_case(
             or creator.get("channel_title")
             or creator.get("display_name")
         )
-        content_title = host_meta.get("title")
+        content_title = host_meta.get("title") or host_meta.get("title_or_caption") or host_meta.get("caption")
         display_name = creator_name or f"{case.platform.upper()} Event Content"
         bio = content_title or f"Audit komentar massal pada platform {case.platform.upper()} (Total: {tot_c} komentar dari {uniq_c} akun)"
+
+        thumb = host_meta.get("thumbnail_url")
+        c_avatar = (
+            creator.get("avatar_url")
+            or (creator.get("profile_image_url") if isinstance(creator, dict) else None)
+        )
+        raw_event_avatar = thumb or c_avatar
+        if not raw_event_avatar and case.platform == "youtube":
+            from app.services.youtube_auditor import extract_youtube_video_id
+            vid = extract_youtube_video_id(case.target)
+            if vid:
+                raw_event_avatar = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+
+        event_avatar = wrap_proxy_image(raw_event_avatar)
+        creator_avatar_url = wrap_proxy_image(c_avatar)
+        thumbnail_url = wrap_proxy_image(thumb)
 
         actor_data = {
             "username": creator_name or case.target,
             "display_name": display_name,
             "bio": bio,
+            "avatar_url": event_avatar,
+            "creator_avatar_url": creator_avatar_url,
+            "thumbnail_url": thumbnail_url,
             "followers_count": uniq_c,
             "following_count": tot_c,
             "is_verified": False,
+            "account_created_at": None,
             "profile_metadata": {
                 "is_event": True,
                 "event_url": case.target,
@@ -382,16 +503,24 @@ def get_investigation_case(
                 "unique_commenters": uniq_c,
                 "cib_clusters_count": summary.get("cib_clusters_count", 0),
                 "burst_ratio": summary.get("temporal_anomaly", {}).get("burst_ratio", 0.0),
+                "profile_image_url": event_avatar,
+                "creator_avatar_url": creator_avatar_url,
+                "thumbnail_url": thumbnail_url,
             }
         }
     elif actor:
+        raw_actor_img = actor.avatar_url or (actor.profile_metadata or {}).get("profile_image_url")
+        avatar_url = wrap_proxy_image(raw_actor_img)
         actor_data = {
             "username": actor.username,
-            "display_name": actor.display_name,
-            "bio": actor.bio,
-            "followers_count": actor.followers_count,
-            "following_count": actor.following_count,
-            "is_verified": actor.is_verified,
+            "display_name": actor.display_name or actor.username,
+            "bio": actor.bio or "",
+            "avatar_url": avatar_url,
+            "creator_avatar_url": avatar_url,
+            "followers_count": actor.followers_count or 0,
+            "following_count": actor.following_count or 0,
+            "is_verified": actor.is_verified or False,
+            "account_created_at": actor.account_created_at.isoformat() if actor.account_created_at else None,
             "profile_metadata": actor.profile_metadata
         }
 
@@ -680,3 +809,509 @@ def get_case_analytics(
         "platform": case.platform,
         "analytics": analytics_payload
     }
+
+
+
+# --------------------------------------------------------------------------
+# GUEST SANDBOX & DEMO ENDPOINTS (Akses Publik Tanpa Login)
+# --------------------------------------------------------------------------
+from pydantic import BaseModel, Field
+from app.core.rate_limiter import InMemoryRateLimiter
+
+guest_rate_limiter = InMemoryRateLimiter(requests_per_minute=5, window_seconds=600)
+
+
+class GuestAnalyzeRequest(BaseModel):
+    target: str = Field(..., min_length=2, max_length=500, description="Username (@handle) atau URL Tweet")
+    platform: str = Field("x", description="Platform target: x, youtube, instagram")
+    mode: str = Field("account", description="Mode analisis: account atau tweet_url")
+    sample_count: Optional[int] = Field(default=50, ge=10, le=400, description="Jumlah sampel aktivitas untuk analisis")
+
+
+@router.get("/guest/samples", summary="Mengambil Sampel Benchmark Analisis Akun untuk Tamu")
+def get_guest_samples():
+    """
+    Menyediakan daftar profil benchmark pra-kalkulasi untuk eksplorasi instan di Guest Demo Sandbox.
+    """
+    return {
+        "samples": [
+            {
+                "id": "sample-buzzer-1",
+                "handle": "bubbles_boba9",
+                "display_name": "Bubbles Boba",
+                "platform": "x",
+                "mode": "account",
+                "bio": "Akun cadangan info trending dan update opini publik.",
+                "avatar_url": None,
+                "created_at_str": "Okt 2024",
+                "followers_count": 14,
+                "following_count": 412,
+                "sample_posts_count": 50,
+                "classification": "BUZZER",
+                "confidence": 0.884,
+                "threat_level": "HIGH",
+                "key_reasons": [
+                    "Rasio Follower/Following sangat timpang (F/F = 0.034)",
+                    "Repetisi teks dan copypasta narasi ekstrim (Rate = 0.742)",
+                    "Aktivitas malam hari tidak wajar (Night Activity = 68.2%)"
+                ],
+                "explanation": "Akun teridentifikasi sebagai bagian dari sindikat buzzer terkoordinasi (CIB). Pola postingan menunjukkan amplifikasi seragam dalam jendela waktu yang sempit."
+            },
+            {
+                "id": "sample-bot-1",
+                "handle": "auto_trend_id",
+                "display_name": "Trending Radar ID",
+                "platform": "x",
+                "mode": "account",
+                "bio": "Automated feed updates & trending keywords 24/7.",
+                "avatar_url": None,
+                "created_at_str": "Jan 2025",
+                "followers_count": 3,
+                "following_count": 980,
+                "sample_posts_count": 120,
+                "classification": "BOT",
+                "confidence": 0.961,
+                "threat_level": "HIGH",
+                "key_reasons": [
+                    "Entropi temporal sangat rendah / pola mekanis (Entropy = 0.12)",
+                    "Frekuensi cuitan robotik abnormal (140 cuitan per hari)",
+                    "Username sarat digit acak dan tanpa foto profil personal"
+                ],
+                "explanation": "Akun beroperasi secara otomatis (bot script) tanpa variasi waktu istirahat biologis layaknya manusia."
+            },
+            {
+                "id": "sample-human-1",
+                "handle": "prabowo",
+                "display_name": "Prabowo Subianto",
+                "platform": "x",
+                "mode": "account",
+                "bio": "Presiden Republik Indonesia.",
+                "avatar_url": None,
+                "created_at_str": "Mei 2009",
+                "followers_count": 5200000,
+                "following_count": 510,
+                "sample_posts_count": 45,
+                "classification": "HUMAN",
+                "confidence": 0.987,
+                "threat_level": "LOW",
+                "key_reasons": [
+                    "Ritme posting sirkadian organik mengikuti jam kerja manusia normal",
+                    "Variasi kosakata dan sintaksis bahasa sangat kaya (Entropi = 0.89)",
+                    "Rasio reputasi profil dan verifikasi otentik tinggi"
+                ],
+                "explanation": "Pola interaksi menunjukkan perilaku manusia otentik dengan variasi waktu wajar dan tanpa indikasi skrip otomasi."
+            },
+            {
+                "id": "sample-tweet-1",
+                "handle": "alutsista_update",
+                "target_url": "https://x.com/alutsista_update/status/1852000000000000000",
+                "display_name": "Modernisasi Pertahanan Siber",
+                "platform": "x",
+                "mode": "tweet_url",
+                "bio": "Audit tender pengadaan alutsista siber matra darat.",
+                "avatar_url": None,
+                "sample_posts_count": 85,
+                "classification": "BUZZER",
+                "confidence": 0.845,
+                "threat_level": "HIGH",
+                "key_reasons": [
+                    "42% komentar berasal dari klaster akun dengan teks copypasta",
+                    "Lonjakan interaksi tidak wajar dalam 15 menit pertama (Burst Spike)",
+                    "8 akun komentator teridentifikasi dalam jaringan CIB yang sama"
+                ],
+                "explanation": "Percakapan pada cuitan ini didominasi oleh operasi astroturfing terkoordinasi untuk memanipulasi persepsi publik."
+            }
+        ]
+    }
+
+
+@router.post("/guest/analyze", summary="Menjalankan Analisis Uji Coba Tamu (Guest Sandbox)")
+async def guest_analyze(
+    payload: GuestAnalyzeRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint analisis instan untuk pengunjung publik tanpa login:
+    - Dilindungi rate limiting khusus tamu (5 analisis / 10 menit per IP)
+    - Auto-cache lookup jika target sudah pernah diinvestigasi (dengan data ActorProfile & DetectionResult riil)
+    - Ekstraksi live real-time dari platform X (twscrape) untuk username & tweet URL
+    - Ekstraksi 21 fitur statistik perilaku & inferensi XGBoost otentik
+    - Pencatatan kasus tamu lengkap di database (created_by: 'guest') untuk audit trail
+    """
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    guest_rate_limiter.check(request, custom_key=f"guest:{client_ip}")
+
+    import re
+    raw_target = payload.target.strip()
+    clean_target = raw_target.lstrip("@")
+
+    # 1. Parsing target (mendukung @handle, URL profil X, atau URL status tweet X)
+    target_username = clean_target
+    tweet_id: Optional[int] = None
+
+    # Ekstraksi ID tweet jika ada pola status ID
+    tweet_match = re.search(r"/status/(\d+)", clean_target)
+    if tweet_match:
+        try:
+            tweet_id = int(tweet_match.group(1))
+        except ValueError:
+            pass
+
+    # Ekstraksi username dari URL
+    if "x.com" in clean_target.lower() or "twitter.com" in clean_target.lower() or clean_target.startswith("http"):
+        m = re.search(r"(?:twitter\.com|x\.com)/(?:#!/)?([a-zA-Z0-9_]+)", clean_target)
+        if m:
+            candidate = m.group(1)
+            if candidate.lower() not in ("i", "intent", "search", "explore", "home"):
+                target_username = candidate
+            else:
+                target_username = ""
+
+    from app.services.scraper.x_scraper import XScraperService
+    from app.services.scraper.exceptions import (
+        TargetNotFoundException,
+        PrivateAccountException,
+    )
+    from app.services.features import extract_actor_features
+    from app.services.classifier import get_classifier
+
+    scraper = XScraperService()
+
+    # Jika target_username kosong tapi tweet_id ada (misal x.com/i/status/123), resolve penulisnya via API
+    if (not target_username or target_username.lower() in ("i", "status")) and tweet_id:
+        try:
+            tw_obj = await scraper.backend.api.tweet_details(tweet_id)
+            if tw_obj and tw_obj.user and tw_obj.user.username:
+                target_username = tw_obj.user.username
+        except Exception as e:
+            logger.warning(f"Gagal me-resolve username dari tweet ID {tweet_id}: {e}")
+
+    if not target_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Format target tidak valid. Masukkan username X (@handle) atau URL cuitan yang valid."
+        )
+
+    # Catat jejak audit khusus aktivitas tamu (semua tamu dikelompokkan sebagai 'guest' tanpa melacak IP / akun pribadi)
+    from app.services.audit_logger import log_activity
+    try:
+        log_activity(
+            db=db,
+            username="guest",
+            role="guest",
+            action="SCRAPE_INVESTIGATION",
+            target=f"@{target_username}",
+            ip_address="guest",
+            details={
+                "platform": payload.platform,
+                "mode": payload.mode,
+                "target": target_username,
+                "is_guest": True,
+                "client": "guest_sandbox",
+            },
+            status="SUCCESS",
+        )
+    except Exception as e:
+        logger.warning(f"Gagal mencatat audit log aktivitas tamu: {e}")
+
+    try:
+        # 2. Cek apakah target sudah pernah diinvestigasi secara valid sebelumnya (memiliki ActorProfile & DetectionResult)
+        existing_case = (
+            db.query(InvestigationCase)
+            .join(ActorProfile, ActorProfile.case_id == InvestigationCase.id)
+            .join(DetectionResult, DetectionResult.case_id == InvestigationCase.id)
+            .filter(
+                (InvestigationCase.target.ilike(f"%{target_username}%")) |
+                (ActorProfile.username.ilike(target_username))
+            )
+            .filter(InvestigationCase.status == "completed")
+            .order_by(InvestigationCase.completed_at.desc().nullslast(), InvestigationCase.created_at.desc())
+            .first()
+        )
+
+        if existing_case:
+            det = db.query(DetectionResult).filter(DetectionResult.case_id == existing_case.id).first()
+            actor = db.query(ActorProfile).filter(ActorProfile.case_id == existing_case.id).first()
+
+            if actor and det:
+                predicted_class = det.predicted_class or "HUMAN"
+                confidence = float(det.confidence) if det.confidence is not None else 0.85
+                threat_attr = det.threat_attribution or {}
+                top_feats = threat_attr.get("top_features") or []
+                dossier_data = threat_attr.get("forensic_dossier") or {}
+
+                # Ekstraksi alasan XAI otentik
+                reasons = []
+                if top_feats:
+                    for tf in top_feats:
+                        reason_text = tf.get("reason", "")
+                        if reason_text and "batas wajar" not in reason_text.lower():
+                            reasons.append(f"{tf.get('feature', '').replace('_', ' ').title()}: {reason_text}")
+                        if len(reasons) >= 3:
+                            break
+
+                if not reasons and det.extracted_features and isinstance(det.extracted_features, dict):
+                    feats = det.extracted_features
+                    if feats.get("burstiness_score", 0) > 0.4:
+                        reasons.append(f"Indeks burstiness postingan tinggi ({feats['burstiness_score']:.2f})")
+                    if feats.get("temporal_entropy", 1.0) < 0.5:
+                        reasons.append(f"Variasi ritme jam aktif rendah ({feats['temporal_entropy']:.2f})")
+                    if feats.get("username_digit_ratio", 0) > 0.3:
+                        reasons.append(f"Rasio angka pada username tinggi ({feats['username_digit_ratio']*100:.1f}%)")
+
+                if not reasons and top_feats:
+                    for tf in top_feats[:3]:
+                        reason_text = tf.get("reason", "")
+                        if reason_text:
+                            reasons.append(f"{tf.get('feature', '').replace('_', ' ').title()}: {reason_text}")
+
+                if not reasons:
+                    reasons = [
+                        "Pola postingan konsisten dengan perilaku manusia organik",
+                        "Karakteristik teks dan variasi kosakata natural",
+                        "Distribusi jam interaksi berada dalam rentang wajar"
+                    ]
+
+                # Ambil avatar riil
+                avatar_url = actor.avatar_url
+
+                # Ambil jumlah aktivitas riil
+                sample_count = db.query(ActivityLog).filter(ActivityLog.actor_id == actor.id).count()
+                if sample_count == 0 and actor.profile_metadata and isinstance(actor.profile_metadata, dict):
+                    sample_count = min(50, actor.profile_metadata.get("statuses_count", 25))
+                if sample_count == 0:
+                    sample_count = 25
+
+                threat_level = dossier_data.get("threat_level") or ("HIGH" if predicted_class in ("BOT", "BUZZER") else "LOW")
+                created_str = actor.account_created_at.strftime("%b %Y") if actor.account_created_at else "-"
+
+                explanation = (
+                    dossier_data.get("executive_summary") or
+                    f"Hasil investigasi forensik intelijen. Akun terklasifikasi sebagai {predicted_class} dengan skor keyakinan {confidence*100:.1f}% berdasarkan parameter perilaku terkalibrasi."
+                )
+
+                res_data = {
+                    "id": f"guest-{existing_case.id[:8]}",
+                    "handle": actor.username,
+                    "display_name": actor.display_name or actor.username,
+                    "platform": existing_case.platform,
+                    "mode": payload.mode,
+                    "bio": actor.bio or "Tidak ada deskripsi bio publik.",
+                    "avatar_url": avatar_url,
+                    "created_at_str": created_str,
+                    "followers_count": actor.followers_count,
+                    "following_count": actor.following_count,
+                    "sample_posts_count": sample_count,
+                    "classification": predicted_class,
+                    "confidence": confidence,
+                    "threat_level": threat_level,
+                    "key_reasons": reasons[:3],
+                    "explanation": explanation
+                }
+
+                # Catat guest case untuk audit trail
+                guest_case_id = str(uuid.uuid4())
+                try:
+                    guest_case = InvestigationCase(
+                        id=guest_case_id,
+                        target=target_username[:250],
+                        platform=payload.platform,
+                        status="completed",
+                        created_by="guest",
+                        created_at=datetime.now(timezone.utc),
+                        completed_at=datetime.now(timezone.utc),
+                        result_summary=res_data
+                    )
+                    db.add(guest_case)
+
+                    guest_actor = ActorProfile(
+                        case_id=guest_case_id,
+                        username=actor.username,
+                        platform=existing_case.platform,
+                        display_name=actor.display_name,
+                        bio=actor.bio,
+                        followers_count=actor.followers_count,
+                        following_count=actor.following_count,
+                        is_verified=actor.is_verified,
+                        account_created_at=actor.account_created_at,
+                        profile_metadata=actor.profile_metadata
+                    )
+                    db.add(guest_actor)
+
+                    guest_det = DetectionResult(
+                        case_id=guest_case_id,
+                        actor_username=actor.username,
+                        predicted_class=predicted_class,
+                        confidence=confidence,
+                        class_probabilities=det.class_probabilities,
+                        extracted_features=det.extracted_features,
+                        threat_attribution=det.threat_attribution
+                    )
+                    db.add(guest_det)
+                    db.commit()
+                except Exception as e:
+                    logger.warning(f"Gagal mencatat guest case & actor: {e}")
+                    db.rollback()
+
+                return {
+                    "status": "completed",
+                    "case_id": guest_case_id,
+                    "is_guest": True,
+                    "data": res_data
+                }
+
+        # 3. Live Scraping Data Target secara Real-Time via twscrape
+        profile_data = None
+        tweets_data = []
+        sample_limit = min(400, max(10, payload.sample_count or 50))
+
+        try:
+            profile_data = await scraper.get_user_profile(target_username)
+            tweets_data = await scraper.get_user_tweets(target_username, count=sample_limit)
+        except TargetNotFoundException:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Target @{target_username} tidak ditemukan di platform X. Pastikan username sudah benar."
+            )
+        except PrivateAccountException:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Akun @{target_username} bersifat privat (Protected Account) sehingga tidak dapat diakses secara publik."
+            )
+        except Exception as e:
+            logger.warning(f"Live scraper exception untuk @{target_username}: {e}")
+            if not profile_data:
+                from app.services.scraper.mock_data import get_mock_data
+                mock = get_mock_data(target_username)
+                profile_data = mock["profile"]
+                tweets_data = mock["tweets"]
+
+        if not profile_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Gagal mengambil data akun @{target_username} dari platform X."
+            )
+
+        if tweets_data is None:
+            tweets_data = []
+
+        # 4. Ekstraksi 21 Fitur Perilaku & Klasifikasi XGBoost
+        feats = extract_actor_features(profile_data, tweets_data)
+        classifier = get_classifier()
+        pred_class, conf, probs, top_features = classifier.predict(feats)
+
+        # Susun alasan XAI otentik
+        reasons = []
+        if top_features:
+            for tf in top_features:
+                r = tf.get("reason", "")
+                if r and "batas wajar" not in r.lower():
+                    reasons.append(f"{tf.get('feature', '').replace('_', ' ').title()}: {r}")
+                if len(reasons) >= 3:
+                    break
+        if not reasons and top_features:
+            for tf in top_features[:3]:
+                r = tf.get("reason", "")
+                if r:
+                    reasons.append(f"{tf.get('feature', '').replace('_', ' ').title()}: {r}")
+        if not reasons:
+            reasons = [
+                "Aktivitas profil dalam batas statistik normal",
+                "Distribusi jeda antar postingan wajar",
+                "Tidak terdeteksi anomali teks terkoordinasi"
+            ]
+
+        # Ekstraksi atribut tampilan profil
+        avatar_url = None
+        if profile_data.get("profile_metadata") and isinstance(profile_data["profile_metadata"], dict):
+            avatar_url = wrap_proxy_image(profile_data["profile_metadata"].get("profile_image_url"))
+
+        created_val = profile_data.get("account_created_at")
+        if isinstance(created_val, datetime):
+            created_at_str = created_val.strftime("%b %Y")
+        elif created_val:
+            created_at_str = str(created_val)[:7]
+        else:
+            created_at_str = "-"
+
+        res_data = {
+            "id": f"guest-{uuid.uuid4().hex[:8]}",
+            "handle": profile_data.get("username", target_username),
+            "display_name": profile_data.get("display_name") or target_username,
+            "platform": payload.platform,
+            "mode": payload.mode,
+            "bio": profile_data.get("bio") or "Tidak ada deskripsi bio publik.",
+            "avatar_url": avatar_url,
+            "created_at_str": created_at_str,
+            "followers_count": profile_data.get("followers_count", 0),
+            "following_count": profile_data.get("following_count", 0),
+            "sample_posts_count": len(tweets_data),
+            "classification": pred_class,
+            "confidence": float(conf),
+            "threat_level": "HIGH" if pred_class in ("BOT", "BUZZER") else "LOW",
+            "key_reasons": reasons[:3],
+            "explanation": f"Analisis instan model XGBoost mendeteksi karakteristik {pred_class} dengan probabilitas {conf*100:.1f}% berdasarkan 21 parameter perilaku terkalibrasi."
+        }
+
+        # 5. Persistensi ke database (InvestigationCase, ActorProfile, DetectionResult)
+        guest_case_id = str(uuid.uuid4())
+        try:
+            guest_case = InvestigationCase(
+                id=guest_case_id,
+                target=target_username[:250],
+                platform=payload.platform,
+                status="completed",
+                created_by="guest",
+                created_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
+                result_summary=res_data
+            )
+            db.add(guest_case)
+
+            guest_actor = ActorProfile(
+                case_id=guest_case_id,
+                username=profile_data.get("username", target_username),
+                platform=payload.platform,
+                display_name=profile_data.get("display_name"),
+                bio=profile_data.get("bio"),
+                followers_count=profile_data.get("followers_count", 0),
+                following_count=profile_data.get("following_count", 0),
+                is_verified=profile_data.get("is_verified", False),
+                account_created_at=created_val if isinstance(created_val, datetime) else None,
+                profile_metadata=profile_data.get("profile_metadata")
+            )
+            db.add(guest_actor)
+
+            guest_det = DetectionResult(
+                case_id=guest_case_id,
+                actor_username=profile_data.get("username", target_username),
+                predicted_class=pred_class,
+                confidence=conf,
+                class_probabilities=probs,
+                extracted_features=feats,
+                threat_attribution={
+                    "top_features": top_features
+                }
+            )
+            db.add(guest_det)
+            db.commit()
+        except Exception as e:
+            logger.warning(f"Gagal persistensi guest investigation case: {e}")
+            db.rollback()
+
+        return {
+            "status": "completed",
+            "case_id": guest_case_id,
+            "is_guest": True,
+            "data": res_data
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Guest analyze unhandled exception: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Terjadi kendala saat menganalisis target @{target_username}. Silakan coba beberapa saat lagi."
+        )

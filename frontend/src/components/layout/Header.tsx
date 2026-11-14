@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Radio, Activity, UserCheck, ShieldAlert, LogOut, Menu, X } from 'lucide-react';
+import { Radio, Activity, UserCheck, ShieldAlert, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
   isMobileMenuOpen?: boolean;
+  onNavigateOverview?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleMobileMenu,
   isMobileMenuOpen,
+  onNavigateOverview,
 }) => {
   const { operatorName, operatorRole, logout } = useAuthStore();
   const isAdmin = operatorRole?.toLowerCase() === 'admin';
@@ -36,8 +38,8 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="h-16 shrink-0 border-b border-slate-800/80 bg-[#0A0E17]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between z-30 transition-colors">
-      {/* Brand & Subtitle */}
+    <header className="h-18 sm:h-20 shrink-0 border-b border-slate-800/80 bg-[#0A0E17]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between z-30 transition-colors">
+      {/* Brand & Subtitle with Official Horizontal Dark Logo (Enlarged 2x) */}
       <div className="flex items-center gap-2.5 sm:gap-3">
         {onToggleMobileMenu && (
           <button
@@ -49,19 +51,27 @@ export const Header: React.FC<HeaderProps> = ({
             {isMobileMenuOpen ? <X className="w-4 h-4 text-sky-400" /> : <Menu className="w-4 h-4" />}
           </button>
         )}
-        <div className="w-9 h-9 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center text-sky-400 shadow-sm shrink-0">
-          <Shield className="w-4 h-4 text-sky-400" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold tracking-tight text-white text-base sm:text-lg">AXIOM</span>
-            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/25 font-semibold font-mono">
-              PUSSIBERAD
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 tracking-tight hidden sm:block">
-            Cognitive Domain Threat Intelligence &amp; Astroturfing Detection
-          </p>
+        <div
+          onClick={onNavigateOverview}
+          className={`flex items-center gap-2.5 sm:gap-3 ${onNavigateOverview ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+          title={onNavigateOverview ? 'Kembali ke Dashboard Overview' : undefined}
+          role={onNavigateOverview ? 'button' : undefined}
+          tabIndex={onNavigateOverview ? 0 : undefined}
+          onKeyDown={(e) => {
+            if (onNavigateOverview && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              onNavigateOverview();
+            }
+          }}
+        >
+          <img
+            src="/axiom-logo.png"
+            alt="AXIOM Forensic & Threat Intelligence"
+            className="h-13 sm:h-15 object-contain"
+          />
+          <span className="hidden sm:inline-block text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/25 font-semibold font-mono shrink-0">
+            PUSSIBERAD
+          </span>
         </div>
       </div>
 

@@ -101,6 +101,17 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
         except Exception:
             pass
 
+    # Hitung statistik per username terlebih dahulu
+    from collections import Counter
+    author_counts = Counter()
+    author_sample_comments: Dict[str, str] = {}
+    for act in activities:
+        author = actor_map.get(act.actor_id)
+        uname = author.username if author else "unknown"
+        author_counts[uname] += 1
+        if uname not in author_sample_comments and act.content:
+            author_sample_comments[uname] = act.content.strip()
+
     # 6. Susun Full Comprehensive Commenter Audit Ledger (Tier 2 - 100% Data)
     full_ledger: List[Dict[str, Any]] = []
     for idx, act in enumerate(activities, 1):
@@ -109,17 +120,21 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
         in_cib = username in cib_actors
         in_burst = username in burst_actors
         sim_score = cib_sim_map.get(username, 0.0)
+        c_count = author_counts.get(username, 1)
 
-        # Klasifikasi estimasi individual
+        # Klasifikasi estimasi individual yang terkalibrasi:
         if in_cib or sim_score >= 0.85:
             est_class = "BUZZER"
             risk = 0.90
-        elif in_burst:
+        elif c_count >= 3 and in_burst:
             est_class = "BOT"
-            risk = 0.75
+            risk = 0.70
+        elif c_count >= 2:
+            est_class = "SUSPICIOUS"
+            risk = 0.25
         else:
             est_class = "ORGANIC"
-            risk = 0.15
+            risk = 0.05
 
         metrics = act.metrics or {}
         likes = metrics.get("likes") or metrics.get("likes_count") or 0
@@ -127,7 +142,7 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
 
         full_ledger.append({
             "index": idx,
-            "username": username,
+            "username": username.lstrip("@"),
             "platform": case.platform,
             "post_id": act.platform_post_id or str(act.id),
             "published_at": act.posted_at.isoformat() if act.posted_at else "",
@@ -142,27 +157,54 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
         })
 
     # 7. Susun Top 10 Core Attackers (Tier 1)
-    top_10_attackers = summary.get("top_10_attackers")
-    if not top_10_attackers:
-        # Hitung ranking dari full ledger jika belum ada di summary
-        from collections import Counter
-        user_counts = Counter(item["username"] for item in full_ledger)
+    raw_top_attackers = summary.get("top_10_attackers")
+    top_10_attackers = []
+    if raw_top_attackers:
+        for att in raw_top_attackers:
+            clean_u = str(att.get("username", "")).lstrip("@")
+            sample_c = att.get("sample_comment") or author_sample_comments.get(att.get("username"), "") or author_sample_comments.get(clean_u, "") or author_sample_comments.get(f"@{clean_u}", "")
+            top_10_attackers.append({
+                **att,
+                "username": clean_u,
+                "sample_comment": sample_c
+            })
+    else:
         ranked = []
-        for uname, count in user_counts.items():
+        for uname, count in author_counts.items():
             in_cib = uname in cib_actors
             in_burst = uname in burst_actors
             cl_conn = 1 if in_cib else 0
-            risk = round((0.5 if in_cib else 0.0) + (0.3 if in_burst else 0.0) + min(0.2, count * 0.05), 2)
-            cat = "BUZZER" if in_cib else ("BOT" if in_burst else ("SUSPICIOUS" if risk > 0.3 else "ORGANIC"))
+            if in_cib:
+                cat = "BUZZER"
+                risk = 0.85
+            elif count >= 3 and in_burst:
+                cat = "BOT"
+                risk = 0.65
+            elif count >= 2:
+                cat = "SUSPICIOUS"
+                risk = 0.20
+            else:
+                cat = "ORGANIC"
+                risk = 0.05
+
+            clean_u = uname.lstrip("@")
+            sample_c = author_sample_comments.get(uname, "")
             ranked.append({
-                "username": uname,
+                "username": clean_u,
                 "comment_count": count,
                 "cluster_connections": cl_conn,
                 "posted_in_burst_window": in_burst,
                 "risk_score": risk,
-                "estimated_category": cat
+                "estimated_category": cat,
+                "sample_comment": sample_c
             })
-        ranked.sort(key=lambda x: (x["risk_score"], x["comment_count"]), reverse=True)
+        ranked.sort(
+            key=lambda x: (
+                1 if x["estimated_category"] == "BUZZER" else (2 if x["estimated_category"] == "BOT" else (3 if x["estimated_category"] == "SUSPICIOUS" else 4)),
+                -x["risk_score"],
+                -x["comment_count"]
+            )
+        )
         top_10_attackers = ranked[:10]
 
     # 8. Analitik Sirkadian, Entropi, Narrative Drift
@@ -245,10 +287,41 @@ def build_case_dossier_data(case_id: str, db: Session) -> Dict[str, Any]:
     return dossier_payload
 
 
+import base64
+
+_CACHED_LIGHT_LOGO_URI = None
+
+
+def get_light_logo_data_uri() -> str:
+    global _CACHED_LIGHT_LOGO_URI
+    if _CACHED_LIGHT_LOGO_URI:
+        return _CACHED_LIGHT_LOGO_URI
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "..", "static", "axiom-logo.png"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "public", "axiom-logo.png"),
+        "/app/app/static/axiom-logo.png",
+        "/app/static/axiom-logo.png",
+        os.path.join(os.path.dirname(__file__), "..", "static", "axiom-logo-light.png"),
+        "/app/app/static/axiom-logo-light.png",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "rb") as f:
+                    encoded = base64.b64encode(f.read()).decode("utf-8")
+                    _CACHED_LIGHT_LOGO_URI = f"data:image/png;base64,{encoded}"
+                    return _CACHED_LIGHT_LOGO_URI
+            except Exception as e:
+                logger.warning(f"Failed to load light logo from {p}: {e}")
+    return ""
+
+
 def render_html_dossier(dossier_data: Dict[str, Any]) -> str:
     """
     Merender template Jinja2 `dossier.html` menghasilkan laporan cetak HTML/PDF resmi.
     """
+    if "logo_data_uri" not in dossier_data:
+        dossier_data["logo_data_uri"] = get_light_logo_data_uri()
     template = jinja_env.get_template("dossier.html")
     return template.render(**dossier_data)
 
@@ -325,3 +398,54 @@ def get_dual_tier_ledger(case_id: str, db: Session) -> Dict[str, Any]:
         "top_10_attackers": top_attackers,
         "full_ledger": dossier["full_ledger"]
     }
+
+
+def generate_master_dataset_csv(db: Session) -> str:
+    """
+    Mengakumulasi seluruh data vektor 21-fitur dari seluruh aktor yang pernah dianalisis
+    di database PostgreSQL dan menghasilkan berkas CSV master untuk keperluan retraining model ML.
+    Format kolom mencakup identitas aktor, platform, 21 fitur standar, confidence, dan label akhir.
+    """
+    from app.services.features import FEATURE_NAMES
+
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+    # Header Kanonikal Dataset Retraining
+    headers = ["actor_id", "username", "platform", "case_id"] + FEATURE_NAMES + ["confidence", "label"]
+    writer.writerow(headers)
+
+    # Ambil seluruh DetectionResult yang memiliki extracted_features
+    detections = db.query(DetectionResult).all()
+    for det in detections:
+        feats = det.extracted_features or {}
+        if not feats:
+            continue
+
+        actor = db.query(ActorProfile).filter(ActorProfile.id == det.actor_id).first() if det.actor_id else None
+        case = db.query(InvestigationCase).filter(InvestigationCase.id == det.case_id).first() if det.case_id else None
+
+        username = actor.username if actor else (case.target if case else "unknown")
+        platform = case.platform if case else "x"
+        case_id = det.case_id or ""
+        label = (det.predicted_class or "HUMAN").upper()
+        confidence = f"{det.confidence:.4f}" if det.confidence is not None else "0.0000"
+
+        row = [
+            det.actor_id or "",
+            username,
+            platform,
+            case_id,
+        ]
+
+        for fname in FEATURE_NAMES:
+            val = feats.get(fname, 0.0)
+            if isinstance(val, float):
+                row.append(f"{val:.5f}")
+            else:
+                row.append(str(val))
+
+        row.extend([confidence, label])
+        writer.writerow(row)
+
+    return output.getvalue()

@@ -45,6 +45,7 @@ export const Layout: React.FC<LayoutProps> = ({ activeTab, setActiveTab, childre
       <Header
         onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
         isMobileMenuOpen={isMobileMenuOpen}
+        onNavigateOverview={() => setActiveTab('overview')}
       />
       <div className="flex flex-1 min-h-0 w-full overflow-hidden relative">
         <Sidebar

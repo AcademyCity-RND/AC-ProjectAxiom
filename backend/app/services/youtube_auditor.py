@@ -612,17 +612,21 @@ def audit_youtube_event(
         "host_metadata": {
             "platform": "youtube",
             "content_id": video_id,
-            "content_url": f"https://www.youtube.com/watch?v={video_id}",
+            "content_url": f"https://www.youtube.com/watch?v={video_id}" if ctype == "video" else f"https://www.youtube.com/shorts/{video_id}",
             "content_type": ctype,
             "title_or_caption": meta.get("title", ""),
+            "title": meta.get("title", ""),
+            "thumbnail_url": meta.get("thumbnail_url") or f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg",
             "published_at": meta.get("upload_date") or datetime.now(timezone.utc).isoformat(),
             "creator": {
                 "username_or_channel": meta.get("channel_title", "Unknown"),
                 "channel_or_user_id": meta.get("channel_id", ""),
+                "display_name": meta.get("channel_title", "Unknown"),
                 "subscribers_or_followers": meta.get("subscribers", 0),
                 "subscribers_text": meta.get("subscribers_text", "N/A"),
                 "is_verified": False,
-                "profile_url": meta.get("channel_url", "")
+                "profile_url": meta.get("channel_url", ""),
+                "avatar_url": meta.get("thumbnail_url") or f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
             },
             "engagement": {
                 "views_count": meta.get("views", 0),

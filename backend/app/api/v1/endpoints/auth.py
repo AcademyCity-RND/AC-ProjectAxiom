@@ -12,8 +12,15 @@ router = APIRouter()
 
 def ensure_default_users_seeded(db: Session):
     """
-    Memastikan akun default 'admin' dan 'user' terdaftar di tabel PostgreSQL.
+    Memastikan tabel terinisialisasi dan tepat 2 akun default ('admin' dan 'analis') terdaftar di PostgreSQL.
     """
+    from app.db.base import Base
+    from app.db.session import engine
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        pass
+
     admin_user = db.execute(select(User).where(User.username == "admin")).scalar_one_or_none()
     if not admin_user:
         admin_user = User(
@@ -24,15 +31,15 @@ def ensure_default_users_seeded(db: Session):
         )
         db.add(admin_user)
 
-    user_acc = db.execute(select(User).where(User.username == "user")).scalar_one_or_none()
-    if not user_acc:
-        user_acc = User(
-            username="user",
+    analis_acc = db.execute(select(User).where(User.username == "analis")).scalar_one_or_none()
+    if not analis_acc:
+        analis_acc = User(
+            username="analis",
             hashed_password=hash_password("AxiomUser2026!"),
             role="user",
             is_active=True,
         )
-        db.add(user_acc)
+        db.add(analis_acc)
 
     db.commit()
 
@@ -45,15 +52,21 @@ def login(form_data: UserLogin, db: Session = Depends(get_db)):
     """
     clean_username = form_data.username.strip().lower()
     
-    # Ambil user dari PostgreSQL
-    user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
-
-    # Fallback bootstrap jika akun default belum tersimpan di DB
-    if not user and clean_username in ("admin", "user", "user01"):
+    # Ambil user dari PostgreSQL dengan fallback bootstrap jika tabel belum ada
+    try:
+        user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
+    except Exception:
+        db.rollback()
         ensure_default_users_seeded(db)
         user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
-        if not user and clean_username == "user01":
-            user = db.execute(select(User).where(User.username == "user")).scalar_one_or_none()
+
+    # Fallback bootstrap jika akun default belum tersimpan di DB
+    if not user and clean_username in ("admin", "analis"):
+        ensure_default_users_seeded(db)
+        user = db.execute(select(User).where(User.username == clean_username)).scalar_one_or_none()
+    elif not user and clean_username in ("user", "user01", "operator", "analisis_siber"):
+        # Alias ramah untuk pengguna yang mengetik 'user' atau 'analisis_siber'
+        user = db.execute(select(User).where(User.username == "analis")).scalar_one_or_none()
 
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(

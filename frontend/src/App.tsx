@@ -18,6 +18,7 @@ import { NarrativeDriftChart } from './components/visualization/NarrativeDriftCh
 import { DualTierLedgerTable } from './components/reports/DualTierLedgerTable';
 import { ExportActionPanel } from './components/reports/ExportActionPanel';
 import { LoginPage } from './components/auth/LoginPage';
+import { LandingPage } from './components/landing/LandingPage';
 import { WatchlistManager } from './components/watchlist/WatchlistManager';
 import { UserManagement } from './components/users/UserManagement';
 import { StatCard } from './components/common/StatCard';
@@ -43,6 +44,44 @@ import type { PlatformType } from './types';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [authView, setAuthView] = useState<'landing' | 'login'>(() => {
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.pathname === '/login' || window.location.hash === '#login')
+    ) {
+      return 'login';
+    }
+    return 'landing';
+  });
+
+  const handleNavigateLogin = () => {
+    setAuthView('login');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/login');
+    }
+  };
+
+  const handleNavigateLanding = () => {
+    setAuthView('landing');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/');
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (
+        window.location.pathname === '/login' ||
+        window.location.hash === '#login'
+      ) {
+        setAuthView('login');
+      } else {
+        setAuthView('landing');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [narrativeSubView, setNarrativeSubView] = useState<'circadian_entropy' | 'drift'>('circadian_entropy');
   const [targetsSubView, setTargetsSubView] = useState<'cases' | 'watchlist'>('cases');
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
@@ -355,9 +394,17 @@ export const App: React.FC = () => {
     );
   }
 
-  // Jika belum login / sesi tidak ada -> Tampilkan Landing & Login Page PUSSIBERAD
+  // Jika belum login / sesi tidak ada -> Tampilkan Public Landing Page atau Gerbang Login
   if (!isAuthenticated) {
-    return <LoginPage backendStatus={backendStatus} />;
+    if (authView === 'login') {
+      return (
+        <LoginPage
+          backendStatus={backendStatus}
+          onNavigateBack={handleNavigateLanding}
+        />
+      );
+    }
+    return <LandingPage onNavigateLogin={handleNavigateLogin} />;
   }
 
   return (
@@ -549,36 +596,6 @@ export const App: React.FC = () => {
                     />
                   </div>
 
-                  {/* Quick-Jump to Visualizations Strip */}
-                  <div className="cyber-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 shadow-sm">
-                    <div className="text-xs text-slate-300 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                      <span>Investigasi selesai. Eksplorasi bukti forensik &amp; dossier:</span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        onClick={() => setActiveTab('network')}
-                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-sky-400 hover:text-sky-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                        Graf CIB
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('narrative')}
-                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-amber-400 hover:text-amber-300 text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/50 cursor-pointer shadow-sm"
-                      >
-                        <Clock className="w-3.5 h-3.5" />
-                        Sirkadian &amp; Entropi
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('reports')}
-                        className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-500/50 cursor-pointer shadow-sm"
-                      >
-                        <FileCheck2 className="w-3.5 h-3.5 text-sky-400" />
-                        Dossier Resmi
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

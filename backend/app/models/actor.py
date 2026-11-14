@@ -26,6 +26,12 @@ class ActorProfile(Base):
     account_created_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     profile_metadata: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
 
+    @property
+    def avatar_url(self) -> Optional[str]:
+        if self.profile_metadata and isinstance(self.profile_metadata, dict):
+            return self.profile_metadata.get("profile_image_url")
+        return None
+
     # Relasi
     case: Mapped["InvestigationCase"] = relationship("InvestigationCase", back_populates="actors")
     activities: Mapped[List["ActivityLog"]] = relationship(

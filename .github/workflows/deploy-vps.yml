@@ -1,0 +1,74 @@
+name: Auto Deploy to VPS Production
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_run:
+    workflows: ["Release & GHCR Packages"]
+    types:
+      - completed
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+jobs:
+  check-deployment-readiness:
+    name: Check Deployment Readiness (Dev / Main)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Target Branch & Secrets Status
+        run: |
+          echo "=== AXIOM CI/CD - Auto Deploy to VPS ==="
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "Status: Branch bukan main (${{ github.ref }}). Workflow terbaca sukses; auto-deploy VPS di-SKIP."
+          elif [ -z "${{ secrets.VPS_HOST }}" ]; then
+            echo "Status: Branch adalah main, namun secrets.VPS_HOST belum dikonfigurasi. Auto-deploy VPS di-SKIP secara aman hingga secrets dipasang."
+          else
+            echo "Status: Siap melakukan deployment ke VPS Production Host: ${{ secrets.VPS_HOST }}"
+          fi
+
+  deploy-production:
+    name: SSH Zero-Downtime Deployment
+    needs: check-deployment-readiness
+    runs-on: ubuntu-latest
+    # Guard ganda:
+    # 1. Hanya jalan pada branch main (pada branch dev, otomatis di-SKIP)
+    # 2. secrets.VPS_HOST sudah dikonfigurasi di GitHub Secrets
+    # 3. Dipicu oleh workflow_dispatch manual, push ke main, atau kelulusan release-ghcr.yml
+    if: github.ref == 'refs/heads/main' && secrets.VPS_HOST != '' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success')
+
+    steps:
+      - name: Announce Deployment Target
+        run: |
+          echo "Memulai auto-deploy ke VPS Production Host: ${{ secrets.VPS_HOST }}"
+
+      - name: Execute Remote Deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_SSH_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            echo "=== [1/4] Masuk ke Direktori Proyek VPS ==="
+            cd /opt/axiom || cd ~/axiom || { echo "Direktori axiom tidak ditemukan di VPS!"; exit 1; }
+
+            echo "=== [2/4] Melakukan Authentikasi GHCR (Opsional/Bila Diperlukan) ==="
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || true
+
+            echo "=== [3/4] Menarik Kontainer Versi Terbaru dari Registry ==="
+            docker compose -f docker-compose.prod.yml pull || docker compose pull
+
+            echo "=== [4/4] Menerapkan Kontainer Baru (Zero-Downtime Restart) ==="
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans || docker compose up -d --remove-orphans
+
+            echo "=== Membersihkan Cache Image Usang ==="
+            docker image prune -f
+
+            echo "✅ Deployment AXIOM Production Berhasil Diselesaikan!"

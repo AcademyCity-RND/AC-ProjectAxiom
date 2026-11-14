@@ -191,15 +191,22 @@
     }
   </script>
 
-  <!-- HEADER MILITER PUSSIBERAD -->
+  <!-- HEADER MILITER PUSSIBERAD DENGAN LOGO RESMI LIGHT -->
   <table class="header-table">
     <tr>
-      <td style="width: 70%;">
+      <td style="width: 28%; vertical-align: middle;">
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Project Axiom" style="max-height: 85px; max-width: 100%; object-fit: contain;" />
+        {% else %}
+        <div style="font-weight: 900; font-size: 13pt; color: #0284c7; letter-spacing: 1px;">PROJECT AXIOM</div>
+        {% endif %}
+      </td>
+      <td style="width: 47%; vertical-align: middle; padding-left: 12px;">
         <div class="military-title">PUSAT SIBER TNI ANGKATAN DARAT</div>
         <div class="sub-title">Satuan Tugas Intelijen Forensik Kognitif & Pertahanan Informasi</div>
-        <div style="font-size: 8pt; color: #718096; margin-top: 4px;">PROJECT AXIOM — COGNITIVE THREAT INTELLIGENCE SYSTEM</div>
+        <div style="font-size: 8pt; color: #718096; margin-top: 3px;">PROJECT AXIOM — COGNITIVE THREAT INTELLIGENCE SYSTEM</div>
       </td>
-      <td style="width: 30%; text-align: right; vertical-align: top;">
+      <td style="width: 25%; text-align: right; vertical-align: middle;">
         <span class="classification-badge">RAHASIA / CLASSIFIED</span>
         <div style="font-size: 8pt; color: #4a5568; margin-top: 6px;">
           TANGGAL: {{ generation_time }}
@@ -320,13 +327,14 @@
   <table class="data-table">
     <thead>
       <tr>
-        <th style="width: 5%;">#</th>
-        <th style="width: 25%;">Akun / Penyerang</th>
-        <th style="width: 15%;">Kategori</th>
-        <th style="width: 12%;">Volume</th>
-        <th style="width: 13%;">Klaster CIB</th>
-        <th style="width: 15%;">Burst Window</th>
-        <th style="width: 15%;">Skor Risiko</th>
+        <th style="width: 4%;">#</th>
+        <th style="width: 18%;">Akun / Penyerang</th>
+        <th style="width: 12%;">Kategori</th>
+        <th style="width: 8%;">Volume</th>
+        <th style="width: 9%;">Klaster CIB</th>
+        <th style="width: 8%;">Burst</th>
+        <th style="width: 9%;">Skor Risiko</th>
+        <th style="width: 32%;">Kutipan Narasi / Bukti Komentar</th>
       </tr>
     </thead>
     <tbody>
@@ -334,7 +342,7 @@
         {% for att in top_10_attackers %}
         <tr>
           <td>{{ loop.index }}</td>
-          <td><strong>@{{ att.username }}</strong></td>
+          <td><strong>@{{ att.username | replace('@', '') }}</strong></td>
           <td>
             <span class="tag tag-{{ att.estimated_category | lower }}">{{ att.estimated_category }}</span>
           </td>
@@ -342,11 +350,14 @@
           <td>{{ att.cluster_connections }} koneksi</td>
           <td>{{ "YA" if att.posted_in_burst_window else "TIDAK" }}</td>
           <td><strong>{{ (att.risk_score * 100) | round(0) }}%</strong></td>
+          <td style="font-size: 8pt; color: #334155; font-style: italic; word-break: break-word;">
+            {% if att.sample_comment %}"{{ att.sample_comment }}"{% else %}<span style="color: #94a3b8;">-</span>{% endif %}
+          </td>
         </tr>
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="7" style="text-align: center; color: #718096;">Tidak ada aktor penyerang terkoordinasi yang terdeteksi.</td>
+          <td colspan="8" style="text-align: center; color: #718096;">Tidak ada aktor penyerang terkoordinasi yang terdeteksi.</td>
         </tr>
       {% endif %}
     </tbody>

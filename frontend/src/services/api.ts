@@ -45,11 +45,13 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('axiom_token');
     }
-    const rawDetail = error.response?.data?.detail;
-    let errorMsg = 'Terjadi kesalahan sistem';
 
-    if (typeof rawDetail === 'string') {
-      errorMsg = rawDetail;
+    const status = error.response?.status;
+    const rawDetail = error.response?.data?.detail || error.response?.data?.message;
+    let errorMsg = '';
+
+    if (typeof rawDetail === 'string' && rawDetail.trim()) {
+      errorMsg = rawDetail.trim();
     } else if (Array.isArray(rawDetail)) {
       // Format validasi Pydantic (e.g. [{ loc: [...], msg: "..." }])
       errorMsg = rawDetail
@@ -59,8 +61,51 @@ apiClient.interceptors.response.use(
         .join('; ');
     } else if (rawDetail && typeof rawDetail === 'object') {
       errorMsg = JSON.stringify(rawDetail);
-    } else if (error.message) {
-      errorMsg = error.message;
+    }
+
+    // Jika pesan kosong atau masih berupa pesan mentah Axios ('Request failed with status code ...')
+    if (!errorMsg || errorMsg.includes('status code')) {
+      switch (status) {
+        case 400:
+          errorMsg = 'Permintaan tidak valid. Mohon periksa kembali input atau format data Anda.';
+          break;
+        case 401:
+          errorMsg = 'Sesi otentikasi telah berakhir atau tidak valid. Silakan login kembali.';
+          break;
+        case 403:
+          errorMsg = 'Akses ditolak. Anda tidak memiliki izin untuk fitur ini.';
+          break;
+        case 404:
+          errorMsg = 'Data, target akun, atau layanan yang diminta tidak ditemukan.';
+          break;
+        case 422:
+          errorMsg = 'Parameter input tidak sesuai dengan format yang didukung sistem.';
+          break;
+        case 429:
+          errorMsg = 'Batas kuota analisis tercapai (Rate Limit). Mohon tunggu beberapa saat sebelum mencoba lagi.';
+          break;
+        case 500:
+          errorMsg = 'Server sedang mengalami kendala sementara saat memproses data. Silakan coba sesaat lagi.';
+          break;
+        case 502:
+        case 503:
+        case 504:
+          errorMsg = 'Layanan server sedang dalam pemeliharaan atau proses muat ulang. Silakan coba kembali.';
+          break;
+        default:
+          errorMsg = status
+            ? `Terjadi kendala pada server (Kode ${status}). Silakan coba beberapa saat lagi.`
+            : 'Terjadi kendala komunikasi jaringan. Pastikan koneksi internet Anda stabil.';
+      }
+    }
+
+    // Tangani network error (misal offline atau connection refused)
+    if (!error.response && error.message) {
+      if (error.message.includes('Network Error')) {
+        errorMsg = 'Gagal terhubung ke server backend. Pastikan server aktif dan koneksi lancar.';
+      } else if (error.message.includes('timeout')) {
+        errorMsg = 'Waktu permintaan melebihi batas (Timeout). Server membutuhkan waktu lebih lama.';
+      }
     }
 
     return Promise.reject(new Error(errorMsg));
@@ -228,6 +273,41 @@ export const api = {
     }
   },
 
+  // 7c. Unduh Master Dataset Retraining ML (Admin Only)
+  downloadMasterDataset: async (): Promise<void> => {
+    const response = await apiClient.get('/export/master-dataset', {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `axiom_retraining_master_dataset_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+  },
+
+  // 7d. Verifikasi Kriptografis & Penelusuran Dokumen via SHA-256 / ID Kasus
+  verifyDossierHash: async (
+    query: string
+  ): Promise<{
+    is_verified: boolean;
+    match_type: string;
+    case_id: string | null;
+    target: string | null;
+    platform: string | null;
+    status: string | null;
+    cryptographic_hash: string | null;
+    created_at: string | null;
+    dossier_url: string | null;
+    message: string;
+  }> => {
+    const response = await apiClient.get(`/export/verify-hash/${encodeURIComponent(query.trim())}`);
+    return response.data;
+  },
+
   // 8. Health Check Sistem
   checkHealth: async (): Promise<{ status: string }> => {
     const targetUrl = API_BASE_URL.startsWith('http')
@@ -289,6 +369,17 @@ export const api = {
 
   getAuditSummary: async (): Promise<AuditSummary> => {
     const response = await apiClient.get('/audit/summary');
+    return response.data;
+  },
+
+  // 12. Modul Guest Demo Sandbox (Akses Publik)
+  getGuestSamples: async (): Promise<{ samples: any[] }> => {
+    const response = await apiClient.get('/investigate/guest/samples');
+    return response.data;
+  },
+
+  guestAnalyze: async (payload: { target: string; platform?: string; mode?: string; sample_count?: number }): Promise<any> => {
+    const response = await apiClient.post('/investigate/guest/analyze', payload);
     return response.data;
   },
 };

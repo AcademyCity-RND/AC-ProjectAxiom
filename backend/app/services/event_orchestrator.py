@@ -232,6 +232,16 @@ async def run_event_investigation_pipeline(
             except Exception:
                 pass
 
+        # Kumpulkan komentar aktual per author untuk bukti kutipan di tabel/dossier
+        author_comments_map: Dict[str, List[str]] = {}
+        for c in comments:
+            a_name = c.get("author_name") or c.get("username") or "anon"
+            txt = str(c.get("text", "")).strip()
+            if a_name not in author_comments_map:
+                author_comments_map[a_name] = []
+            if txt and txt not in author_comments_map[a_name]:
+                author_comments_map[a_name].append(txt)
+
         # Ranking skor kecurigaan untuk penyerang inti
         ranked_attackers = []
         for author in unique_author_names:
@@ -239,25 +249,48 @@ async def run_event_investigation_pipeline(
             cl_freq = cluster_actor_counter.get(author, 0)
             in_burst = author in burst_actors
 
-            # Skor risiko tertimbang
-            risk_score = round(
-                (min(1.0, c_freq / 5.0) * 0.3) +
-                (min(1.0, cl_freq / 2.0) * 0.5) +
-                (0.2 if in_burst else 0.0),
-                2
+            # Logika kalibrasi forensik:
+            # - Akun dengan 1 komentar dan 0 klaster CIB adalah ORGANIC (manusia normal)
+            # - Komentar di awal rilis konten (burst window) adalah hal wajar bagi audiens organik
+            # - Hanya dilabeli BUZZER jika terbukti ikut dalam sindikat klaster copypasta CIB
+            # - Hanya dilabeli BOT jika melakukan spam berulang (>= 3 komentar) dalam burst
+            if cl_freq > 0:
+                cat = "BUZZER"
+                risk_score = round(min(1.0, 0.45 + (cl_freq * 0.15) + min(0.2, c_freq * 0.05)), 2)
+            elif c_freq >= 3 and in_burst:
+                cat = "BOT"
+                risk_score = round(min(1.0, 0.40 + (0.2 if in_burst else 0.0) + min(0.3, c_freq * 0.08)), 2)
+            elif c_freq >= 2:
+                cat = "SUSPICIOUS"
+                risk_score = 0.20
+            else:
+                cat = "ORGANIC"
+                risk_score = 0.05
+
+            clean_username = author.lstrip("@")
+            user_comments = author_comments_map.get(author, [])
+            sample_txt = user_comments[0] if user_comments else ""
+
+            ranked_attackers.append({
+                "username": clean_username,
+                "comment_count": c_freq,
+                "cluster_connections": cl_freq,
+                "posted_in_burst_window": in_burst,
+                "risk_score": risk_score,
+                "estimated_category": cat,
+                "sample_comment": sample_txt,
+                "sample_comments": user_comments[:3]
+            })
+
+        # Urutkan: Risiko tertinggi, koneksi klaster terbanyak, lalu frekuensi komentar
+        ranked_attackers.sort(
+            key=lambda x: (
+                1 if x["estimated_category"] == "BUZZER" else (2 if x["estimated_category"] == "BOT" else (3 if x["estimated_category"] == "SUSPICIOUS" else 4)),
+                -x["risk_score"],
+                -x["cluster_connections"],
+                -x["comment_count"]
             )
-
-            if risk_score > 0.15 or c_freq > 1 or cl_freq > 0:
-                ranked_attackers.append({
-                    "username": author,
-                    "comment_count": c_freq,
-                    "cluster_connections": cl_freq,
-                    "posted_in_burst_window": in_burst,
-                    "risk_score": risk_score,
-                    "estimated_category": "BUZZER" if cl_freq > 0 else ("BOT" if in_burst else "SUSPICIOUS")
-                })
-
-        ranked_attackers.sort(key=lambda x: (x["risk_score"], x["cluster_connections"], x["comment_count"]), reverse=True)
+        )
         top_10_attackers = ranked_attackers[:10]
 
         # ---------------------------------------------------------
@@ -277,8 +310,25 @@ async def run_event_investigation_pipeline(
         dossier_data = dossier.model_dump()
 
         # Simpan hasil deteksi agregat ke DetectionResult
-        overall_threat = "BUZZER" if (len(clusters) > 0 or len(top_10_attackers) >= 3) else ("BOT" if temporal_anomaly.get("is_anomaly") else "HUMAN")
-        confidence = 0.92 if overall_threat == "BUZZER" else (0.85 if overall_threat == "BOT" else 0.75)
+        # Evaluasi ancaman riil kolom komentar:
+        cib_threat_actors = [a for a in top_10_attackers if a["estimated_category"] == "BUZZER"]
+        bot_threat_actors = [a for a in top_10_attackers if a["estimated_category"] == "BOT"]
+
+        is_buzzer_attack = len(clusters) >= 2 and len(cib_threat_actors) >= 2
+        is_bot_attack = (
+            temporal_anomaly.get("is_anomaly")
+            and (temporal_anomaly.get("anomaly_score", 0.0) >= 0.65 or len(bot_threat_actors) >= 3)
+        )
+
+        if is_buzzer_attack:
+            overall_threat = "BUZZER"
+            confidence = 0.92
+        elif is_bot_attack:
+            overall_threat = "BOT"
+            confidence = 0.86
+        else:
+            overall_threat = "HUMAN"
+            confidence = 0.90
 
         detection = DetectionResult(
             case_id=case_id,

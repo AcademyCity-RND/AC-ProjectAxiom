@@ -36,6 +36,55 @@ interface ActorSummaryCardProps {
   resultSummary?: Record<string, any> | null;
 }
 
+const CardAvatar: React.FC<{
+  url?: string | null;
+  fallbackUrl?: string | null;
+  alt: string;
+  fallbackIcon?: React.ReactNode;
+  fallbackInitial?: string;
+}> = ({ url, fallbackUrl, alt, fallbackIcon, fallbackInitial }) => {
+  const [currentUrl, setCurrentUrl] = useState<string | null>(url || fallbackUrl || null);
+  const [hasError, setHasError] = useState(false);
+
+  React.useEffect(() => {
+    setCurrentUrl(url || fallbackUrl || null);
+    setHasError(false);
+  }, [url, fallbackUrl]);
+
+  const handleImageError = () => {
+    if (currentUrl === url && fallbackUrl && fallbackUrl !== url) {
+      setCurrentUrl(fallbackUrl);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  if (!currentUrl || hasError) {
+    if (fallbackIcon) return <>{fallbackIcon}</>;
+    return (
+      <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sky-400 text-base font-mono">
+        {(fallbackInitial || '?').replace(/^[@"']/, '').charAt(0).toUpperCase()}
+      </div>
+    );
+  }
+
+  const safeSrc =
+    (currentUrl.includes('fbcdn.net') || currentUrl.includes('cdninstagram.com') || currentUrl.includes('instagram.com')) &&
+    !currentUrl.startsWith('/api/')
+      ? `/api/v1/investigate/proxy-image?url=${encodeURIComponent(currentUrl)}`
+      : currentUrl;
+
+  return (
+    <img
+      src={safeSrc}
+      alt={alt}
+      referrerPolicy="no-referrer"
+      className="w-12 h-12 rounded-lg object-cover"
+      onError={handleImageError}
+    />
+  );
+};
+
 export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
   actor,
   detection,
@@ -143,6 +192,28 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
   const eventBadge = getEventBadge();
 
+  // Extract avatar URL (real photo from X/YouTube/Instagram)
+  const avatarUrl =
+    actor?.avatar_url ||
+    (actor?.profile_metadata as any)?.profile_image_url ||
+    (resultSummary as any)?.actor_avatar_url;
+
+  const hostThumbnailUrl =
+    (hostMetadata as any)?.thumbnail_url ||
+    (actor?.profile_metadata as any)?.thumbnail_url ||
+    (resultSummary as any)?.thumbnail_url;
+
+  const hostCreatorAvatar =
+    (hostMetadata?.creator as any)?.avatar_url ||
+    (hostMetadata?.creator as any)?.profile_image_url ||
+    (actor?.profile_metadata as any)?.creator_avatar_url ||
+    (resultSummary as any)?.creator_avatar_url;
+
+  const hostAvatarUrl =
+    hostThumbnailUrl ||
+    hostCreatorAvatar ||
+    actor?.avatar_url;
+
   const handleAddToWatchlist = async () => {
     setIsAdding(true);
     setWatchlistError(null);
@@ -198,20 +269,31 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Profile / Event Info */}
         <div className="flex items-start gap-3.5 min-w-0 flex-1">
-          <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner">
+          <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 shrink-0 shadow-inner overflow-hidden">
             {isEvent ? (
-              <PlatformIcon
-                platform={platform}
-                className={`w-6 h-6 ${
-                  platform === 'youtube'
-                    ? 'text-rose-400'
-                    : platform === 'instagram'
-                    ? 'text-amber-400'
-                    : 'text-sky-400'
-                }`}
+              <CardAvatar
+                url={hostThumbnailUrl || hostAvatarUrl}
+                fallbackUrl={hostCreatorAvatar}
+                alt={hostMetadata?.creator?.username_or_channel || 'Kreator'}
+                fallbackIcon={
+                  <PlatformIcon
+                    platform={platform}
+                    className={`w-6 h-6 ${
+                      platform === 'youtube'
+                        ? 'text-rose-400'
+                        : platform === 'instagram'
+                        ? 'text-amber-400'
+                        : 'text-sky-400'
+                    }`}
+                  />
+                }
               />
             ) : (
-              <User className="w-6 h-6 text-slate-400" />
+              <CardAvatar
+                url={avatarUrl}
+                alt={actor?.display_name || actor?.username || target}
+                fallbackInitial={actor?.display_name || actor?.username || target}
+              />
             )}
           </div>
 
@@ -228,7 +310,7 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
                 {/* Creator Attribution */}
                 {hostMetadata?.creator ? (
                   <div className="flex items-center gap-2 text-xs text-slate-300 font-mono flex-wrap">
-                    <span className="text-slate-400">Kreator:</span>
+                    <span className="text-slate-400">Kreator Konten:</span>
                     <span className="font-semibold text-sky-400">
                       {hostMetadata.creator.username_or_channel}
                     </span>
@@ -243,6 +325,9 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
                         {platform === 'youtube' ? 'Subscribers' : 'Followers'})
                       </span>
                     )}
+                    <span className="text-[10px] bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30">
+                      Objek Audit: Kolom Komentar
+                    </span>
                   </div>
                 ) : (
                   <div className="text-xs text-slate-400 font-mono truncate max-w-sm">
@@ -326,14 +411,21 @@ export const ActorSummaryCard: React.FC<ActorSummaryCardProps> = ({
 
           <div className="space-y-1">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
-              KLASIFIKASI MODEL
+              {isEvent ? 'AUDIT KOLOM KOMENTAR' : 'KLASIFIKASI MODEL'}
             </div>
-            <ThreatBadge type="class" value={predictedClass} />
+            <ThreatBadge type="class" value={predictedClass} isEvent={isEvent} />
             <div className="text-[11px] font-mono text-slate-400">
-              {predictedClass === 'BOT' && 'Otomasi Skrip / Botnet'}
-              {predictedClass === 'BUZZER' && 'Koordinasi Opini Siber'}
-              {predictedClass === 'HUMAN' && 'Perilaku Wajar / Organik'}
-              {predictedClass === 'UNKNOWN' && 'Evaluasi Diperlukan'}
+              {isEvent ? (
+                predictedClass === 'BOT' ? 'Anomali Botnet Spam' :
+                predictedClass === 'BUZZER' ? 'Infiltrasi Buzzer CIB' :
+                predictedClass === 'HUMAN' ? 'Komentar Bersih & Organik' :
+                'Evaluasi Diperlukan'
+              ) : (
+                predictedClass === 'BOT' ? 'Otomasi Skrip / Botnet' :
+                predictedClass === 'BUZZER' ? 'Koordinasi Opini Siber' :
+                predictedClass === 'HUMAN' ? 'Perilaku Wajar / Organik' :
+                'Evaluasi Diperlukan'
+              )}
             </div>
           </div>
         </div>
