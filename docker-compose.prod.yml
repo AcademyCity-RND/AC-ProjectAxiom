@@ -37,10 +37,8 @@ services:
       - axiom_prod_net
 
   instagram-scraper:
-    image: ac-instagram-scraper:1.0.0
-    build:
-      context: ../AC-InstagramScraper
-      dockerfile: Dockerfile
+    # linux/amd64 manifest supplied for scraper release sha-b69d953.
+    image: ghcr.io/academycity-rnd/ac-instagram-scraper@sha256:fe1f6ab707ae19b84d0389e7bde5f5960231690d1bdaaa02a03750ef40ea0da5
     container_name: axiom_instagram_scraper_prod
     restart: always
     ports:
@@ -58,10 +56,7 @@ services:
       - axiom_prod_net
 
   backend:
-    image: axiom-backend:1.0.0
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/academycity-rnd/axiom-backend:${IMAGE_TAG:?Set IMAGE_TAG to sha-<full release commit>}
     container_name: axiom_backend_prod
     restart: always
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
@@ -92,10 +87,7 @@ services:
       - axiom_prod_net
 
   frontend:
-    image: axiom-frontend:1.0.0
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/academycity-rnd/axiom-frontend:${IMAGE_TAG:?Set IMAGE_TAG to sha-<full release commit>}
     container_name: axiom_frontend_prod
     restart: always
     ports:

@@ -1,74 +1,72 @@
 name: Auto Deploy to VPS Production
 
 on:
-  push:
-    branches:
-      - main
-      - dev
   workflow_run:
     workflows: ["Release & GHCR Packages"]
-    types:
-      - completed
-    branches:
-      - main
-      - dev
-  workflow_dispatch:
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: axiom-production
+  cancel-in-progress: false
 
 jobs:
-  check-deployment-readiness:
-    name: Check Deployment Readiness (Dev / Main)
+  preflight:
     runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
     steps:
-      - name: Validate Target Branch & Secrets Status
+      - name: Check SSH configuration without printing secrets
+        id: check
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_USER: ${{ secrets.VPS_SSH_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          echo "=== AXIOM CI/CD - Auto Deploy to VPS ==="
-          echo "Event: ${{ github.event_name }}"
-          echo "Ref: ${{ github.ref }}"
-          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
-            echo "Status: Branch bukan main (${{ github.ref }}). Workflow terbaca sukses; auto-deploy VPS di-SKIP."
-          elif [ -z "${{ secrets.VPS_HOST }}" ]; then
-            echo "Status: Branch adalah main, namun secrets.VPS_HOST belum dikonfigurasi. Auto-deploy VPS di-SKIP secara aman hingga secrets dipasang."
-          else
-            echo "Status: Siap melakukan deployment ke VPS Production Host: ${{ secrets.VPS_HOST }}"
-          fi
+          set -euo pipefail
+          for name in VPS_HOST VPS_SSH_USER VPS_SSH_KEY; do
+            if [[ -z "${!name}" || "${!name}" == REPLACE_ME* ]]; then
+              echo "::error::Missing or placeholder secret: $name"
+              exit 1
+            fi
+          done
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
   deploy-production:
-    name: SSH Zero-Downtime Deployment
-    needs: check-deployment-readiness
+    needs: preflight
+    if: needs.preflight.outputs.ready == 'true'
     runs-on: ubuntu-latest
-    # Guard ganda:
-    # 1. Hanya jalan pada branch main (pada branch dev, otomatis di-SKIP)
-    # 2. secrets.VPS_HOST sudah dikonfigurasi di GitHub Secrets
-    # 3. Dipicu oleh workflow_dispatch manual, push ke main, atau kelulusan release-ghcr.yml
-    if: github.ref == 'refs/heads/main' && secrets.VPS_HOST != '' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success')
-
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+      GHCR_USER: ${{ github.actor }}
+      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Announce Deployment Target
-        run: |
-          echo "Memulai auto-deploy ke VPS Production Host: ${{ secrets.VPS_HOST }}"
-
-      - name: Execute Remote Deployment via SSH
+      - name: Deploy exactly the successful main build
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_SSH_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
+          envs: RELEASE_SHA,GHCR_USER,GHCR_TOKEN
           script_stop: true
+          command_timeout: 30m
           script: |
-            echo "=== [1/4] Masuk ke Direktori Proyek VPS ==="
-            cd /opt/axiom || cd ~/axiom || { echo "Direktori axiom tidak ditemukan di VPS!"; exit 1; }
-
-            echo "=== [2/4] Melakukan Authentikasi GHCR (Opsional/Bila Diperlukan) ==="
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || true
-
-            echo "=== [3/4] Menarik Kontainer Versi Terbaru dari Registry ==="
-            docker compose -f docker-compose.prod.yml pull || docker compose pull
-
-            echo "=== [4/4] Menerapkan Kontainer Baru (Zero-Downtime Restart) ==="
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans || docker compose up -d --remove-orphans
-
-            echo "=== Membersihkan Cache Image Usang ==="
-            docker image prune -f
-
-            echo "✅ Deployment AXIOM Production Berhasil Diselesaikan!"
+            set -eu
+            cd /opt/axiom
+            test "$(git remote get-url origin)" = "https://github.com/AcademyCity-RND/AC-ProjectAxiom.git"
+            git fetch origin main
+            test "$(git rev-parse origin/main)" = "$RELEASE_SHA" || { echo 'Refusing stale or non-main release'; exit 1; }
+            deploy_script=$(mktemp)
+            trap 'rm -f "$deploy_script"' EXIT
+            git show "$RELEASE_SHA:scripts/deploy-production.sh" > "$deploy_script"
+            bash "$deploy_script"
