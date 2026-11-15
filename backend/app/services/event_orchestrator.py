@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from collections import Counter
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,35 @@ from app.services.llm_analyst import get_llm_analyst_service
 from app.services.analytics import compute_advanced_analytics
 
 logger = logging.getLogger("axiom.event_orchestrator")
+
+
+def normalize_event_probabilities(predicted_class: str, confidence_score: float) -> Tuple[float, Dict[str, float]]:
+    """
+    Menghasilkan distribusi probabilitas terkalibrasi matematis di mana sum(P) = 1.0
+    dan confidence kelas utama konsisten dengan class_probabilities[predicted_class].
+    """
+    conf = round(float(max(0.60, min(0.98, confidence_score))), 3)
+    remaining = round(1.0 - conf, 3)
+
+    if predicted_class == "BUZZER":
+        bot_p = round(remaining * 0.65, 3)
+        human_p = round(remaining - bot_p, 3)
+        probs = {"BUZZER": conf, "BOT": bot_p, "HUMAN": human_p}
+    elif predicted_class == "BOT":
+        buzzer_p = round(remaining * 0.65, 3)
+        human_p = round(remaining - buzzer_p, 3)
+        probs = {"BOT": conf, "BUZZER": buzzer_p, "HUMAN": human_p}
+    else:  # HUMAN
+        buzzer_p = round(remaining * 0.50, 3)
+        bot_p = round(remaining - buzzer_p, 3)
+        probs = {"HUMAN": conf, "BUZZER": buzzer_p, "BOT": bot_p}
+
+    # Penyelarasan selisih pembulatan agar total selalu presisi 1.0
+    delta = round(1.0 - sum(probs.values()), 3)
+    if delta != 0.0:
+        probs["HUMAN"] = round(probs["HUMAN"] + delta, 3)
+
+    return conf, probs
 
 
 async def run_event_investigation_pipeline(
@@ -322,24 +351,22 @@ async def run_event_investigation_pipeline(
 
         if is_buzzer_attack:
             overall_threat = "BUZZER"
-            confidence = 0.92
+            raw_conf = min(0.95, max(0.75, 0.80 + 0.04 * len(cib_threat_actors)))
         elif is_bot_attack:
             overall_threat = "BOT"
-            confidence = 0.86
+            raw_conf = min(0.95, max(0.70, float(temporal_anomaly.get("anomaly_score", 0.82))))
         else:
             overall_threat = "HUMAN"
-            confidence = 0.90
+            raw_conf = 0.85
+
+        confidence, class_probabilities = normalize_event_probabilities(overall_threat, raw_conf)
 
         detection = DetectionResult(
             case_id=case_id,
             actor_username=f"EVENT_{platform.upper()}",
             predicted_class=overall_threat,
             confidence=confidence,
-            class_probabilities={
-                "BUZZER": 0.85 if overall_threat == "BUZZER" else 0.10,
-                "BOT": 0.80 if overall_threat == "BOT" else 0.15,
-                "HUMAN": 0.75 if overall_threat == "HUMAN" else 0.05
-            },
+            class_probabilities=class_probabilities,
             extracted_features={
                 "total_comments": float(total_comments),
                 "unique_commenters": float(unique_commenters_count),
