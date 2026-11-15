@@ -19,6 +19,8 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://axiom.xteonlyone.my.id",
+        "http://axiom.xteonlyone.my.id",
     ]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")

@@ -35,7 +35,7 @@ services:
       - axiom_net
 
   instagram-scraper:
-    image: ac-instagram-scraper:1.0.0
+    image: ${SCRAPER_IMAGE:-ac-instagram-scraper:1.0.0}
     build:
       context: ../AC-InstagramScraper
       dockerfile: Dockerfile
@@ -56,7 +56,7 @@ services:
       - axiom_net
 
   backend:
-    image: axiom-backend:1.0.0
+    image: ${BACKEND_IMAGE:-axiom-backend:1.0.0}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -65,6 +65,8 @@ services:
     volumes:
       - ./backend:/app
       - ./data/chromadb:/app/data/chromadb
+      - ./data/sessions:/app/data/sessions
+      - ./data/models:/app/data/models
     ports:
       - "8000:8000"
     env_file:
@@ -88,13 +90,13 @@ services:
       - axiom_net
 
   frontend:
-    image: axiom-frontend:1.0.0
+    image: ${FRONTEND_IMAGE:-axiom-frontend:1.0.0}
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: axiom_frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3000}:80"
     env_file:
       - .env
     depends_on:

@@ -233,17 +233,14 @@ axiom/
 │   │   ├── models/            # SQLAlchemy DB Models
 │   │   ├── schemas/           # Pydantic Schemas (Request/Response)
 │   │   ├── templates/         # Jinja2 Dossier HTML Templates (@media print A4)
-│   │   └── services/          # Core Engines:
-│   │       ├── scraper/       # twscrape, instaloader, youtube adapters
-│   │       ├── features.py    # 21-Feature Extractor (Temporal, Structural, Content)
-│   │       ├── classifier.py  # XGBoost Tri-Class Bot Classifier & XAI
-│   │       ├── embedder.py    # MiniLM-L6-v2 Local Vector Embedder
-│   │       ├── vector_store.py# ChromaDB Client & CIB Cluster Detector
-│   │       ├── llm_analyst.py # Groq Llama 3.3 Cognitive Analyst & Prompt Defense
-│   │       ├── x_auditor.py   # X Profile & Tweet Replies Investigator
-│   │       ├── instagram_auditor.py # IG Post & Reels Investigator
-│   │       ├── youtube_auditor.py   # YT Video & Shorts Investigator
-│   │       └── investigation_orchestrator.py # Pipeline Coordinator
+│   │   └── services/          # Core Engines (Modular Architecture):
+│   │       ├── ml/            # XGBoost Tri-Class, 21 Features, MiniLM Embedder, ChromaDB
+│   │       ├── llm/           # Groq Llama 3.3 70B Intelligence Synthesis & Prompt Defense
+│   │       ├── auditors/      # Platform Content Auditors (YouTube, Instagram, X)
+│   │       ├── orchestrators/ # Multi-Stage Investigation & Event Narrative Pipelines
+│   │       ├── analytics/     # Forensic Analytics (Circadian 24/7 Heatmap, Posting Entropy)
+│   │       ├── reporting/     # Audit Trail Logger & Dossier HTML/Printable Exporter
+│   │       └── scraper/       # Twscrape & Instagram Microservice Adapters
 │   ├── alembic/               # Database Migration Scripts
 │   ├── tests/                 # 62/62 Unit & Integration Tests Passed
 │   ├── Dockerfile             # Container Definition Backend
