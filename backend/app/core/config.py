@@ -1,5 +1,5 @@
 from typing import List, Union
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import AnyHttpUrl, field_validator, Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,23 +30,47 @@ class Settings(BaseSettings):
             return v
         return []
 
-    # Database
-    POSTGRES_SERVER: str = "postgres"
+    # Database (Mendukung alias POSTGRES_SERVER dan POSTGRES_HOST)
+    POSTGRES_SERVER: str = Field(
+        default="postgres",
+        validation_alias=AliasChoices("POSTGRES_SERVER", "POSTGRES_HOST")
+    )
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "axiom_db"
-    POSTGRES_PORT: int = 5432
+    POSTGRES_PORT: int = Field(
+        default=5432,
+        validation_alias=AliasChoices("POSTGRES_PORT", "POSTGRES_SERVER_PORT")
+    )
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
+    @property
+    def SQLALCHEMY_SYNC_DATABASE_URI(self) -> str:
+        return f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
     # ChromaDB
     CHROMA_HOST: str = "chromadb"
     CHROMA_PORT: int = 8000
+    CHROMA_COLLECTION_NAME: str = "actor_narratives"
+    EMBEDDING_MODEL_NAME: str = "all-MiniLM-L6-v2"
+    CIB_SIMILARITY_THRESHOLD: float = 0.85
 
     # Groq API
     GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_FALLBACK_MODEL: str = "llama-3.1-8b-instant"
+
+    # Scraper & twscrape Configuration
+    TWSCRAPE_DB_PATH: str = "./data/sessions/x_accounts.db"
+    TWSCRAPE_WAIT_TIMEOUT: float = 60.0
+    TWSCRAPE_WAIT_INTERVAL: float = 5.0
+    X_ACCOUNTS_POOL: str = ""  # Format JSON: [{"username": "...", "email": "...", "password": "...", "cookies": "..."}]
+    X_COOKIES: str = ""  # Format auth_token=...; ct0=... untuk 1 akun burner aman
+    SESSIONS_DIR: str = "./data/sessions"
+    SCRAPER_OFFLINE_MODE: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

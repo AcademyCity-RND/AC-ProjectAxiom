@@ -31,7 +31,7 @@ Berdasarkan realitas arsitektur media sosial publik dan kebutuhan kompetisi PUSS
    * **YouTube & Instagram — Crisis Response / Event Auditing:**
      * Input: URL Video YouTube atau URL Postingan Publik Instagram.
      * Log yang ditarik: Seluruh komentar publik pada postingan/video tersebut untuk mendeteksi apakah terjadi serbuan botnet terkoordinasi (*coordinated comment flooding*).
-     * YouTube menggunakan YouTube Data API v3 (kuota gratis 10.000 unit/hari) / scraper; Instagram menggunakan public post comment extractor.
+     * YouTube menggunakan youtube-comment-downloader (Innertube pure HTTP streaming tanpa API key & tanpa login) dengan fallback YouTube Data API v3; Instagram ditenagai arsitektur Multi-Tier dengan AC-InstagramScraper (Zero-Auth TLS Impersonation via curl_cffi) sebagai engine primer, serta fallback Instaloader session & contextual resilience.
    * **BATASAN TEGAS:** Sistem **TIDAK MENJANJIKAN** pelacakan riwayat komentar keluar (*outgoing comments*) per-username di YouTube, Instagram, atau Facebook karena batasan privasi arsitektur platform tersebut (*walled garden*).
 2. **Kemandirian Infrastruktur (Air-Gapped & On-Premise Ready):**
    * Core AI pipeline (XGBoost + Embedding `all-MiniLM-L6-v2`) dapat berjalan 100% lokal di CPU/GPU mandiri tanpa mengirim data intelijen sensitif ke server luar, memenuhi standar operasional militer PUSSIBERAD.
@@ -62,7 +62,7 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 | **Backend Engine** | **FastAPI (Python)** | v0.115.11 / Starlette 0.46.2 / Py 3.11/3.12 | Asynchronous high-throughput processing, Pydantic v2 validation, hardened against multipart CVE-2024-47874 & ReDoS |
 | **Database Relasional**| **PostgreSQL** | v16+ (Docker) | Penyimpanan log kasus, profil target, hasil scoring, dan audit trail |
 | **Vector Database** | **ChromaDB** | v0.5.20 / Server v0.5.5 | Indexing dan pencarian semantic similarity copypasta antar-cuitan |
-| **Scraping Adapter** | **Twikit + Scraper Pool** | v2.2.0 Async Engine | Penarikan data X (Twitter) berbasis session cookie gratis & anti-block |
+| **Scraping Adapters** | **twscrape**, **youtube-comment-downloader**, **AC-InstagramScraper**, **instaloader** | Open-source Multi-Platform Engine | Ingesti multi-platform tanpa biaya langganan: X (cookie session pool), YouTube (Innertube HTTP parser), dan Instagram (Zero-Auth TLS Impersonation + Instaloader Session Fallback) |
 | **ML Classifier** | **XGBoost & Scikit-Learn** | v2.1.3 / v1.5.2 | Klasifikasi tabular 3-kelas (*Bot, Buzzer, Manusia*) dalam <50ms |
 | **NLP Embeddings** | **Sentence-Transformers** | `all-MiniLM-L6-v2` / v3.3.1 | Embedding semantik 384-dimensi lokal (cepat, hemat RAM, akurat) |
 | **Narrative LLM** | **Llama 3.3 70B via Groq** | Free Tier API (<1s inference) | Sintesis narasi intelejen, deteksi framing isu, dan perangkum laporan |
@@ -70,24 +70,33 @@ Seluruh komponen teknologi dipilih dengan pertimbangan **kinerja tinggi, kompati
 ### 2.2 Konfigurasi Environment (`.env.example`)
 
 ```env
-# Backend & Port Settings
-HOST=0.0.0.0
-PORT=8000
-ENVIRONMENT=development
-
-# Database Connections
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/axiom_db
-CHROMA_PERSIST_DIR=./data/chromadb
-
-# AI Inference (Groq LPU - Free Tier)
-GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# AI Synthesis & Explainable XAI (Groq LPU Llama 3.3)
+GROQ_API_KEY=gsk_your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_FALLBACK_MODEL=llama-3.1-8b-instant
 
-# X (Twitter) Scraper Credentials Pool (Multiple Accounts for Rotation)
-X_ACCOUNTS_POOL='[{"username":"acc1","password":"pwd","email":"e1"},{"username":"acc2","password":"pwd","email":"e2"}]'
+# X (Twitter) Scraper (1 Akun Burner Aman via Browser Cookies)
+TWITTER_USERNAME=your_username
+TWITTER_AUTH_TOKEN=your_auth_token_cookie
+TWITTER_CT0=your_ct0_cookie
 
-# YouTube Data API v3 (Optional for Video Auditing)
-YOUTUBE_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxx
+# Instagram Scraper (1 Akun Burner Aman via Session ID)
+INSTAGRAM_SESSIONID=your_sessionid_cookie
+INSTAGRAM_SETTINGS_PATH=data/sessions/ig_settings.json
+
+# Database & Vector Store Connections
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=axiom_db
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_HOST_PORT=5434
+CHROMA_HOST=chromadb
+CHROMA_PORT=8000
+CHROMA_COLLECTION_NAME=actor_narratives
+
+# Scraper Operation Mode
+SCRAPER_OFFLINE_MODE=false
 ```
 
 ---
@@ -111,9 +120,9 @@ flowchart TD
     end
 
     subgraph Ingestion["Data Ingestion Adapters"]
-        XAdapter["X (Twitter) Engine\n(Twikit Session Pool)"]
-        YTAdapter["YouTube Video Auditor\n(Comment Threads API)"]
-        IGAdapter["Instagram Post Auditor\n(Public Comment Parser)"]
+        XAdapter["X (Twitter) Engine\n(twscrape Session Pool)"]
+        YTAdapter["YouTube Video Auditor\n(youtube-comment-downloader)"]
+        IGAdapter["Instagram Post Auditor\n(AC-InstagramScraper TLS Engine)"]
     end
 
     subgraph AI["Analytical & ML Engine"]
@@ -145,26 +154,101 @@ flowchart TD
     Router --> GraphView & HeatmapView & ReportView
 ```
 
-### 3.1 Alur Deteksi: Dari Data Mentah Menuju Taksonomi 3-Kelas
+### 3.1 Diagram Alur Analisis Baru (Request Flow - Target Profiling)
+Berikut adalah visualisasi alur request ketika pengguna melakukan analisis investigasi akun target baru:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client as Web Dashboard
-    participant API as FastAPI Backend
-    participant Engine as Scraper Engine
-    participant ML as XGBoost + ChromaDB
-    participant LLM as Llama 3 (Groq)
+    actor User as Pengguna (Browser)
+    participant FE as Frontend (React 19)
+    participant BE as Backend (FastAPI)
+    participant Scraper as twscrape (X/Twitter)
+    participant ML as MiniLM (Embeddings) & XGBoost
+    participant LLM as Llama 3.3 (Groq LPU)
+    participant DB as PostgreSQL 16 & ChromaDB
 
-    Client->>API: POST /api/investigate/target { platform: "x", target: "akun_xyz" }
-    API->>Engine: Tarik 200 Interaksi Terbaru (Tweets, Replies, Timestamps)
-    Engine-->>API: Array of Activity Logs
-    API->>ML: Ekstraksi Vektor Waktu & Semantic Embeddings
-    Note over ML: Hitung Entropi Waktu, Ratio Target, & Kluster Copypasta
-    ML-->>API: Skor XGBoost [P(Bot), P(Buzzer), P(Human)]
-    API->>LLM: Prompt Forensik: Bukti Fitur + Sampel Narasi Ekstrem
-    LLM-->>API: Sintesis Intelijen & Explainable Attribution
-    API-->>Client: Payload Hasil Investigasi Lengkap (<10 detik)
+    User->>FE: Input Username Target (misal: @username)
+    FE->>BE: POST /api/investigate/target {target: "@username", platform: "x"}
+    Note over BE: Cek Rate Limit (Berbasis IP / API Guard)
+    
+    alt Jika Kena Rate Limit
+        BE-->>FE: Error 429: Batas analisis tercapai
+        FE-->>User: Tampilkan Pesan Batas Analisis Tercapai
+    else Valid & Aman
+        BE->>Scraper: Ambil 100 Tweet Terbaru & Profil Target
+        Scraper-->>BE: Data Profil & Tweets (Text, Timestamp, Mentions, Engagement)
+        
+        alt Tweets < 10
+            BE-->>FE: Error 422: Data aktivitas tidak cukup
+            FE-->>User: Tampilkan Pesan "Data Aktivitas Akun Tidak Cukup"
+        else Data Cukup (>= 10)
+            BE->>ML: Bandingkan Kemiripan Semantik (MiniLM) & Ekstraksi 21 Fitur
+            ML-->>BE: Vektor Kemiripan & Skor Probabilitas [Bot, Buzzer, Human]
+            Note over BE: Hitung Metrik & Formula Scoring Baku (Entropi & Chi-Square)
+            Note over BE: Pertahanan Adversarial Prompt Guard
+            BE->>LLM: Minta Eksplanasi (Metrik Ringkasan & Sampel Narasi)
+            LLM-->>BE: Teks Eksplanasi Atribusi Ancaman (Bahasa Indonesia)
+            BE->>DB: Simpan Kasus & Audit Ledger dengan Stempel SHA-256
+            BE-->>FE: Response (Score, Metrics, Signals, Explanations, CIB Clusters)
+            FE-->>User: Tampilkan DossierCard, Heatmap 24/7, Graf CIB & Full Ledger
+        end
+    end
+```
+
+### 3.2 Diagram Alur Audit Konten / Insiden Viral (Event Auditing Flow)
+Berikut adalah alur saat pengguna mengaudit tautan postingan viral lintas platform (X Tweet, Instagram Post/Reels, YouTube Video/Shorts):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Pengguna (Browser)
+    participant FE as Frontend (React 19)
+    participant BE as Backend (FastAPI)
+    participant Scraper as Multi-Platform Scraper (TLS / Innertube)
+    participant Engine as Feature & CIB Cluster Engine
+    participant DB as PostgreSQL 16 & ChromaDB
+
+    User->>FE: Masukkan Tautan Insiden Viral (X, Instagram, YouTube)
+    FE->>BE: POST /api/investigate/event {url: "https://..."}
+    BE->>Scraper: Ekstraksi Komentar Publik & Thread Balasan
+    Scraper-->>BE: Kumpulan Komentar (Author, Text, Timestamp, Likes)
+    
+    alt Komentar Kosong / Konten Privat
+        BE-->>FE: Error 404/422: Konten tidak dapat diakses
+        FE-->>User: Tampilkan Pesan Error / Tautan Tidak Valid
+    else Data Berhasil Diekstrak
+        BE->>Engine: Ekstraksi Fitur Komentator & Klaster Kemiripan Semantik
+        Engine->>DB: Deteksi Astroturfing di ChromaDB & Rekam Audit Ledger
+        DB-->>Engine: Konfirmasi Penyimpanan & Stempel Kriptografis SHA-256
+        Engine-->>BE: Hasil Audit (Top 10 Attackers, Inauthentic Ratio, Full Ledger)
+        BE-->>FE: Response Ringkasan Insiden & Detail Seluruh Komentator
+        FE-->>User: Tampilkan Statistik Inautentik, Dual-Tier Ledger & Tombol Ekspor PDF
+    end
+```
+
+### 3.3 Diagram Alur Mengambil Riwayat (History Flow)
+Berikut adalah alur saat pengguna mengeklik akun dari papan riwayat investigasi / leaderboard (tanpa scraping ulang):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Pengguna (Browser)
+    participant FE as Frontend (React 19)
+    participant BE as Backend (FastAPI)
+    participant DB as PostgreSQL Database
+
+    User->>FE: Klik Akun di Riwayat / Kasus
+    FE->>BE: GET /api/investigate/history/{target}
+    BE->>DB: Cari di Tabel `investigation_cases` & `actor_profiles`
+    alt Ditemukan
+        DB-->>BE: full_report (Skor, Metrik, Penjelasan, Ledger, dll)
+        BE-->>FE: Response full_report (tanpa raw scraping ulang)
+        FE-->>User: Tampilkan Laporan (Modal Detail menunjukkan "Data Terlindungi" demi Privasi)
+    else Tidak Ditemukan
+        BE-->>FE: Error 404
+        FE-->>User: Tampilkan Pesan Error
+    end
 ```
 
 ---
@@ -305,7 +389,7 @@ Sebuah milestone purwarupa dinyatakan selesai dan layak diajukan ke dewan juri j
 
 | No | Modul Uji | Target Verifikasi | Tolok Ukur Keberhasilan |
 | :---: | :--- | :--- | :--- |
-| 1 | **X Scraping Ingestion** | Engine `twikit` session | Mampu menarik 150+ tweet & replies dari username publik tanpa error rate-limit. |
+| 1 | **X Scraping Ingestion** | Engine `twscrape` session | Mampu menarik 150+ tweet & replies dari username publik tanpa error rate-limit. |
 | 2 | **Inference Latency** | Pipeline XGBoost + Chroma | Menghasilkan skor klasifikasi dan kesamaan vektor dalam waktu $< 3.5$ detik. |
 | 3 | **LLM Synthesis via Groq** | Llama 3.3 70B | Menghasilkan narasi pembuktian bukti ancaman (*evidence points*) dalam waktu $< 2.0$ detik. |
 | 4 | **Tri-Class Accuracy** | Labeled Benchmark Dataset | Mencapai akurasi deteksi $> 88\%$ pada set data uji bot, buzzer, dan akun organik. |
@@ -321,7 +405,7 @@ Mengacu pada jadwal resmi **Kartika Cyber Hackathon 2026**:
 
 * **Minggu 1 (25 Okt – 31 Okt 2026) — Core Foundation & Ingestion:**
   * Inisialisasi monorepo: FastAPI backend + Vite React SPA UI + Docker Compose (PostgreSQL, ChromaDB, FastAPI, Nginx).
-  * Implementasi wrapper `twikit` scraper pool untuk penarikan data X bebas blokir.
+  * Implementasi wrapper `twscrape` scraper pool untuk penarikan data X bebas blokir.
   * Setup ChromaDB lokal dan pipeline embedding `all-MiniLM-L6-v2`.
 * **Minggu 2 (01 Nov – 07 Nov 2026) — Detection Engine & Analytics:**
   * Pembangunan formula ekstraksi fitur (Entropi waktu, konsentrasi target, copypasta cluster).
@@ -335,6 +419,61 @@ Mengacu pada jadwal resmi **Kartika Cyber Hackathon 2026**:
   * Pengambilan video demo purwarupa (screen recording interaktif + voiceover).
   * Penyusunan slide presentasi teknis dengan narasi militer PUSSIBERAD.
   * **Final Submission pada portal CODEPOLITAN (Sebelum 15 November 2026 pukul 23:59 WIB).**
+
+---
+
+## 9.1 Fitur Tambahan Terverifikasi (Production Hardening & CI/CD)
+
+1. **Live Guest Demo Sandbox (Platform X):**
+   * Pengujian langsung di Landing Page tanpa login menggunakan live scraper `twscrape` (10–400 sampel) dengan streaming progress orkestrator dan penjelasan XAI.
+   * Pencatatan audit trail yang diagregasikan sebagai `GUEST` tanpa merekam data privat pengunjung.
+
+2. **Ekspansi 6-Kanal Forensik & Deep Scraping:**
+   * **X Cuitan (Status):** Penelusuran pohon percakapan lengkap (*conversation tree*) mencakup balasan langsung dan percakapan berantai (*nested thread replies*).
+   * **YouTube Video & Shorts:** Ekstraksi komentar beserta seluruh balasan bertingkat (*nested replies*).
+   * **Instagram Reels & Post:** Scraper zero-auth dengan pembatasan ketat di 200 sampel untuk menjamin stabilitas IP scraper terhadap rate limiting Meta.
+   * **Pilihan Kuota Sampel:** 100, 150, 200, dan 400 Sampel (*Deep Audit*), dengan auto-clamp 200 untuk Instagram.
+
+3. **Secure Image Proxy Service (`/api/v1/investigate/proxy-image`):**
+   * Endpoint internal terisolasi untuk menyalurkan aset gambar dari CDN Meta/Instagram dengan injeksi header `Cross-Origin-Resource-Policy: cross-origin` guna mengatasi pemblokiran rendering gambar pada browser modern.
+
+4. **Dual-Tier Attacker Ledger & Verified Comment Evidence:**
+   * Menampilkan bukti kutipan nyata teks komentar yang ditulis oleh Top 10 Penyerang Inti untuk verifikasi faktual tim analis.
+
+5. **CI/CD Pipeline, Registry GHCR, & Auto-Deployment VPS:**
+   * Workflow rilis otomatis khusus branch `main` (`release-ghcr.yml`) dengan auto-kalkulasi **Semantic Versioning (SemVer)** berbasis *Conventional Commits*, publikasi paket kontainer ke **GHCR**, dan penerbitan **GitHub Release** dengan auto-generated changelog.
+   * Visibilitas workflow ganda di branch `dev` dan `main` dengan *skip guard* pengaman.
+   * Workflow deployment zero-downtime (`deploy-vps.yml`) dengan *safety guard* (`if: secrets.VPS_HOST != ''`) sehingga tidak gagal saat rahasia VPS belum dipasang.
+   * Dokumentasi OpenAPI terintegrasi langsung pada antarmuka dashboard landing page menuju `/api/v1/docs` (Swagger UI) dan `/api/v1/redoc`.
+
+---
+
+## 10. Rencana Pembaruan Potensial (Potential Future Updates)
+
+Peta jalan pengembangan strategis pasca-MVP untuk kesiapan operasional pertahanan siber kognitif tingkat lanjut:
+
+1. **🌐 Ekspansi Ekosistem OSINT Lintas Platform:**
+   - Penambahan ingesti dan parsing komentar video tren platform **TikTok** dan manipulasi tagar.
+   - Pemantauan linimasa percakapan kanal publik **Telegram** dan mikroblog **Threads**.
+   - Penarikan halaman publik Facebook dan forum komunitas daring regional.
+
+2. **🧠 On-Premise Defense Domain SLM (Small Language Model):**
+   - Fine-tuning model bahasa terbuka ringkas (Llama 3.1 8B / Mistral NeMo 12B) dengan korpus terminologi siber-militer Indonesia dan bahasa percakapan lokal (*slang/singkatan buzzer*).
+   - Memfasilitasi instalasi *air-gapped* 100% mandiri tanpa koneksi internet luar untuk fasilitas ruang kendali militer rahasia (*secure command center / SOC PUSSIBERAD*).
+
+3. **⚡ Telemetri Ancaman Real-Time & Live Battle-Room Streaming:**
+   - Integrasi arsitektur streaming pesan **Apache Kafka** / **Redis Streams** untuk menyerap dan menganalisis lonjakan narasi propaganda dalam skala masif.
+   - Dashboard situasi taktis (*Live Tactical Situation Map*) dengan notifikasi alert instan via webhook terenkripsi ke SIEM/SOC pertahanan siber.
+
+4. **🛡️ Automated Counter-Narrative & Cognitive Inoculation:**
+   - Modul perancang narasi tandingan berbasis fakta (*evidence-backed rebuttal generator*) yang terverifikasi secara ilmiah untuk menetralkan disinformasi sebelum mencapai saturasi viral.
+   - Peringatan dini berbasis *pre-bunking* untuk memperkuat literasi dan ketahanan kognitif publik terhadap pola kampanye astroturfing yang terdeteksi.
+
+5. **🔗 Desentralisasi Ledger Bukti Digital (Verifiable Cryptographic Proofs):**
+   - Peningkatan rantai bukti digital SHA-256 menuju pencatatan terdistribusi berbasis *Private Permissioned Ledger* untuk menjamin barang bukti forensik digital tidak dapat disangkal (*non-repudiation*) di ranah hukum peradilan militer atau tindak pidana siber.
+
+6. **🚨 Otomasi Pelaporan & Takedown Terintegrasi CSIRT:**
+   - Ekspor otomatis berkas insiden berstandar format **STIX/TAXII 2.1** untuk integrasi langsung dengan platform CERT/CSIRT nasional (BSSN) dan penyedia layanan platform sosial.
 
 ---
 

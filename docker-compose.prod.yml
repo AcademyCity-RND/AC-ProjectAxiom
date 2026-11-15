@@ -1,0 +1,107 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: axiom_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-axiom_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pg_data_prod:/var/lib/postgresql/data
+    ports:
+      # Hardened: Bind to localhost (127.0.0.1) only, isolating DB from LAN / public network
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - axiom_prod_net
+
+  chromadb:
+    image: chromadb/chroma:0.5.20
+    container_name: axiom_chromadb_prod
+    restart: always
+    volumes:
+      - chroma_data_prod:/chroma/chroma
+    ports:
+      # Hardened: Bind to localhost (127.0.0.1) only, isolating vector store from external network
+      - "127.0.0.1:8001:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - IS_PERSISTENT=TRUE
+    networks:
+      - axiom_prod_net
+
+  instagram-scraper:
+    # linux/amd64 manifest supplied for scraper release sha-b69d953.
+    image: ghcr.io/academycity-rnd/ac-instagram-scraper@sha256:fe1f6ab707ae19b84d0389e7bde5f5960231690d1bdaaa02a03750ef40ea0da5
+    container_name: axiom_instagram_scraper_prod
+    restart: always
+    ports:
+      # Port 8005 di host agar tidak bertabrakan dengan Axiom Backend (8000) & ChromaDB (8001)
+      - "127.0.0.1:${SCRAPER_HOST_PORT:-8005}:8000"
+    environment:
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - axiom_prod_net
+
+  backend:
+    image: ghcr.io/academycity-rnd/axiom-backend:${IMAGE_TAG:?Set IMAGE_TAG to sha-<full release commit>}
+    container_name: axiom_backend_prod
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    volumes:
+      - ./data/chromadb:/app/data/chromadb
+      - ./data/sessions:/app/data/sessions
+      - ./data/models:/app/data/models
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    environment:
+      - INSTAGRAM_SCRAPER_URL=http://instagram-scraper:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+      instagram-scraper:
+        condition: service_started
+    networks:
+      - axiom_prod_net
+
+  frontend:
+    image: ghcr.io/academycity-rnd/axiom-frontend:${IMAGE_TAG:?Set IMAGE_TAG to sha-<full release commit>}
+    container_name: axiom_frontend_prod
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - axiom_prod_net
+
+volumes:
+  pg_data_prod:
+  chroma_data_prod:
+
+networks:
+  axiom_prod_net:
+    driver: bridge

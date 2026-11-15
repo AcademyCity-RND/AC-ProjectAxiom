@@ -3,8 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Enable pnpm via corepack
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+# Install modern pnpm matching lockfile
+RUN npm install -g pnpm
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
@@ -24,7 +24,7 @@ FROM nginx:alpine AS runner
 # Copy built assets
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx config for SPA routing
+# Copy nginx config for SPA routing & reverse proxy
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port

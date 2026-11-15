@@ -1,0 +1,72 @@
+name: Auto Deploy to VPS Production
+
+on:
+  workflow_run:
+    workflows: ["Release & GHCR Packages"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: axiom-production
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - name: Check SSH configuration without printing secrets
+        id: check
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_USER: ${{ secrets.VPS_SSH_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          for name in VPS_HOST VPS_SSH_USER VPS_SSH_KEY; do
+            if [[ -z "${!name}" || "${!name}" == REPLACE_ME* ]]; then
+              echo "::error::Missing or placeholder secret: $name"
+              exit 1
+            fi
+          done
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+  deploy-production:
+    needs: preflight
+    if: needs.preflight.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+      GHCR_USER: ${{ github.actor }}
+      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Deploy exactly the successful main build
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_SSH_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          envs: RELEASE_SHA,GHCR_USER,GHCR_TOKEN
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            set -eu
+            cd /opt/axiom
+            test "$(git remote get-url origin)" = "https://github.com/AcademyCity-RND/AC-ProjectAxiom.git"
+            git fetch origin main
+            test "$(git rev-parse origin/main)" = "$RELEASE_SHA" || { echo 'Refusing stale or non-main release'; exit 1; }
+            deploy_script=$(mktemp)
+            trap 'rm -f "$deploy_script"' EXIT
+            git show "$RELEASE_SHA:scripts/deploy-production.sh" > "$deploy_script"
+            bash "$deploy_script"

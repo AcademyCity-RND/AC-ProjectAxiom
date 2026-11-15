@@ -10,7 +10,7 @@ services:
       - pg_data:/var/lib/postgresql/data
     ports:
       # Hardened: Bind to localhost (127.0.0.1) only, isolating DB from LAN / public network
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -20,7 +20,7 @@ services:
       - axiom_net
 
   chromadb:
-    image: chromadb/chroma:0.5.5
+    image: chromadb/chroma:0.5.20
     container_name: axiom_chromadb
     volumes:
       - chroma_data:/chroma/chroma
@@ -34,7 +34,29 @@ services:
     networks:
       - axiom_net
 
+  instagram-scraper:
+    image: ac-instagram-scraper:1.0.0
+    build:
+      context: ../AC-InstagramScraper
+      dockerfile: Dockerfile
+    container_name: axiom_instagram_scraper
+    restart: unless-stopped
+    ports:
+      # Port 8005 di host agar tidak bertabrakan dengan Axiom Backend (8000) & ChromaDB (8001)
+      - "127.0.0.1:${SCRAPER_HOST_PORT:-8005}:8000"
+    environment:
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - axiom_net
+
   backend:
+    image: axiom-backend:1.0.0
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -47,6 +69,8 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - INSTAGRAM_SCRAPER_URL=http://instagram-scraper:8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -58,10 +82,13 @@ services:
         condition: service_healthy
       chromadb:
         condition: service_started
+      instagram-scraper:
+        condition: service_started
     networks:
       - axiom_net
 
   frontend:
+    image: axiom-frontend:1.0.0
     build:
       context: ./frontend
       dockerfile: Dockerfile
