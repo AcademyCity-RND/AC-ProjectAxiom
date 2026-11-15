@@ -944,29 +944,152 @@ async def guest_analyze(
 
     import re
     raw_target = payload.target.strip()
-    clean_target = raw_target.lstrip("@")
+    if payload.platform.lower() != "x":
+        raise HTTPException(status_code=400, detail="Guest Demo hanya mendukung platform X.")
+    if payload.mode not in ("account", "tweet_url"):
+        raise HTTPException(status_code=400, detail="Mode Guest Demo tidak valid.")
 
-    # 1. Parsing target (mendukung @handle, URL profil X, atau URL status tweet X)
-    target_username = clean_target
-    tweet_id: Optional[int] = None
+    parsed = urllib.parse.urlparse(raw_target if "://" in raw_target else f"https://{raw_target}")
+    host = (parsed.hostname or "").lower()
+    x_hosts = {"x.com", "www.x.com", "twitter.com", "www.twitter.com"}
 
-    # Ekstraksi ID tweet jika ada pola status ID
-    tweet_match = re.search(r"/status/(\d+)", clean_target)
-    if tweet_match:
+    if payload.mode == "tweet_url":
+        tweet_match = re.fullmatch(r"/(?:[A-Za-z0-9_]+)/status/(\d+)/?", parsed.path)
+        if parsed.scheme not in ("http", "https") or host not in x_hosts or not tweet_match:
+            raise HTTPException(
+                status_code=400,
+                detail="Masukkan URL cuitan X yang valid (https://x.com/<username>/status/<id>)."
+            )
+        tweet_id = int(tweet_match.group(1))
+
+        # Gunakan auditor percakapan cuitan dengan fallback DIMATIKAN.
+        # Hanya data live (balasan nyata) yang diterima untuk tamu.
+        from app.services.x_auditor import audit_x_tweet_event
+        from app.services.event_evidence import assess_event_evidence
+
         try:
-            tweet_id = int(tweet_match.group(1))
-        except ValueError:
-            pass
+            audit = await audit_x_tweet_event(
+                url_or_tweet_id=tweet_id,
+                max_comments=100,
+                allow_fallback=False
+            )
+        except Exception as e:
+            logger.warning(f"Gagal audit cuitan {tweet_id}: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Tidak dapat mengambil balasan cuitan secara live saat ini. Coba lagi nanti."
+            )
 
-    # Ekstraksi username dari URL
-    if "x.com" in clean_target.lower() or "twitter.com" in clean_target.lower() or clean_target.startswith("http"):
-        m = re.search(r"(?:twitter\.com|x\.com)/(?:#!/)?([a-zA-Z0-9_]+)", clean_target)
-        if m:
-            candidate = m.group(1)
-            if candidate.lower() not in ("i", "intent", "search", "explore", "home"):
-                target_username = candidate
+        extraction_status = audit.get("harvest_summary", {}).get("extraction_status", "unavailable")
+        if extraction_status == "unavailable":
+            raise HTTPException(
+                status_code=503,
+                detail="Balasan cuitan tidak tersedia secara live. Mode tamu hanya menganalisis data balasan riil, tidak data akun penulis."
+            )
+
+        # Bangun respons tamu berbasis bukti percakapan cuitan
+        top_attackers = audit.get("top_attackers", [])
+        host_meta = audit.get("host_metadata", {})
+        creator = host_meta.get("creator", {})
+        replies = audit.get("comments", [])
+        clusters = audit.get("cib_clusters", [])
+
+        # Kategori agregat dari bukti percakapan
+        evidence = assess_event_evidence(replies, clusters)
+        overall = evidence.get("overall_class", "HUMAN")
+        review_status = evidence.get("review_status", "NEEDS_REVIEW")
+
+        # Alasan kunci dari top attackers
+        reasons = []
+        for attacker in top_attackers[:3]:
+            cat = attacker.get("estimated_category", "")
+            if cat in ("BOT", "BUZZER", "SUSPICIOUS"):
+                reasons.append(f"@{attacker.get('username')} ({cat}): {'; '.join(attacker.get('evidence_reasons', []) or ['terdeteksi'])}")
+            if len(reasons) >= 3:
+                break
+
+        if not reasons:
+            if overall == "HUMAN":
+                reasons = ["Tidak ditemukan indikasi koordinasi atau otomasi pada balasan"]
+            elif overall == "SUSPICIOUS":
+                reasons = ["Sinyal lemah pada percakapan cuitan, perlu peninjauan manual"]
             else:
-                target_username = ""
+                reasons = [f"Terdeteksi indikasi {overall} pada percakapan cuitan"]
+
+        # Ambil avatar host tweet
+        avatar_url = creator.get("avatar_url") or ""
+
+        # Catat guest case untuk audit trail
+        guest_case_id = str(uuid.uuid4())
+        try:
+            guest_case = InvestigationCase(
+                id=guest_case_id,
+                target=f"tweet:{tweet_id}",
+                platform=payload.platform,
+                status="completed",
+                created_by="guest",
+                created_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
+                result_summary={
+                    "mode": "tweet_url",
+                    "tweet_id": tweet_id,
+                    "overall": overall,
+                    "review_status": review_status,
+                    "extraction_status": extraction_status
+                }
+            )
+            db.add(guest_case)
+            db.commit()
+        except Exception as e:
+            logger.warning(f"Gagal mencatat guest case tweet: {e}")
+            db.rollback()
+
+        # Format respons standar tamu
+        res_data = {
+            "id": f"guest-tweet-{tweet_id}",
+            "handle": f"status/{tweet_id}",
+            "display_name": creator.get("display_name") or creator.get("username_or_channel") or "Unknown Tweet",
+            "platform": payload.platform,
+            "mode": "tweet_url",
+            "bio": creator.get("username_or_channel", "").startswith("@") and f"Cuitan oleh @{creator.get('username_or_channel', '').lstrip('@')}" or f"Cuitan oleh {creator.get('username_or_channel', 'Unknown')}",
+            "avatar_url": avatar_url,
+            "created_at_str": creator.get("account_created_at", "")[:7] if creator.get("account_created_at") else "-",
+            "followers_count": creator.get("subscribers_or_followers", 0),
+            "following_count": creator.get("following_count", 0),
+            "sample_posts_count": audit.get("harvest_summary", {}).get("total_comments_extracted", 0),
+            "classification": overall,
+            "confidence": 0.90 if overall == "BUZZER" else (
+                0.85 if overall == "BOT" else (0.55 if overall == "SUSPICIOUS" else 0.92)
+            ),
+            "threat_level": "HIGH" if overall in ("BOT", "BUZZER") else ("MEDIUM" if overall == "SUSPICIOUS" else "LOW"),
+            "review_status": review_status,
+            "data_source": audit.get("harvest_summary", {}).get("data_source", "live"),
+            "key_reasons": reasons[:3],
+            "explanation": (
+                f"Analisis percakapan cuitan X (ID: {tweet_id}). "
+                f"Terklasifikasi {overall} dengan status bukti {review_status}. "
+                f"Data: {audit.get('harvest_summary', {}).get('total_comments_extracted', 0)} balasan, "
+                f"{audit.get('harvest_summary', {}).get('unique_commenters_count', 0)} komentator unik."
+            ),
+            "tweet_metadata": {
+                "text": host_meta.get("title_or_caption", "")[:200],
+                "views": host_meta.get("engagement", {}).get("views_count", 0),
+                "likes": host_meta.get("engagement", {}).get("likes_count", 0),
+                "retweets": host_meta.get("engagement", {}).get("retweets_count", 0),
+                "replies": host_meta.get("engagement", {}).get("total_comments_on_platform", 0)
+            },
+            "top_attackers": top_attackers[:5]
+        }
+
+        return res_data
+
+    if host in x_hosts or raw_target.lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Mode akun menerima username X, bukan URL.")
+
+    target_username = raw_target.lstrip("@")
+    if not re.fullmatch(r"[A-Za-z0-9_]{1,50}", target_username):
+        raise HTTPException(status_code=400, detail="Format username X tidak valid.")
+    tweet_id: Optional[int] = None
 
     from app.services.scraper.x_scraper import XScraperService
     from app.services.scraper.exceptions import (

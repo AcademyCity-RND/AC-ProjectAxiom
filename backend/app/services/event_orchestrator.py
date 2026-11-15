@@ -242,30 +242,33 @@ async def run_event_investigation_pipeline(
             if txt and txt not in author_comments_map[a_name]:
                 author_comments_map[a_name].append(txt)
 
-        # Ranking skor kecurigaan untuk penyerang inti
+        # Ranking skor kecurigaan untuk penyerang inti.
+        # Kebijakan bukti konservatif (event_evidence) memastikan bahwa
+        # kemiripan teks, tautan, atau emoji saja tidak langsung menjadi BUZZER/BOT.
+        from app.services.event_evidence import assess_event_evidence
+
+        evidence = assess_event_evidence(
+            comments,
+            clusters,
+            temporal_anomaly=temporal_anomaly,
+        )
+        actor_evidence_map = {
+            name.lstrip("@"): data
+            for name, data in (evidence.get("actors") or {}).items()
+        }
+
         ranked_attackers = []
         for author in unique_author_names:
             c_freq = comment_counts.get(author, 0)
             cl_freq = cluster_actor_counter.get(author, 0)
             in_burst = author in burst_actors
 
-            # Logika kalibrasi forensik:
-            # - Akun dengan 1 komentar dan 0 klaster CIB adalah ORGANIC (manusia normal)
-            # - Komentar di awal rilis konten (burst window) adalah hal wajar bagi audiens organik
-            # - Hanya dilabeli BUZZER jika terbukti ikut dalam sindikat klaster copypasta CIB
-            # - Hanya dilabeli BOT jika melakukan spam berulang (>= 3 komentar) dalam burst
-            if cl_freq > 0:
-                cat = "BUZZER"
-                risk_score = round(min(1.0, 0.45 + (cl_freq * 0.15) + min(0.2, c_freq * 0.05)), 2)
-            elif c_freq >= 3 and in_burst:
-                cat = "BOT"
-                risk_score = round(min(1.0, 0.40 + (0.2 if in_burst else 0.0) + min(0.3, c_freq * 0.08)), 2)
-            elif c_freq >= 2:
-                cat = "SUSPICIOUS"
-                risk_score = 0.20
-            else:
-                cat = "ORGANIC"
-                risk_score = 0.05
+            actor_data = actor_evidence_map.get(author.lstrip("@")) or {}
+            cat = actor_data.get("estimated_category", "ORGANIC")
+            risk_score = actor_data.get(
+                "risk_score",
+                round(min(1.0, 0.2 + min(0.3, c_freq * 0.05) + min(0.3, cl_freq * 0.1)), 2),
+            )
 
             clean_username = author.lstrip("@")
             user_comments = author_comments_map.get(author, [])
@@ -278,6 +281,8 @@ async def run_event_investigation_pipeline(
                 "posted_in_burst_window": in_burst,
                 "risk_score": risk_score,
                 "estimated_category": cat,
+                "evidence_reasons": actor_data.get("reasons") or [],
+                "review_status": actor_data.get("review_status", evidence.get("review_status")),
                 "sample_comment": sample_txt,
                 "sample_comments": user_comments[:3]
             })
@@ -309,26 +314,20 @@ async def run_event_investigation_pipeline(
         )
         dossier_data = dossier.model_dump()
 
-        # Simpan hasil deteksi agregat ke DetectionResult
-        # Evaluasi ancaman riil kolom komentar:
-        cib_threat_actors = [a for a in top_10_attackers if a["estimated_category"] == "BUZZER"]
-        bot_threat_actors = [a for a in top_10_attackers if a["estimated_category"] == "BOT"]
+        # Simpan hasil deteksi agregat ke DetectionResult.
+        # Kategori agregat mengikuti penilaian bukti konservatif (event_evidence),
+        # bukan jumlah klaster semata.
+        overall_threat = evidence.get("overall_class", "HUMAN")
+        review_status = evidence.get("review_status", "NEEDS_REVIEW")
 
-        is_buzzer_attack = len(clusters) >= 2 and len(cib_threat_actors) >= 2
-        is_bot_attack = (
-            temporal_anomaly.get("is_anomaly")
-            and (temporal_anomaly.get("anomaly_score", 0.0) >= 0.65 or len(bot_threat_actors) >= 3)
-        )
-
-        if is_buzzer_attack:
-            overall_threat = "BUZZER"
-            confidence = 0.92
-        elif is_bot_attack:
-            overall_threat = "BOT"
-            confidence = 0.86
-        else:
-            overall_threat = "HUMAN"
+        if overall_threat == "BUZZER":
             confidence = 0.90
+        elif overall_threat == "BOT":
+            confidence = 0.85
+        elif overall_threat == "SUSPICIOUS":
+            confidence = 0.55
+        else:
+            confidence = 0.92
 
         detection = DetectionResult(
             case_id=case_id,
@@ -346,12 +345,16 @@ async def run_event_investigation_pipeline(
                 "burst_ratio": float(temporal_anomaly.get("burst_ratio", 0.0)),
                 "anomaly_score": float(temporal_anomaly.get("anomaly_score", 0.0)),
                 "cluster_links_count": float(len(clusters)),
-                "top_attackers_count": float(len(top_10_attackers))
+                "top_attackers_count": float(len(top_10_attackers)),
+                "coordination_indicated": evidence.get("coordination_indicated", False),
+                "automation_indicated": evidence.get("automation_indicated", False),
             },
             threat_attribution={
                 "forensic_dossier": dossier_data,
                 "temporal_anomaly": temporal_anomaly,
-                "top_attackers": top_10_attackers
+                "top_attackers": top_10_attackers,
+                "evidence_review_status": review_status,
+                "evidence_signals": evidence.get("signals"),
             }
         )
         db.add(detection)
@@ -374,6 +377,8 @@ async def run_event_investigation_pipeline(
             "forensic_dossier": dossier_data,
             "predicted_class": overall_threat,
             "confidence": confidence,
+            "evidence_review_status": review_status,
+            "evidence_signals": evidence.get("signals"),
             "analytics": analytics_data
         }
 

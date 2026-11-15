@@ -10,16 +10,27 @@ import {
   ExternalLink,
   Loader2,
   Sparkles,
-  CheckCircle,
   RotateCcw,
   SlidersHorizontal,
   Info,
+  HelpCircle,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { PlatformIcon } from '../common/PlatformIcon';
 
 interface GuestDemoSandboxProps {
   onNavigateLogin: () => void;
+}
+
+interface GuestTopAttacker {
+  rank: number;
+  username: string;
+  comment_count: number;
+  total_likes: number;
+  risk_score: number;
+  estimated_category?: string;
+  evidence_reasons?: string[];
+  sample_comment?: string;
 }
 
 interface AnalysisResultData {
@@ -37,8 +48,18 @@ interface AnalysisResultData {
   classification: string;
   confidence: number;
   threat_level: string;
+  review_status?: string;
+  data_source?: string;
   key_reasons: string[];
   explanation: string;
+  tweet_metadata?: {
+    text?: string;
+    views?: number;
+    likes?: number;
+    retweets?: number;
+    replies?: number;
+  };
+  top_attackers?: GuestTopAttacker[];
 }
 
 export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLogin }) => {
@@ -170,31 +191,45 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
   };
 
   const getBadgeStyle = (classification: string) => {
-    switch (classification?.toUpperCase()) {
-      case 'HUMAN':
-        return {
-          bg: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-          dot: 'bg-emerald-400',
-          label: 'Manusia (Organik)',
-          icon: UserCheck,
-        };
-      case 'BUZZER':
-        return {
-          bg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-          dot: 'bg-amber-400',
-          label: 'Buzzer (CIB Terkoordinasi)',
-          icon: Users,
-        };
-      case 'BOT':
-      default:
-        return {
-          bg: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
-          dot: 'bg-rose-400',
-          label: 'Bot (Otomasi Skrip)',
-          icon: Bot,
-        };
-    }
-  };
+      switch (classification?.toUpperCase()) {
+        case 'HUMAN':
+        case 'ORGANIC':
+          return {
+            bg: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+            dot: 'bg-emerald-400',
+            label: 'Manusia (Organik)',
+            icon: UserCheck,
+          };
+        case 'BUZZER':
+          return {
+            bg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+            dot: 'bg-amber-400',
+            label: 'Buzzer (CIB Terkoordinasi)',
+            icon: Users,
+          };
+        case 'BOT':
+          return {
+            bg: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
+            dot: 'bg-rose-400',
+            label: 'Bot (Otomasi Skrip)',
+            icon: Bot,
+          };
+        case 'SUSPICIOUS':
+          return {
+            bg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+            dot: 'bg-amber-400',
+            label: 'Mencurigakan (Perlu Tinjauan)',
+            icon: AlertTriangle,
+          };
+        default:
+          return {
+            bg: 'bg-slate-500/10 border-slate-500/30 text-slate-400',
+            dot: 'bg-slate-400',
+            label: 'Tidak Diketahui',
+            icon: HelpCircle,
+          };
+      }
+    };
 
   const badge = getBadgeStyle(result?.classification || 'UNKNOWN');
   const BadgeIcon = badge.icon;
@@ -388,7 +423,9 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                         <h4 className="font-bold text-slate-100 text-base leading-tight">
                           {result.display_name}
                         </h4>
-                        <span className="font-mono text-xs text-slate-400">@{result.handle}</span>
+                        <span className="font-mono text-xs text-slate-400">
+                          {result.mode === 'tweet_url' ? `Cuitan ${result.handle}` : `@${result.handle}`}
+                        </span>
                       </div>
                     </div>
 
@@ -409,22 +446,71 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                     <div>
                       <span className="text-slate-500 text-[11px] block">Sampel Dianalisis:</span>
                       <span className="font-medium text-slate-200">
-                        {result.sample_posts_count || sampleCount} aktivitas
+                        {result.sample_posts_count || sampleCount} {result.mode === 'tweet_url' ? 'balasan' : 'aktivitas'}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-slate-500 text-[11px] block">Pengikut (Followers):</span>
-                      <span className="font-mono font-medium text-slate-200">
-                        {result.followers_count?.toLocaleString('id-ID') ?? '-'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 text-[11px] block">Mengikuti (Following):</span>
-                      <span className="font-mono font-medium text-slate-200">
-                        {result.following_count?.toLocaleString('id-ID') ?? '-'}
-                      </span>
-                    </div>
+                    {result.mode === 'tweet_url' && result.tweet_metadata ? (
+                      <>
+                        <div>
+                          <span className="text-slate-500 text-[11px] block">Views:</span>
+                          <span className="font-mono font-medium text-slate-200">
+                            {result.tweet_metadata.views?.toLocaleString('id-ID') ?? '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 text-[11px] block">Likes:</span>
+                          <span className="font-mono font-medium text-slate-200">
+                            {result.tweet_metadata.likes?.toLocaleString('id-ID') ?? '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 text-[11px] block">Retweets:</span>
+                          <span className="font-mono font-medium text-slate-200">
+                            {result.tweet_metadata.retweets?.toLocaleString('id-ID') ?? '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 text-[11px] block">Balasan:</span>
+                          <span className="font-mono font-medium text-slate-200">
+                            {result.tweet_metadata.replies?.toLocaleString('id-ID') ?? '-'}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="text-slate-500 text-[11px] block">Pengikut (Followers):</span>
+                          <span className="font-mono font-medium text-slate-200">
+                            {result.followers_count?.toLocaleString('id-ID') ?? '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 text-[11px] block">Mengikuti (Following):</span>
+                          <span className="font-mono font-medium text-slate-200">
+                            {result.following_count?.toLocaleString('id-ID') ?? '-'}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
+
+                  {result.data_source && (
+                    <div className="mt-2 pt-2 border-t border-slate-800/60 flex items-center text-[11px] text-emerald-400 font-mono">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        Sumber Data: {result.data_source === 'live' ? 'Live' : result.data_source === 'fallback_generated' ? 'Fallback' : 'Tidak Tersedia'}
+                      </span>
+                    </div>
+                  )}
+
+                  {result.review_status && (
+                    <div className="mt-2 pt-2 border-t border-slate-800/60 flex items-center text-[11px] text-amber-400 font-mono">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        Status Bukti: {result.review_status === 'NO_ACTION' ? 'Tidak Perlu Tinjauan' : 'Perlu Tinjauan'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-mono">
@@ -489,11 +575,44 @@ export const GuestDemoSandbox: React.FC<GuestDemoSandboxProps> = ({ onNavigateLo
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-emerald-400 font-mono">
+                <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-col items-start gap-1.5 text-[11px] font-mono">
                   <span className="flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" /> Data Tervalidasi
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        backgroundColor:
+                          result.classification === 'HUMAN' || result.classification === 'ORGANIC'
+                            ? '#22c55e'
+                            : result.classification === 'BUZZER'
+                            ? '#f59e0b'
+                            : result.classification === 'BOT'
+                            ? '#ef4444'
+                            : '#64748b',
+                      }}
+                    />
+                    Klasifikasi: {badge.label}
                   </span>
-                  <span className="text-slate-500 font-sans">Model XGBoost Terkalibrasi</span>
+                  {result.data_source && (
+                    <span className="flex items-center gap-1 text-emerald-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      Sumber:{' '}
+                      {result.data_source === 'live'
+                        ? 'Live'
+                        : result.data_source === 'fallback_generated'
+                        ? 'Fallback'
+                        : 'Tidak Tersedia'}
+                    </span>
+                  )}
+                  {result.review_status && (
+                    <span className="flex items-center gap-1 text-amber-400">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      {result.review_status === 'NO_ACTION' ? 'Tidak Perlu Tinjauan' : 'Perlu Tinjauan'}
+                    </span>
+                  )}
+                  <span className="text-slate-500 font-sans">
+                    Analisis Berbasis Bukti &mdash;{' '}
+                    {result.mode === 'tweet_url' ? 'Percakapan Cuitan' : 'Profil Akun'}
+                  </span>
                 </div>
               </div>
             </div>

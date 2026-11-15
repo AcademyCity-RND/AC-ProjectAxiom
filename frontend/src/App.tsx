@@ -432,8 +432,8 @@ export const App: React.FC = () => {
 
         <StatCard
           label="AKURASI MODEL XGBOOST"
-          value={stats ? `${Math.round(stats.model_accuracy * 100)}%` : '100%'}
-          subtext={stats ? `Avg Conf: ${(stats.avg_confidence * 100).toFixed(1)}%` : 'F1-Score 1.00'}
+          value={stats ? `${Math.round(stats.model_accuracy * 100)}%` : '—'}
+          subtext={stats ? `Avg Conf: ${(stats.avg_confidence * 100).toFixed(1)}%` : '—'}
           colorVariant="emerald"
         />
 
