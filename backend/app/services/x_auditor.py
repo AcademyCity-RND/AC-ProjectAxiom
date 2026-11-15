@@ -250,7 +250,8 @@ def generate_contextual_tweet_replies(
             "retweets_count": 1 if i % 4 == 0 else 0,
             "replies_count": 1 if i % 6 == 0 else 0,
             "is_reply": True,
-            "platform": "x"
+            "platform": "x",
+            "data_source": "fallback_generated"
         })
 
     return mock_replies
@@ -259,11 +260,14 @@ def generate_contextual_tweet_replies(
 async def fetch_x_tweet_replies(
     url_or_tweet_id: str,
     max_comments: int = 150,
-    tweet_text_context: str = ""
+    tweet_text_context: str = "",
+    allow_fallback: bool = True
 ) -> List[Dict[str, Any]]:
     """
     Mengambil balasan komentar cuitan X/Twitter.
-    Mendukung penarikan live via twscrape dan fallback kontekstual anti-crash.
+    Mendukung penarikan live via twscrape.
+    Jika `allow_fallback=False`, fungsi ini TIDAK menghasilkan balasan sintetis
+    dan mengembalikan list kosong ketika akses live tidak tersedia.
     """
     tweet_id = extract_tweet_id(url_or_tweet_id)
     if not tweet_id:
@@ -327,7 +331,8 @@ async def fetch_x_tweet_replies(
                                 "replies_count": getattr(rep, "replyCount", 0) or 0,
                                 "is_reply": True,
                                 "is_nested_reply": is_nested,
-                                "platform": "x"
+                                "platform": "x",
+                                "data_source": "live"
                             })
                             if len(replies) >= max_comments:
                                 break
@@ -375,7 +380,8 @@ async def fetch_x_tweet_replies(
                         "replies_count": getattr(rep, "replyCount", 0) or 0,
                         "is_reply": True,
                         "is_nested_reply": False,
-                        "platform": "x"
+                        "platform": "x",
+                        "data_source": "live"
                     })
 
                     if len(replies) >= max_comments:
@@ -383,7 +389,7 @@ async def fetch_x_tweet_replies(
     except Exception as e:
         logger.warning(f"Ekstraksi live balasan tweet '{tweet_id}' via twscrape gagal ({e}).")
 
-    if not replies and not has_account:
+    if not replies and not has_account and allow_fallback:
         replies = generate_contextual_tweet_replies(tweet_id, tweet_text=tweet_text_context, count=min(50, max_comments))
 
     return replies
@@ -395,7 +401,8 @@ generate_mock_tweet_replies = generate_contextual_tweet_replies
 
 async def audit_x_tweet_event(
     url_or_tweet_id: str,
-    max_comments: int = 150
+    max_comments: int = 150,
+    allow_fallback: bool = True
 ) -> Dict[str, Any]:
     """
     Pipeline lengkap audit investigasi Event URL Cuitan X/Twitter:
@@ -416,8 +423,16 @@ async def audit_x_tweet_event(
     meta = await fetch_tweet_metadata(tweet_id, url=str(url_or_tweet_id))
 
     # 2. Penjaringan Balasan (Replies)
-    replies = await fetch_x_tweet_replies(url_or_tweet_id, max_comments=max_comments, tweet_text_context=meta.get("text", ""))
+    replies = await fetch_x_tweet_replies(
+        url_or_tweet_id,
+        max_comments=max_comments,
+        tweet_text_context=meta.get("text", ""),
+        allow_fallback=allow_fallback,
+    )
     total_comments = len(replies)
+    data_source = "live" if any(r.get("data_source") == "live" for r in replies) else (
+        "fallback_generated" if replies else "unavailable"
+    )
 
     # 3. Pemetaan User (User Mapping)
     user_mapping: Dict[str, Dict[str, Any]] = {}
@@ -462,11 +477,25 @@ async def audit_x_tweet_event(
     top_attackers = []
     top_limit = min(5, len(ranked_users))
 
+    # Penilaian bukti konservatif: kemiripan teks/frekuensi saja bukan bukti
+    # koordinasi. Kategori mengikuti kebijakan event_evidence yang sama.
+    from app.services.event_evidence import assess_event_evidence
+
+    evidence = assess_event_evidence(replies, [])
+    actor_categories = {
+        name.lstrip("@"): data
+        for name, data in (evidence.get("actors") or {}).items()
+    }
+
     for idx in range(top_limit):
         target_usr = ranked_users[idx]
         target_usr["is_top_attacker"] = True
-        
+
         risk_score = round(min(1.0, target_usr["comment_frequency"] / 3.0 * 0.7 + (0.3 if temporal_anomaly.get("is_anomaly") else 0.0)), 2)
+
+        actor_key = str(target_usr["author_name"]).lstrip("@")
+        actor_evidence = actor_categories.get(actor_key) or {}
+        estimated_category = actor_evidence.get("estimated_category", "SUSPICIOUS")
 
         top_attackers.append({
             "rank": idx + 1,
@@ -475,7 +504,8 @@ async def audit_x_tweet_event(
             "comment_count": target_usr["comment_frequency"],
             "total_likes": target_usr["total_likes_received"],
             "risk_score": risk_score,
-            "estimated_category": "BUZZER" if target_usr["comment_frequency"] > 2 else "SUSPICIOUS",
+            "estimated_category": estimated_category,
+            "evidence_reasons": actor_evidence.get("reasons") or [],
             "account_created_at": target_usr["account_created_at"],
             "sample_comment": target_usr["comments_list"][0] if target_usr["comments_list"] else ""
         })
@@ -517,12 +547,15 @@ async def audit_x_tweet_event(
             }
         },
         "harvest_summary": {
-            "target_quota": max_comments,
-            "total_comments_extracted": total_comments,
-            "unique_commenters_count": unique_commenters_count,
-            "spammer_ratio": spammer_ratio,
-            "extraction_status": "live_complete"
-        },
+                    "target_quota": max_comments,
+                    "total_comments_extracted": total_comments,
+                    "unique_commenters_count": unique_commenters_count,
+                    "spammer_ratio": spammer_ratio,
+                    "extraction_status": "live_complete" if data_source == "live" else (
+                        "fallback_complete" if data_source == "fallback_generated" else "unavailable"
+                    ),
+                    "data_source": data_source
+                },
         "comments": replies,
         "user_mapping": user_mapping,
         "top_attackers": top_attackers,
