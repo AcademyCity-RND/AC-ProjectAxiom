@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from app.services.llm_analyst import (
+from app.services.llm.llm_analyst import (
     sanitize_scraped_text,
     ForensicDossier,
     LLMAnalystService,

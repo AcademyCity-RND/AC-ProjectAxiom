@@ -8,7 +8,7 @@ from app.models.case import InvestigationCase
 from app.models.actor import ActorProfile
 from app.models.activity import ActivityLog
 from app.core.security import create_access_token
-from app.services.analytics import (
+from app.services.analytics.analytics import (
     generate_circadian_heatmap,
     calculate_posting_entropy,
     detect_narrative_drift,

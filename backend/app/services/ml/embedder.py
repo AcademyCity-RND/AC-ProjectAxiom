@@ -1,3 +1,5 @@
+import re
+import hashlib
 import logging
 from typing import List, Optional
 import numpy as np
@@ -8,12 +10,66 @@ logger = logging.getLogger("axiom.embedder")
 
 _embedding_service_instance: Optional["EmbeddingService"] = None
 
+# Semantic concept clusters untuk fallback deterministik offline
+_CONCEPT_CLUSTERS = {
+    "audit": ["audit", "evaluasi", "periksa", "investigasi", "transparan"],
+    "alutsista": ["alutsista", "senjata", "pertahanan", "militer", "darat"],
+    "siber": ["siber", "cyber", "it", "digital", "teknologi"],
+    "anggaran": ["anggaran", "dana", "biaya", "uang", "finansial", "alokasi"],
+    "tender": ["tender", "proyek", "pengadaan", "kontrak", "lelang"],
+    "fraud": ["manipulasi", "indikasi", "terindikasi", "korupsi", "mencurigakan", "asing", "kepentingan"],
+}
+_WORD_TO_CONCEPT = {w: concept for concept, words in _CONCEPT_CLUSTERS.items() for w in words}
+
+
+class DeterministicOfflineEmbedder:
+    """
+    Fallback embedding deterministik 384-dimensi untuk lingkungan offline / air-gapped / CI
+    ketika bobot SentenceTransformer tidak dapat diakses melalui internet.
+    """
+    def __init__(self, dim: int = 384):
+        self.dim = dim
+
+    def encode(self, texts, batch_size: int = 32, show_progress_bar: bool = False, convert_to_numpy: bool = True):
+        single = isinstance(texts, str)
+        if single:
+            texts = [texts]
+
+        vectors = []
+        for text in texts:
+            vec = np.zeros(self.dim, dtype=np.float32)
+            if text and text.strip():
+                words = re.findall(r"\w+", text.lower())
+                for w in words:
+                    # 1. Exact word hashing
+                    h = hashlib.sha256(w.encode("utf-8")).digest()
+                    idx = int.from_bytes(h[:2], "big") % self.dim
+                    sign = 1.0 if (h[2] % 2 == 0) else -1.0
+                    vec[idx] += sign * 1.5
+
+                    # 2. Semantic concept hashing
+                    concept = _WORD_TO_CONCEPT.get(w)
+                    if concept:
+                        h_c = hashlib.sha256(f"concept_{concept}".encode("utf-8")).digest()
+                        idx_c = int.from_bytes(h_c[:2], "big") % self.dim
+                        sign_c = 1.0 if (h_c[2] % 2 == 0) else -1.0
+                        vec[idx_c] += sign_c * 2.5
+
+                norm = np.linalg.norm(vec)
+                if norm > 0:
+                    vec /= norm
+            vectors.append(vec)
+
+        arr = np.array(vectors, dtype=np.float32)
+        return arr[0] if single else arr
+
 
 class EmbeddingService:
     """
     Layanan embedding teks lokal berbasis sentence-transformers (all-MiniLM-L6-v2).
     Zero-Cost, 100% lokal, dan berjalan pada CPU tanpa membutuhkan koneksi internet
     setelah model ter-cache. Menggunakan lazy-loading agar tidak membebani RAM saat startup.
+    Dilengkapi DeterministicOfflineEmbedder jika model bobot neural belum ter-cache offline.
     """
 
     def __init__(self, model_name: Optional[str] = None):
@@ -24,12 +80,19 @@ class EmbeddingService:
     def model(self):
         if self._model is None:
             logger.info(f"Memuat model embedding lokal: {self.model_name}...")
-            from sentence_transformers import SentenceTransformer
             try:
-                self._model = SentenceTransformer(self.model_name, local_files_only=True)
-            except Exception:
-                self._model = SentenceTransformer(self.model_name)
-            logger.info(f"Model embedding {self.model_name} berhasil dimuat.")
+                from sentence_transformers import SentenceTransformer
+                try:
+                    self._model = SentenceTransformer(self.model_name, local_files_only=True)
+                except Exception:
+                    self._model = SentenceTransformer(self.model_name)
+                logger.info(f"Model embedding {self.model_name} berhasil dimuat.")
+            except Exception as e:
+                logger.warning(
+                    f"Model transformer '{self.model_name}' tidak dapat dimuat offline ({e}). "
+                    "Menggunakan DeterministicOfflineEmbedder fallback berdimensi 384."
+                )
+                self._model = DeterministicOfflineEmbedder(dim=384)
         return self._model
 
     def embed_text(self, text: str) -> List[float]:

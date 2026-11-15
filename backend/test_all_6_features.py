@@ -3,9 +3,9 @@ import json
 import sys
 
 from app.services.scraper.x_scraper import XScraperService
-from app.services.x_auditor import audit_x_tweet_event
-from app.services.instagram_auditor import audit_instagram_event
-from app.services.youtube_auditor import audit_youtube_event
+from app.services.auditors.x_auditor import audit_x_tweet_event
+from app.services.auditors.instagram_auditor import audit_instagram_event
+from app.services.auditors.youtube_auditor import audit_youtube_event
 
 async def main():
     print("==================================================================", flush=True)

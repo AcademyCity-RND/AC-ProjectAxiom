@@ -11,25 +11,25 @@ from app.models.activity import ActivityLog
 from app.models.detection import DetectionResult
 from app.core.security import create_access_token
 
-from app.services.youtube_auditor import (
+from app.services.auditors.youtube_auditor import (
     extract_youtube_video_id,
     detect_temporal_influx_anomaly,
     generate_mock_youtube_comments,
     fetch_youtube_comments,
 )
-from app.services.instagram_auditor import (
+from app.services.auditors.instagram_auditor import (
     extract_instagram_shortcode,
     generate_mock_instagram_comments,
     fetch_instagram_comments,
     fetch_instagram_metadata_from_scraper,
     fetch_instagram_comments_from_scraper,
 )
-from app.services.x_auditor import (
+from app.services.auditors.x_auditor import (
     extract_tweet_id,
     generate_mock_tweet_replies,
     fetch_x_tweet_replies,
 )
-from app.services.event_orchestrator import run_event_investigation_pipeline
+from app.services.orchestrators.event_orchestrator import run_event_investigation_pipeline
 from app.schemas.investigation import EventInvestigationRequest
 
 
@@ -133,7 +133,9 @@ def test_detect_temporal_influx_anomaly_empty():
 # --------------------------------------------------------------------------
 def test_fetch_youtube_comments_mock_fallback():
     # Memastikan fallback mock berfungsi jika library raise exception / offline
-    with patch("youtube_comment_downloader.YoutubeCommentDownloader.get_comments_from_url", side_effect=RuntimeError("Offline")):
+    mock_mod = MagicMock()
+    mock_mod.YoutubeCommentDownloader.return_value.get_comments_from_url.side_effect = RuntimeError("Offline")
+    with patch.dict("sys.modules", {"youtube_comment_downloader": mock_mod}):
         comments = fetch_youtube_comments("https://www.youtube.com/watch?v=dQw4w9WgXcQ", max_comments=30)
         assert len(comments) == 30
         assert comments[0]["platform"] == "youtube"
@@ -228,7 +230,7 @@ def test_generate_mock_tweet_replies():
 @pytest.mark.asyncio
 async def test_fetch_x_tweet_replies_mock_fallback():
     # Memastikan fallback mock balasan Tweet berfungsi jika auth/burner kosong
-    with patch("app.services.x_auditor.TwscrapeService.has_active_account", return_value=False):
+    with patch("app.services.auditors.x_auditor.TwscrapeService.has_active_account", return_value=False):
         comments = await fetch_x_tweet_replies("https://x.com/Kemhan_RI/status/1849372819203819201", max_comments=20)
         assert len(comments) == 20
         assert comments[0]["platform"] == "x"

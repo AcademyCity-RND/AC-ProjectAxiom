@@ -9,9 +9,9 @@ from datetime import datetime, timezone, timedelta
 # Pastikan path backend terdaftar
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.features import extract_actor_features, FEATURE_NAMES
-from app.services.classifier import AxiomBotClassifier
-from app.services.dataset_generator import generate_synthetic_dataset
+from app.services.ml.features import extract_actor_features, FEATURE_NAMES
+from app.services.ml.classifier import AxiomBotClassifier
+from app.services.ml.dataset_generator import generate_synthetic_dataset
 
 
 def run_pipeline_verification():

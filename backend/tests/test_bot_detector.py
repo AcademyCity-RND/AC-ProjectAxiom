@@ -1,9 +1,9 @@
 import os
 import pytest
 from datetime import datetime, timezone, timedelta
-from app.services.features import extract_actor_features, FEATURE_NAMES
-from app.services.classifier import AxiomBotClassifier, get_classifier
-from app.services.dataset_generator import generate_synthetic_dataset, LABEL_MAP
+from app.services.ml.features import extract_actor_features, FEATURE_NAMES
+from app.services.ml.classifier import AxiomBotClassifier, get_classifier
+from app.services.ml.dataset_generator import generate_synthetic_dataset, LABEL_MAP
 
 
 def test_feature_names_and_count():

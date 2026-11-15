@@ -8,14 +8,14 @@ from app.db.session import get_db
 from app.schemas.auth import TokenPayload, UserRole
 from app.models.case import InvestigationCase
 from app.api.v1.deps import require_roles, get_current_user
-from app.services.report_exporter import (
+from app.services.reporting.report_exporter import (
     build_case_dossier_data,
     render_html_dossier,
     generate_csv_ledger,
     get_dual_tier_ledger,
     generate_master_dataset_csv,
 )
-from app.services.audit_logger import log_activity
+from app.services.reporting.audit_logger import log_activity
 
 logger = logging.getLogger("axiom.export")
 router = APIRouter()

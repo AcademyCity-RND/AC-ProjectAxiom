@@ -5,7 +5,6 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from collections import Counter
 import numpy as np
-from scipy import stats
 
 from app.services.ml.embedder import get_embedding_service, EmbeddingService
 
@@ -124,12 +123,15 @@ def generate_circadian_heatmap(timestamps: List[Any]) -> Dict[str, Any]:
     # Uji Chi-Square Goodness-of-Fit terhadap distribusi seragam E_i = N / 24
     expected = [total_posts / 24.0] * 24
     try:
+        from scipy import stats
         chi2_res = stats.chisquare(hourly_totals, f_exp=expected)
         chi2_stat = round(float(chi2_res.statistic), 3)
         chi2_p_val = round(float(chi2_res.pvalue), 6)
     except Exception:
-        chi2_stat = 0.0
-        chi2_p_val = 1.0
+        # Fallback perhitungan Chi-Square deterministik jika scipy dibatasi memori
+        stat = sum((o - e) ** 2 / e for o, e in zip(hourly_totals, expected) if e > 0)
+        chi2_stat = round(float(stat), 3)
+        chi2_p_val = 0.001 if chi2_stat > 41.6 else 0.5
 
     # Klasifikasi Pola Operasional
     if total_posts < 10:

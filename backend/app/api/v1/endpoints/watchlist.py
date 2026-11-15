@@ -11,7 +11,7 @@ from app.schemas.watchlist import WatchlistCreate, WatchlistResponse
 from app.schemas.auth import TokenPayload, UserRole
 from app.schemas.audit import AuditLogCreate, AuditActionEnum
 from app.api.v1.deps import require_roles
-from app.services.audit_logger import log_activity
+from app.services.reporting.audit_logger import log_activity
 
 logger = logging.getLogger("axiom.watchlist")
 router = APIRouter()

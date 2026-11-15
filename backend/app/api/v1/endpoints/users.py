@@ -13,7 +13,7 @@ from app.schemas.user_management import (
 )
 from app.api.v1.deps import require_roles
 from app.core.security import hash_password
-from app.services.audit_logger import log_activity
+from app.services.reporting.audit_logger import log_activity
 
 router = APIRouter()
 

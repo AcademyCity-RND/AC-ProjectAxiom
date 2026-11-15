@@ -21,9 +21,9 @@ from app.schemas.auth import TokenPayload, UserRole
 from app.schemas.audit import AuditLogCreate, AuditActionEnum
 from app.api.v1.deps import require_roles
 from app.core.rate_limiter import investigation_rate_limiter
-from app.services.investigation_orchestrator import run_investigation_pipeline
-from app.services.event_orchestrator import run_event_investigation_pipeline
-from app.services.audit_logger import log_activity
+from app.services.orchestrators.investigation_orchestrator import run_investigation_pipeline
+from app.services.orchestrators.event_orchestrator import run_event_investigation_pipeline
+from app.services.reporting.audit_logger import log_activity
 
 logger = logging.getLogger("axiom.investigate")
 router = APIRouter()
@@ -434,7 +434,7 @@ def list_investigation_cases(
             # Prioritaskan media postingan / video thumbnail, jika kosong fallback ke foto profil (pp) kreator
             raw_img = thumb or c_avatar
             if not raw_img and c.platform == "youtube":
-                from app.services.youtube_auditor import extract_youtube_video_id
+                from app.services.auditors.youtube_auditor import extract_youtube_video_id
                 vid = extract_youtube_video_id(c.target)
                 if vid:
                     raw_img = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
@@ -520,7 +520,7 @@ def get_investigation_case(
         )
         raw_event_avatar = thumb or c_avatar
         if not raw_event_avatar and case.platform == "youtube":
-            from app.services.youtube_auditor import extract_youtube_video_id
+            from app.services.auditors.youtube_auditor import extract_youtube_video_id
             vid = extract_youtube_video_id(case.target)
             if vid:
                 raw_event_avatar = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
@@ -845,7 +845,7 @@ def get_case_analytics(
         for a in activities
     ]
 
-    from app.services.analytics import compute_advanced_analytics
+    from app.services.analytics.analytics import compute_advanced_analytics
     analytics_payload = compute_advanced_analytics(act_data)
 
     return {
@@ -1022,8 +1022,8 @@ async def guest_analyze(
         TargetNotFoundException,
         PrivateAccountException,
     )
-    from app.services.features import extract_actor_features
-    from app.services.classifier import get_classifier
+    from app.services.ml.features import extract_actor_features
+    from app.services.ml.classifier import get_classifier
 
     scraper = XScraperService()
 
@@ -1043,7 +1043,7 @@ async def guest_analyze(
         )
 
     # Catat jejak audit khusus aktivitas tamu (semua tamu dikelompokkan sebagai 'guest' tanpa melacak IP / akun pribadi)
-    from app.services.audit_logger import log_activity
+    from app.services.reporting.audit_logger import log_activity
     try:
         log_activity(
             db=db,

@@ -18,7 +18,7 @@ BACKEND_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-from app.services.features import FEATURE_NAMES
+from app.services.ml.features import FEATURE_NAMES
 
 logging.basicConfig(
     level=logging.INFO,

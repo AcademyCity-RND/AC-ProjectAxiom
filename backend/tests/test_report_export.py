@@ -10,7 +10,7 @@ from app.models.activity import ActivityLog
 from app.models.detection import DetectionResult
 from app.models.cluster import ClusterLink
 from app.core.security import create_access_token
-from app.services.report_exporter import (
+from app.services.reporting.report_exporter import (
     compute_cryptographic_fingerprint,
     build_case_dossier_data,
     render_html_dossier,

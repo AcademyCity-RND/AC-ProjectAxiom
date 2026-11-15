@@ -2,8 +2,8 @@ import sys
 from datetime import datetime, timezone
 
 from app.core.chroma import get_chroma_client, check_chroma_health, get_narratives_collection
-from app.services.embedder import get_embedding_service
-from app.services.vector_store import VectorStoreService
+from app.services.ml.embedder import get_embedding_service
+from app.services.ml.vector_store import VectorStoreService
 
 
 def main():

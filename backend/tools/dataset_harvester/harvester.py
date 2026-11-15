@@ -147,7 +147,7 @@ async def harvest_x_tweet(target_url: str, idx: int) -> bool:
     if not target_url.strip():
         return False
 
-    from app.services.x_auditor import audit_x_tweet_event, extract_tweet_id  # type: ignore
+    from app.services.auditors.x_auditor import audit_x_tweet_event, extract_tweet_id  # type: ignore
     tid = str(extract_tweet_id(target_url) or f"tweet_{idx}")
     out_file = OUTPUT_DIR / "x_tweet" / f"x_tweet_{idx:02d}_{sanitize_filename(tid)}.csv"
     if out_file.exists() and out_file.stat().st_size > 150:
@@ -195,7 +195,7 @@ def harvest_instagram(target_url: str, idx: int, mode_type: str = "ig_post") -> 
     if not target_url.strip():
         return False
 
-    from app.services.instagram_auditor import (  # type: ignore
+    from app.services.auditors.instagram_auditor import (  # type: ignore
         extract_instagram_shortcode,
         fetch_instagram_metadata,
         fetch_instagram_comments
@@ -282,7 +282,7 @@ def harvest_youtube(target_url: str, idx: int, mode_type: str = "yt_video") -> b
     if not target_url.strip():
         return False
 
-    from app.services.youtube_auditor import (  # type: ignore
+    from app.services.auditors.youtube_auditor import (  # type: ignore
         extract_youtube_video_id,
         fetch_youtube_metadata
     )

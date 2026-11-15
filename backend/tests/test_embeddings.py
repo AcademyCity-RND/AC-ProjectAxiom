@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 
-from app.services.embedder import EmbeddingService, get_embedding_service
-from app.services.vector_store import VectorStoreService
+from app.services.ml.embedder import EmbeddingService, get_embedding_service
+from app.services.ml.vector_store import VectorStoreService
 from app.core.chroma import get_chroma_client, get_narratives_collection, check_chroma_health
 
 

@@ -11,7 +11,7 @@ from app.models.case import InvestigationCase
 from app.models.actor import ActorProfile
 from app.models.detection import DetectionResult
 from app.models.cluster import ClusterLink
-from app.services.investigation_orchestrator import run_investigation_pipeline
+from app.services.orchestrators.investigation_orchestrator import run_investigation_pipeline
 
 client = TestClient(app)
 
