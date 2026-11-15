@@ -864,6 +864,7 @@ from pydantic import BaseModel, Field
 from app.core.rate_limiter import InMemoryRateLimiter
 
 guest_rate_limiter = InMemoryRateLimiter(requests_per_minute=5, window_seconds=600)
+guest_samples_rate_limiter = InMemoryRateLimiter(requests_per_minute=60, window_seconds=60)
 
 
 class GuestAnalyzeRequest(BaseModel):
@@ -874,10 +875,13 @@ class GuestAnalyzeRequest(BaseModel):
 
 
 @router.get("/guest/samples", summary="Mengambil Sampel Benchmark Analisis Akun untuk Tamu")
-def get_guest_samples():
+def get_guest_samples(request: Request):
     """
     Menyediakan daftar profil benchmark pra-kalkulasi untuk eksplorasi instan di Guest Demo Sandbox.
+    Dilindungi dengan rate limiter ringan untuk mencegah automated scraping/spam.
     """
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    guest_samples_rate_limiter.check(request, custom_key=f"guest_samples:{client_ip}")
     return {
         "samples": [
             {
