@@ -1,8 +1,9 @@
 import logging
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.core.config import settings
 from app.api.v1.router import api_router
 from app.db.session import SessionLocal, engine
@@ -80,6 +81,20 @@ def read_root():
     }
 
 
-@app.get("/health")
+@app.get("/health", summary="Healthcheck Kesiapan Sistem & Database")
 def health_check():
-    return {"status": "ok"}
+    """
+    Healthcheck endpoint untuk Docker Compose / Kubernetes probe.
+    Memverifikasi kesiapan koneksi database PostgreSQL sebelum mengembalikan status sehat.
+    """
+    db_status = "ok"
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        logger.warning(f"Database health check failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Basis data PostgreSQL belum siap: {str(e)}"
+        )
+    return {"status": "ok", "database": db_status}
