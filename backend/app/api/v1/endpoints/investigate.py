@@ -1,6 +1,8 @@
 import uuid
 import logging
 import urllib.parse
+import socket
+import ipaddress
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 import httpx
@@ -36,6 +38,25 @@ ALLOWED_IMAGE_PROXY_DOMAINS = (
     "googleusercontent.com",
     "ggpht.com",
 )
+MAX_IMAGE_PROXY_REDIRECTS = 3
+MAX_IMAGE_PROXY_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+def is_allowed_image_domain(domain: str) -> bool:
+    clean_domain = domain.lower().strip()
+    return any(clean_domain == allowed or clean_domain.endswith("." + allowed) for allowed in ALLOWED_IMAGE_PROXY_DOMAINS)
+
+
+def is_safe_public_ip(host: str) -> bool:
+    try:
+        addr_infos = socket.getaddrinfo(host, None)
+        for _, _, _, _, sockaddr in addr_infos:
+            ip = ipaddress.ip_address(sockaddr[0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified:
+                return False
+        return True
+    except Exception:
+        return False
 
 
 def wrap_proxy_image(url: Optional[str]) -> Optional[str]:
@@ -54,36 +75,60 @@ async def proxy_image(url: str = Query(..., description="URL gambar eksternal"))
     """
     Mengunduh gambar dari URL eksternal (seperti CDN Instagram/Facebook)
     dan mengalirkannya ke browser dengan header Cross-Origin-Resource-Policy: cross-origin.
+    Dilindungi dengan validasi domain ketat, anti-SSRF IP check, pembatasan ukuran, dan validasi MIME.
     """
-    if not url.startswith("http://") and not url.startswith("https://"):
-        raise HTTPException(status_code=400, detail="URL gambar tidak valid.")
-
-    parsed = urllib.parse.urlparse(url)
-    domain = parsed.netloc.lower().split(":")[0]
-
-    # Validasi whitelist domain untuk proteksi SSRF
-    if not any(domain.endswith(allowed) for allowed in ALLOWED_IMAGE_PROXY_DOMAINS):
-        raise HTTPException(status_code=403, detail="Domain gambar tidak diizinkan untuk di-proxy.")
+    current_url = url
+    headers_req = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    }
 
     try:
-        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
-            resp = await client.get(
-                url,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-                },
-            )
-            if resp.status_code != 200:
-                raise HTTPException(status_code=resp.status_code, detail="Gagal mengambil gambar dari CDN sumber.")
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+            resp = None
+            for hop in range(MAX_IMAGE_PROXY_REDIRECTS + 1):
+                if not current_url.startswith("http://") and not current_url.startswith("https://"):
+                    raise HTTPException(status_code=400, detail="Skema URL gambar tidak valid.")
 
-            content_type = resp.headers.get("content-type", "image/jpeg")
+                parsed = urllib.parse.urlparse(current_url)
+                domain = parsed.netloc.lower().split(":")[0]
+
+                if not is_allowed_image_domain(domain):
+                    raise HTTPException(status_code=403, detail="Domain gambar tidak diizinkan untuk di-proxy.")
+
+                if not is_safe_public_ip(domain):
+                    raise HTTPException(status_code=403, detail="Akses ke alamat IP privat/lokal ditolak.")
+
+                resp = await client.get(current_url, headers=headers_req)
+
+                if resp.status_code in (301, 302, 303, 307, 308):
+                    redirect_location = resp.headers.get("location")
+                    if not redirect_location:
+                        raise HTTPException(status_code=502, detail="Header lokasi redirect tidak ditemukan.")
+                    current_url = urllib.parse.urljoin(current_url, redirect_location)
+                    continue
+
+                break
+
+            if not resp or resp.status_code != 200:
+                status_code = resp.status_code if resp else 502
+                raise HTTPException(status_code=status_code, detail="Gagal mengambil gambar dari CDN sumber.")
+
+            content_type = resp.headers.get("content-type", "image/jpeg").lower()
+            if not content_type.startswith("image/"):
+                raise HTTPException(status_code=415, detail="Format respon bukan gambar yang valid.")
+
+            content = resp.content
+            if len(content) > MAX_IMAGE_PROXY_SIZE_BYTES:
+                raise HTTPException(status_code=413, detail="Ukuran berkas gambar melebihi batas 5MB.")
+
             headers = {
                 "Cache-Control": "public, max-age=86400",
                 "Access-Control-Allow-Origin": "*",
                 "Cross-Origin-Resource-Policy": "cross-origin",
+                "X-Content-Type-Options": "nosniff",
             }
-            return Response(content=resp.content, media_type=content_type, headers=headers)
+            return Response(content=content, media_type=content_type, headers=headers)
     except HTTPException:
         raise
     except Exception as e:
