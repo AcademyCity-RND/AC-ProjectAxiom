@@ -11,6 +11,7 @@ from app.schemas.watchlist import WatchlistCreate, WatchlistResponse
 from app.schemas.auth import TokenPayload, UserRole
 from app.schemas.audit import AuditLogCreate, AuditActionEnum
 from app.api.v1.deps import require_roles
+from app.services.audit_logger import log_activity
 
 logger = logging.getLogger("axiom.watchlist")
 router = APIRouter()
@@ -26,8 +27,11 @@ def get_watchlist(
 ):
     """
     Mengambil daftar seluruh target / aktor ancaman yang dimasukkan ke dalam daftar pantauan (Watchlist).
+    Isolasi akun: Pengguna biasa hanya dapat melihat watchlist miliknya sendiri, sementara Admin dapat melihat seluruhnya.
     """
     query = db.query(Watchlist)
+    if current_user.role != UserRole.ADMIN.value:
+        query = query.filter(Watchlist.added_by == (current_user.sub or ""))
     if tag:
         query = query.filter(Watchlist.tag == tag)
     
@@ -58,6 +62,11 @@ def add_to_watchlist(
     ).first()
 
     if existing:
+        if current_user.role != UserRole.ADMIN.value and existing.added_by != current_user.sub:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Target {normalized_username} sudah terdaftar dalam pengawasan operator lain."
+            )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Target {normalized_username} sudah ada di dalam Watchlist."
@@ -75,8 +84,19 @@ def add_to_watchlist(
     db.commit()
     db.refresh(new_item)
 
-    # Catat Audit Log
+    # Catat Audit Log ke DB & Logger
     client_ip = request.client.host if request.client else "unknown"
+    log_activity(
+        db=db,
+        username=current_user.sub or "anonymous",
+        role=current_user.role or "unknown",
+        action=AuditActionEnum.ADD_WATCHLIST.value,
+        target=f"{new_item.platform}:{new_item.username}",
+        details={"tag": new_item.tag, "notes": new_item.notes},
+        ip_address=client_ip,
+        status="SUCCESS",
+    )
+
     audit_entry = AuditLogCreate(
         username=current_user.sub or "anonymous",
         role=current_user.role or "unknown",
@@ -104,6 +124,7 @@ def delete_from_watchlist(
 ):
     """
     Menghapus target dari daftar pantauan (Watchlist).
+    Isolasi akun: Pengguna biasa hanya dapat menghapus target yang dibuat oleh dirinya sendiri.
     """
     item = db.query(Watchlist).filter(Watchlist.id == watchlist_id).first()
     if not item:
@@ -112,16 +133,34 @@ def delete_from_watchlist(
             detail=f"Item Watchlist dengan ID {watchlist_id} tidak ditemukan."
         )
 
+    # Otorisasi kepemilikan: Pengguna biasa hanya bisa menghapus target miliknya sendiri
+    if current_user.role != UserRole.ADMIN.value and item.added_by != current_user.sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak. Anda hanya berhak menghapus target Watchlist yang Anda buat sendiri."
+        )
+
     deleted_target = f"{item.platform}:{item.username}"
     db.delete(item)
     db.commit()
 
-    # Catat Audit Log
+    # Catat Audit Log ke DB & Logger
     client_ip = request.client.host if request.client else "unknown"
+    log_activity(
+        db=db,
+        username=current_user.sub or "anonymous",
+        role=current_user.role or "unknown",
+        action=AuditActionEnum.REMOVE_WATCHLIST.value,
+        target=deleted_target,
+        details={"action": "DELETED_FROM_WATCHLIST", "id": watchlist_id},
+        ip_address=client_ip,
+        status="SUCCESS",
+    )
+
     audit_entry = AuditLogCreate(
         username=current_user.sub or "anonymous",
         role=current_user.role or "unknown",
-        action=AuditActionEnum.ADD_WATCHLIST,  # Menggunakan category watchlist audit
+        action=AuditActionEnum.REMOVE_WATCHLIST,
         target=deleted_target,
         ip_address=client_ip,
         details={"action": "DELETED_FROM_WATCHLIST", "id": watchlist_id},
