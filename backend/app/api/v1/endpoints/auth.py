@@ -101,17 +101,29 @@ def get_current_user_profile(
 ):
     """
     Mendapatkan data identitas, peran (role), dan status aktif pengguna yang sedang login.
+    Memverifikasi keberadaan dan keaktifan akun pengguna di basis data.
     """
     username = current_user.sub or ""
     user = db.execute(select(User).where(User.username == username.lower())).scalar_one_or_none()
     
-    is_active = user.is_active if user else True
-    role = UserRole(user.role) if user and user.role in (r.value for r in UserRole) else (
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Akun pengguna tidak ditemukan di basis data.",
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akun pengguna ini telah dinonaktifkan oleh Administrator.",
+        )
+
+    role = UserRole(user.role) if user.role in (r.value for r in UserRole) else (
         UserRole(current_user.role) if current_user.role else UserRole.USER
     )
 
     return UserOut(
-        username=username,
+        username=user.username,
         role=role,
-        is_active=is_active,
+        is_active=user.is_active,
     )
