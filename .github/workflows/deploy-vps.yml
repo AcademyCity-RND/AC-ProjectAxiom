@@ -18,18 +18,26 @@ jobs:
   check-deployment-readiness:
     name: Check Deployment Readiness (Dev / Main)
     runs-on: ubuntu-latest
+    outputs:
+      is_ready: ${{ steps.validate.outputs.is_ready }}
     steps:
       - name: Validate Target Branch & Secrets Status
+        id: validate
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           echo "=== AXIOM CI/CD - Auto Deploy to VPS ==="
           echo "Event: ${{ github.event_name }}"
           echo "Ref: ${{ github.ref }}"
           if [ "${{ github.ref }}" != "refs/heads/main" ]; then
             echo "Status: Branch bukan main (${{ github.ref }}). Workflow terbaca sukses; auto-deploy VPS di-SKIP."
-          elif [ -z "${{ secrets.VPS_HOST }}" ]; then
+            echo "is_ready=false" >> $GITHUB_OUTPUT
+          elif [ -z "$VPS_HOST" ]; then
             echo "Status: Branch adalah main, namun secrets.VPS_HOST belum dikonfigurasi. Auto-deploy VPS di-SKIP secara aman hingga secrets dipasang."
+            echo "is_ready=false" >> $GITHUB_OUTPUT
           else
-            echo "Status: Siap melakukan deployment ke VPS Production Host: ${{ secrets.VPS_HOST }}"
+            echo "Status: Siap melakukan deployment ke VPS Production Host: $VPS_HOST"
+            echo "is_ready=true" >> $GITHUB_OUTPUT
           fi
 
   deploy-production:
@@ -37,10 +45,10 @@ jobs:
     needs: check-deployment-readiness
     runs-on: ubuntu-latest
     # Guard ganda:
-    # 1. Hanya jalan pada branch main (pada branch dev, otomatis di-SKIP)
-    # 2. secrets.VPS_HOST sudah dikonfigurasi di GitHub Secrets
+    # 1. Hanya jalan pada branch main
+    # 2. secrets.VPS_HOST sudah dikonfigurasi (dicek via output is_ready)
     # 3. Dipicu oleh workflow_dispatch manual, push ke main, atau kelulusan release-ghcr.yml
-    if: github.ref == 'refs/heads/main' && secrets.VPS_HOST != '' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success')
+    if: github.ref == 'refs/heads/main' && needs.check-deployment-readiness.outputs.is_ready == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: Announce Deployment Target
