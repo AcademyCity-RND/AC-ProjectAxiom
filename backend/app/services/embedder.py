@@ -1,7 +1,6 @@
 import logging
 from typing import List, Optional
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 from app.core.config import settings
 
@@ -14,17 +13,24 @@ class EmbeddingService:
     """
     Layanan embedding teks lokal berbasis sentence-transformers (all-MiniLM-L6-v2).
     Zero-Cost, 100% lokal, dan berjalan pada CPU tanpa membutuhkan koneksi internet
-    setelah model ter-cache.
+    setelah model ter-cache. Menggunakan lazy-loading agar tidak membebani RAM saat startup.
     """
 
     def __init__(self, model_name: Optional[str] = None):
         self.model_name = model_name or settings.EMBEDDING_MODEL_NAME
-        logger.info(f"Memuat model embedding lokal: {self.model_name}...")
-        try:
-            self.model = SentenceTransformer(self.model_name, local_files_only=True)
-        except Exception:
-            self.model = SentenceTransformer(self.model_name)
-        logger.info(f"Model embedding {self.model_name} berhasil dimuat.")
+        self._model = None
+
+    @property
+    def model(self):
+        if self._model is None:
+            logger.info(f"Memuat model embedding lokal: {self.model_name}...")
+            from sentence_transformers import SentenceTransformer
+            try:
+                self._model = SentenceTransformer(self.model_name, local_files_only=True)
+            except Exception:
+                self._model = SentenceTransformer(self.model_name)
+            logger.info(f"Model embedding {self.model_name} berhasil dimuat.")
+        return self._model
 
     def embed_text(self, text: str) -> List[float]:
         """
