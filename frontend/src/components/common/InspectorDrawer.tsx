@@ -47,10 +47,10 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
 
   if (!isOpen || !data) return null;
 
-  const isAccount = data.title.startsWith('@') || Boolean(data.threatClass);
+  const isAccount = Boolean(data?.title?.startsWith('@') || data?.threatClass);
 
   const handleAddToWatchlist = async () => {
-    if (!isAccount) return;
+    if (!isAccount || !data?.title) return;
     setIsAdding(true);
     try {
       const cls = (data.threatClass || 'SUSPICIOUS').toUpperCase();
@@ -92,14 +92,15 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
             FORENSIC INSPECTOR
           </div>
           <h2 className="text-sm font-semibold tracking-tight text-white truncate max-w-[280px]">
-            {data.title}
+            {data?.title || 'Detail Forensik'}
           </h2>
         </div>
         <button
           ref={closeBtnRef}
           onClick={onClose}
-          className="w-7 h-7 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 cursor-pointer"
+          className="min-w-[44px] min-h-[44px] rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/50 cursor-pointer"
           title="Tutup Panel (Esc)"
+          aria-label="Tutup Panel Forensik"
         >
           <X className="w-4 h-4" />
         </button>

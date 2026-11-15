@@ -39,7 +39,12 @@ export const Modal: React.FC<ModalProps> = ({
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+    <div
+      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
       <div
         className={`bg-[#0D131F] border border-slate-800 rounded-lg w-full ${maxWidthClass} shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150`}
       >
@@ -51,15 +56,15 @@ export const Modal: React.FC<ModalProps> = ({
               </div>
             )}
             <div>
-              <h3 className="text-sm font-semibold text-white tracking-tight">{title}</h3>
+              <h3 id="modal-title" className="text-sm font-semibold text-white tracking-tight">{title}</h3>
               {subtitle && <p className="text-[11px] text-slate-400">{subtitle}</p>}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
-            aria-label="Tutup Modal"
+            className="text-slate-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-slate-800 transition-colors cursor-pointer"
+            aria-label="Tutup Dialog Modal"
           >
             <X className="w-4 h-4" />
           </button>
