@@ -37,7 +37,7 @@ services:
       - axiom_prod_net
 
   instagram-scraper:
-    image: ac-instagram-scraper:1.0.0
+    image: ${SCRAPER_IMAGE:-ghcr.io/academycity-rnd/ac-instagram-scraper:latest}
     build:
       context: ../AC-InstagramScraper
       dockerfile: Dockerfile
@@ -58,13 +58,13 @@ services:
       - axiom_prod_net
 
   backend:
-    image: axiom-backend:1.0.0
+    image: ${BACKEND_IMAGE:-ghcr.io/academycity-rnd/axiom-backend:latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: axiom_backend_prod
     restart: always
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-1}
     volumes:
       - ./data/chromadb:/app/data/chromadb
       - ./data/sessions:/app/data/sessions
@@ -92,7 +92,7 @@ services:
       - axiom_prod_net
 
   frontend:
-    image: axiom-frontend:1.0.0
+    image: ${FRONTEND_IMAGE:-ghcr.io/academycity-rnd/axiom-frontend:latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
