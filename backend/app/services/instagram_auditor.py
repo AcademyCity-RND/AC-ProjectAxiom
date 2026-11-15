@@ -261,6 +261,7 @@ def fetch_instagram_comments_from_scraper(
 
                             formatted.append({
                                 "comment_id": cid,
+                                "source": "live",
                                 "shortcode": shortcode,
                                 "username": clean_uname,
                                 "author_username": clean_uname,
@@ -314,6 +315,7 @@ def fetch_instagram_comments_from_scraper(
 
                         formatted.append({
                             "comment_id": cid,
+                            "source": "live",
                             "shortcode": shortcode,
                             "username": clean_uname,
                             "author_username": clean_uname,
@@ -538,6 +540,7 @@ def generate_contextual_instagram_comments(
         cid = f"ig_c_{shortcode[:6]}_{i:04d}"
         mock_comments.append({
             "comment_id": cid,
+            "source": "mock",
             "shortcode": shortcode,
             "username": f"@{uname}",
             "author_username": f"@{uname}",
@@ -873,8 +876,9 @@ def audit_instagram_event(
             "total_comments_extracted": total_comments,
             "unique_commenters_count": unique_commenters_count,
             "spammer_ratio": spammer_ratio,
-            "extraction_status": "live_complete"
+            "extraction_status": "live_complete" if (comments and comments[0].get("source") != "mock") else "mock_fallback"
         },
+        "source": "mock" if (comments and comments[0].get("source") == "mock") else "live",
         "comments": comments,
         "user_mapping": user_mapping,
         "top_attackers": top_attackers,

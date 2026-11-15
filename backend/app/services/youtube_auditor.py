@@ -393,6 +393,7 @@ def generate_mock_youtube_comments(video_id: str, count: int = 50) -> List[Dict[
         cid = f"Ugx_{video_id[:6]}_{i:04d}"
         mock_comments.append({
             "comment_id": cid,
+            "source": "mock",
             "video_id": video_id,
             "author_id": f"UC_{author}",
             "author_username": author,
@@ -409,7 +410,7 @@ def generate_mock_youtube_comments(video_id: str, count: int = 50) -> List[Dict[
 
 
 def parse_youtube_votes(raw_votes: Any) -> int:
-    """Parses likes/votes from localized string (e.g. '1 rb', '1.5k', '1,234') safely."""
+    """Parses likes/votes from localized string (e.g. '1 rb', '1.5k', '1,234', '1.234') safely."""
     if not raw_votes:
         return 0
     if isinstance(raw_votes, (int, float)):
@@ -418,23 +419,29 @@ def parse_youtube_votes(raw_votes: Any) -> int:
     m = re.match(r"^([\d\.,]+)\s*([kmb]|rb|jt)?", s)
     if not m:
         try:
-            return int(float(s.replace(",", "")))
+            cleaned = re.sub(r"[^\d]", "", s)
+            return int(cleaned) if cleaned else 0
         except Exception:
             return 0
-    num_part, unit = m.group(1), m.group(2)
-    if unit:
-        num_part = num_part.replace(",", ".")
-    else:
-        num_part = num_part.replace(",", "")
+    num_str = m.group(1).strip()
+    multiplier = m.group(2) or ""
     try:
-        val = float(num_part)
-        if unit in ["k", "rb"]:
-            val *= 1_000
-        elif unit in ["m", "jt"]:
-            val *= 1_000_000
-        elif unit == "b":
-            val *= 1_000_000_000
-        return int(val)
+        if multiplier:
+            num_clean = num_str.replace(",", ".")
+            val = float(num_clean)
+            if multiplier in ("k", "rb"):
+                val *= 1_000
+            elif multiplier in ("m", "jt"):
+                val *= 1_000_000
+            elif multiplier == "b":
+                val *= 1_000_000_000
+            return int(val)
+        else:
+            if re.search(r"^\d{1,3}([,\.]\d{3})+$", num_str):
+                num_clean = re.sub(r"[,\.]", "", num_str)
+                return int(num_clean)
+            num_clean = num_str.replace(",", ".")
+            return int(float(num_clean))
     except Exception:
         return 0
 
@@ -479,6 +486,7 @@ def fetch_youtube_comments(
 
             comments.append({
                 "comment_id": cid,
+                "source": "live",
                 "video_id": video_id,
                 "author_id": channel or f"UC_{author}",
                 "author_username": author,
@@ -641,8 +649,9 @@ def audit_youtube_event(
             "total_comments_extracted": total_comments,
             "unique_commenters_count": unique_commenters_count,
             "spammer_ratio": spammer_ratio,
-            "extraction_status": "live_complete"
+            "extraction_status": "live_complete" if (comments and comments[0].get("source") != "mock") else "mock_fallback"
         },
+        "source": "mock" if (comments and comments[0].get("source") == "mock") else "live",
         "comments": comments,
         "user_mapping": user_mapping,
         "top_attackers": top_attackers,

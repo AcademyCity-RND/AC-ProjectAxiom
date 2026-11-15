@@ -1286,6 +1286,7 @@ async def guest_analyze(
 
         res_data = {
             "id": f"guest-{uuid.uuid4().hex[:8]}",
+            "source": profile_data.get("source", "live"),
             "handle": profile_data.get("username", target_username),
             "display_name": profile_data.get("display_name") or target_username,
             "platform": payload.platform,

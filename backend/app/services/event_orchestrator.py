@@ -392,6 +392,7 @@ async def run_event_investigation_pipeline(
         summary = {
             "target": event_url,
             "platform": platform,
+            "source": audit_res.get("source", "live"),
             "host_metadata": host_metadata,
             "total_comments": total_comments,
             "unique_commenters": unique_commenters_count,

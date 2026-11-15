@@ -229,6 +229,7 @@ async def run_investigation_pipeline(
         summary = {
             "target": target,
             "platform": platform,
+            "source": profile_data.get("source", "live"),
             "predicted_class": predicted_class,
             "confidence": confidence,
             "class_probabilities": class_probs,

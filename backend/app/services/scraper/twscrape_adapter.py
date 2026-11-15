@@ -131,6 +131,7 @@ class TwscrapeService:
             return {
                 "username": user.username,
                 "platform": "x",
+                "source": "live",
                 "display_name": user.displayname or clean_username,
                 "bio": getattr(user, "rawDescription", "") or "",
                 "followers_count": getattr(user, "followersCount", 0) or 0,
@@ -195,6 +196,7 @@ class TwscrapeService:
 
                 results.append({
                     "platform_post_id": str(tw.id),
+                    "source": "live",
                     "activity_type": act_type,
                     "content": content,
                     "posted_at": parse_datetime(tw.date),
@@ -259,6 +261,7 @@ class TwscrapeService:
 
                     results.append({
                         "platform_post_id": str(tw.id),
+                        "source": "live",
                         "activity_type": "reply",
                         "content": content,
                         "posted_at": parse_datetime(tw.date),

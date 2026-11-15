@@ -210,17 +210,27 @@ def get_mock_data(username: str) -> Dict[str, Any]:
     normalized = username.lower().strip().lstrip("@")
     
     if "bot" in normalized:
-        sample = BOT_SAMPLE.copy()
+        sample = {
+            "profile": {**BOT_SAMPLE["profile"], "source": "mock"},
+            "tweets": [{**t, "source": "mock"} for t in BOT_SAMPLE["tweets"]],
+        }
     elif "buzzer" in normalized or "infiltrator" in normalized:
-        sample = BUZZER_SAMPLE.copy()
+        sample = {
+            "profile": {**BUZZER_SAMPLE["profile"], "source": "mock"},
+            "tweets": [{**t, "source": "mock"} for t in BUZZER_SAMPLE["tweets"]],
+        }
     elif "human" in normalized or "budi" in normalized:
-        sample = ORGANIC_SAMPLE.copy()
+        sample = {
+            "profile": {**ORGANIC_SAMPLE["profile"], "source": "mock"},
+            "tweets": [{**t, "source": "mock"} for t in ORGANIC_SAMPLE["tweets"]],
+        }
     else:
         # Menghasilkan dataset dinamis yang masuk akal untuk username lain
         sample = {
             "profile": {
                 "username": normalized,
                 "platform": "x",
+                "source": "mock",
                 "display_name": f"User {normalized.capitalize()}",
                 "bio": f"Akun publik @{normalized}. Membagikan pemikiran dan interaksi media sosial.",
                 "followers_count": 150,
@@ -232,6 +242,7 @@ def get_mock_data(username: str) -> Dict[str, Any]:
             "tweets": [
                 {
                     "platform_post_id": f"tw_mock_{i}",
+                    "source": "mock",
                     "activity_type": "tweet" if i % 2 == 0 else "reply",
                     "content": f"Aktivitas postingan ke-{i} dari akun @{normalized} mengenai dinamika sosial dan teknologi.",
                     "posted_at": datetime.now(timezone.utc) - timedelta(hours=i * 5),

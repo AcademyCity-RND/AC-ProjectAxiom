@@ -18,6 +18,8 @@ def test_mock_data_archetypes():
     buzzer = get_mock_data("infiltrator_01")
     assert buzzer["profile"]["username"] == "infiltrator_01"
     assert buzzer["profile"]["platform"] == "x"
+    assert buzzer["profile"].get("source") == "mock"
+    assert buzzer["tweets"][0].get("source") == "mock"
     assert buzzer["profile"]["followers_count"] < buzzer["profile"]["following_count"]
     assert any(t["activity_type"] == "reply" for t in buzzer["tweets"])
 
