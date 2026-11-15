@@ -31,6 +31,10 @@ class ForensicDossier(BaseModel):
     attribution_summary: str = Field(
         description="Ringkasan eksekutif untuk komandan/pimpinan intelijen"
     )
+    provenance: Literal["groq-llama3.3-70b", "rule-fallback"] = Field(
+        default="groq-llama3.3-70b",
+        description="Asal usul sintesis intelijen (AI online vs deterministik offline)"
+    )
 
 
 # Pola regex token kontrol berbahaya untuk mencegah prompt injection
@@ -112,8 +116,12 @@ class LLMAnalystService:
         if self.api_key:
             try:
                 from groq import Groq
-                self.client = Groq(api_key=self.api_key)
-                logger.info(f"Klien Groq LLM terinisialisasi dengan model '{self.model}'.")
+                self.client = Groq(
+                    api_key=self.api_key,
+                    timeout=15.0,
+                    max_retries=2
+                )
+                logger.info(f"Klien Groq LLM terinisialisasi dengan model '{self.model}' (timeout=15s, retries=2).")
             except Exception as e:
                 logger.warning(f"Gagal menginisialisasi klien Groq ({e}). Fallback aktif.")
 
@@ -212,6 +220,7 @@ Susun laporan intelijen resmi dalam format JSON."""
 
         raw_json_str = response.choices[0].message.content
         data = json.loads(raw_json_str)
+        data["provenance"] = "groq-llama3.3-70b"
         return ForensicDossier(**data)
 
     def _generate_deterministic_fallback(
@@ -276,7 +285,8 @@ Susun laporan intelijen resmi dalam format JSON."""
             target_institution=target_inst,
             evidence_points=evidence,
             tactical_recommendation=rec,
-            attribution_summary=summary
+            attribution_summary=summary,
+            provenance="rule-fallback"
         )
 
     def generate_event_forensic_dossier(
@@ -368,6 +378,7 @@ Susun laporan intelijen resmi astroturfing event dalam format JSON."""
 
         raw_json_str = response.choices[0].message.content
         data = json.loads(raw_json_str)
+        data["provenance"] = "groq-llama3.3-70b"
         return ForensicDossier(**data)
 
     def _generate_event_deterministic_fallback(
@@ -429,7 +440,8 @@ Susun laporan intelijen resmi astroturfing event dalam format JSON."""
             target_institution=target_inst,
             evidence_points=evidence,
             tactical_recommendation=rec,
-            attribution_summary=summary
+            attribution_summary=summary,
+            provenance="rule-fallback"
         )
 
 

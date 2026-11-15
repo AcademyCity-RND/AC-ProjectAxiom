@@ -11,6 +11,7 @@ export interface ForensicDossier {
   evidence_points: string[];
   tactical_recommendation: string;
   attribution_summary: string;
+  provenance?: 'groq-llama3.3-70b' | 'rule-fallback';
 }
 
 export interface CircadianHeatmapData {

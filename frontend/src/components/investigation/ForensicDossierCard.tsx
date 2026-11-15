@@ -30,6 +30,7 @@ export const ForensicDossierCard: React.FC<ForensicDossierCardProps> = ({
       'Lakukan isolasi klaster CIB pada sistem firewall pertahanan informasi, daftarkan seluruh 18 akun afiliasi ke Watchlist Prioritas, dan eskalasikan laporan forensik ke Satgas Penerangan PUSSIBERAD.',
     attribution_summary:
       'Sindikat buzzer kognitif terorganisir dengan karakteristik narasi copy-paste berbasis kampanye politik/isu strategis.',
+    provenance: 'rule-fallback',
   };
 
   const activeDossier = dossier || fallbackDossier;
@@ -56,9 +57,20 @@ export const ForensicDossierCard: React.FC<ForensicDossierCardProps> = ({
               <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/25 font-semibold">
                 RAHASIA
               </span>
+              {activeDossier.provenance === 'rule-fallback' ? (
+                <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/25 font-semibold">
+                  ATURAN OFFLINE
+                </span>
+              ) : (
+                <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/25 font-semibold">
+                  GROQ LLAMA 3.3
+                </span>
+              )}
             </div>
             <h3 className="text-sm font-semibold tracking-tight text-white mt-0.5">
-              Sintesis Forensik Groq Llama 3.3 70B
+              {activeDossier.provenance === 'rule-fallback'
+                ? 'Sintesis Deterministik (Aturan Forensik Offline)'
+                : 'Sintesis Forensik Groq Llama 3.3 70B'}
             </h3>
           </div>
         </div>
