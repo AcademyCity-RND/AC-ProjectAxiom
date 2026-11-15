@@ -408,7 +408,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                 ) : (
                   filteredLedger.map((item, idx) => (
                     <tr
-                      key={item.comment_id || `ledger-${item.index ?? idx}`}
+                      key={`ledger-${item.index}-${item.post_id || idx}`}
                       role="button"
                       tabIndex={0}
                       aria-label={`Inspeksi komentar dari ${item.username || 'unknown'}`}
