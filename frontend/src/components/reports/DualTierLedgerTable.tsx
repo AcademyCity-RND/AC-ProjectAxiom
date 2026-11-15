@@ -40,10 +40,13 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
   // Filter Full Ledger
   const filteredLedger = useMemo(() => {
     return ledger.filter((item) => {
+      const u = item.username || '';
+      const c = item.content || '';
+      const q = searchQuery.toLowerCase();
       const matchSearch =
         searchQuery === '' ||
-        item.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.content.toLowerCase().includes(searchQuery.toLowerCase());
+        u.toLowerCase().includes(q) ||
+        c.toLowerCase().includes(q);
 
       const matchClass =
         classFilter === 'ALL' ||
@@ -54,6 +57,106 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
       return matchSearch && matchClass;
     });
   }, [ledger, searchQuery, classFilter]);
+
+  const handleInspectAttacker = (atk: TopAttacker, idx: number) => {
+    const rawScore = atk.risk_score ?? 0;
+    const pctScore = rawScore <= 1.0 ? Math.round(rawScore * 100) : Math.round(rawScore);
+    const computedLevel =
+      atk.estimated_category === 'BOT' || pctScore >= 70
+        ? 'CRITICAL'
+        : atk.estimated_category === 'BUZZER' || pctScore >= 40
+        ? 'HIGH'
+        : 'LOW';
+
+    const cleanHandle = (atk.username || '').replace(/^@+/, '');
+    const matchedComments = fullLedger
+      .filter(
+        (l) => (l.username || '').replace(/^@+/, '').toLowerCase() === cleanHandle.toLowerCase()
+      )
+      .map((l) => ({
+        text: l.content || '',
+        timestamp: l.published_at || '',
+        likes: l.likes || 0,
+      }));
+
+    if (matchedComments.length === 0 && (atk as any).sample_comment) {
+      matchedComments.push({
+        text: (atk as any).sample_comment,
+        timestamp: (atk as any).account_created_at || '',
+        likes: (atk as any).total_likes || 0,
+      });
+    }
+
+    onInspectRow({
+      title: `@${cleanHandle || 'unknown'}`,
+      subtitle: `Top Attacker #${idx + 1} • Skor Risiko ${pctScore}%`,
+      threatClass: atk.estimated_category,
+      confidence: pctScore / 100,
+      threatLevel: computedLevel,
+      comments: matchedComments,
+      indicators: [
+        { label: 'Jumlah Komentar/Post', value: String(atk.comment_count ?? 0), mono: true },
+        { label: 'Koneksi Klaster CIB', value: `${atk.cluster_connections || 0} Akun`, mono: true },
+        { label: 'Masuk Jendela Lonjakan (Burst)', value: atk.posted_in_burst_window ? 'Ya' : 'Tidak' },
+        { label: 'Skor Risiko Terhitung', value: `${pctScore}%`, mono: true },
+        ...(atk.account_age_days_at_comment !== undefined
+          ? [{ label: 'Usia Akun Saat Komentar', value: `${atk.account_age_days_at_comment} hari`, mono: true }]
+          : []),
+        ...(atk.account_created_at
+          ? [{ label: 'Tanggal Registrasi Akun', value: atk.account_created_at, mono: true }]
+          : []),
+        ...(atk.signals && atk.signals.length > 0
+          ? [{ label: 'Sinyal Anomali Forensik', value: atk.signals.join(' • ') }]
+          : []),
+      ],
+      rawMetadata: atk,
+    });
+  };
+
+  const handleInspectItem = (item: LedgerItem) => {
+    const rawScore = item.risk_score ?? 0;
+    const pctScore = rawScore <= 1.0 ? Math.round(rawScore * 100) : Math.round(rawScore);
+    const computedLevel =
+      item.estimated_class === 'BOT' || pctScore >= 70
+        ? 'CRITICAL'
+        : item.estimated_class === 'BUZZER' || pctScore >= 40
+        ? 'HIGH'
+        : 'LOW';
+
+    const formattedDate = item.published_at
+      ? (() => {
+          try {
+            return new Date(item.published_at).toLocaleString('id-ID');
+          } catch {
+            return item.published_at;
+          }
+        })()
+      : 'N/A';
+
+    onInspectRow({
+      title: `@${(item.username || '').replace(/^@/, '')}`,
+      subtitle: `${item.platform?.toUpperCase() || 'PLATFORM'} • Diposting: ${formattedDate}`,
+      threatClass: item.estimated_class,
+      confidence: pctScore / 100,
+      threatLevel: computedLevel,
+      textSnippet: item.content || '',
+      comments: [
+        {
+          text: item.content || '',
+          timestamp: item.published_at || '',
+          likes: item.likes || 0,
+        },
+      ],
+      indicators: [
+        { label: 'Kesamaan Klaster CIB', value: item.cluster_similarity ? item.cluster_similarity.toFixed(3) : '0.00', mono: true },
+        { label: 'Terpaut Klaster CIB', value: item.in_cib_cluster ? 'Ya' : 'Tidak' },
+        { label: 'Terdeteksi Jendela Burst', value: item.in_burst_window ? 'Ya' : 'Tidak' },
+        { label: 'Jumlah Like & Reply', value: `${item.likes ?? 0} Likes / ${item.replies ?? 0} Replies`, mono: true },
+        { label: 'Skor Risiko Terhitung', value: `${pctScore}%`, mono: true },
+      ],
+      rawMetadata: item,
+    });
+  };
 
   return (
     <div className="cyber-card p-5 space-y-4">
@@ -142,72 +245,28 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                 ) : (
                   attackers.map((atk, idx) => (
                     <tr
-                      key={idx}
-                      onClick={() => {
-                        const rawScore = atk.risk_score ?? 0;
-                        const pctScore = rawScore <= 1.0 ? Math.round(rawScore * 100) : Math.round(rawScore);
-                        const computedLevel =
-                          atk.estimated_category === 'BOT' || pctScore >= 70
-                            ? 'CRITICAL'
-                            : atk.estimated_category === 'BUZZER' || pctScore >= 40
-                            ? 'HIGH'
-                            : 'LOW';
-
-                        const cleanHandle = atk.username.replace(/^@+/, '');
-                        const matchedComments = fullLedger
-                          .filter(
-                            (l) => l.username.replace(/^@+/, '').toLowerCase() === cleanHandle.toLowerCase()
-                          )
-                          .map((l) => ({
-                            text: l.content,
-                            timestamp: l.published_at,
-                            likes: l.likes,
-                          }));
-
-                        if (matchedComments.length === 0 && (atk as any).sample_comment) {
-                          matchedComments.push({
-                            text: (atk as any).sample_comment,
-                            timestamp: (atk as any).account_created_at || '',
-                            likes: (atk as any).total_likes || 0,
-                          });
+                      key={atk.username ? `atk-${atk.username}-${idx}` : `atk-${idx}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Inspeksi aktor penyerang ${atk.username || 'unknown'}`}
+                      onClick={() => handleInspectAttacker(atk, idx)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleInspectAttacker(atk, idx);
                         }
-
-                        onInspectRow({
-                          title: `@${cleanHandle}`,
-                          subtitle: `Top Attacker #${idx + 1} • Skor Risiko ${pctScore}%`,
-                          threatClass: atk.estimated_category,
-                          confidence: pctScore / 100,
-                          threatLevel: computedLevel,
-                          comments: matchedComments,
-                          indicators: [
-                            { label: 'Jumlah Komentar/Post', value: String(atk.comment_count), mono: true },
-                            { label: 'Koneksi Klaster CIB', value: `${atk.cluster_connections || 0} Akun`, mono: true },
-                            { label: 'Masuk Jendela Lonjakan (Burst)', value: atk.posted_in_burst_window ? 'Ya' : 'Tidak' },
-                            { label: 'Skor Risiko Terhitung', value: `${pctScore}%`, mono: true },
-                            ...(atk.account_age_days_at_comment !== undefined
-                              ? [{ label: 'Usia Akun Saat Komentar', value: `${atk.account_age_days_at_comment} hari`, mono: true }]
-                              : []),
-                            ...(atk.account_created_at
-                              ? [{ label: 'Tanggal Registrasi Akun', value: atk.account_created_at, mono: true }]
-                              : []),
-                            ...(atk.signals && atk.signals.length > 0
-                              ? [{ label: 'Sinyal Anomali Forensik', value: atk.signals.join(' • ') }]
-                              : []),
-                          ],
-                          rawMetadata: atk,
-                        });
                       }}
-                      className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
+                      className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group focus-visible:outline-hidden focus-visible:bg-slate-800/60"
                     >
                       <td className="py-3 px-4 font-mono font-medium text-sky-400 group-hover:text-sky-300">
                         <span className="text-slate-500 mr-2 text-xs">#{idx + 1}</span>
-                        @{atk.username.replace(/^@+/, '')}
+                        @{(atk.username || '').replace(/^@+/, '')}
                       </td>
                       <td className="py-3 px-4">
                         <ThreatBadge type="class" value={atk.estimated_category} />
                       </td>
                       <td className="py-3 px-4 text-center font-mono tabular-nums text-xs text-slate-200">
-                        {atk.comment_count}
+                        {atk.comment_count ?? 0}
                       </td>
                       <td className="py-3 px-4 text-center font-mono tabular-nums text-xs">
                         {(atk.cluster_connections ?? 0) > 0 ? (
@@ -238,7 +297,7 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                           ? atk.risk_score <= 1.0
                             ? `${Math.round(atk.risk_score * 100)}%`
                             : `${atk.risk_score.toFixed(0)}%`
-                          : atk.risk_score}
+                          : atk.risk_score ?? '-'}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
@@ -347,56 +406,32 @@ export const DualTierLedgerTable: React.FC<DualTierLedgerTableProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  filteredLedger.map((item) => (
+                  filteredLedger.map((item, idx) => (
                     <tr
-                      key={item.index}
-                      onClick={() => {
-                        const rawScore = item.risk_score ?? 0;
-                        const pctScore = rawScore <= 1.0 ? Math.round(rawScore * 100) : Math.round(rawScore);
-                        const computedLevel =
-                          item.estimated_class === 'BOT' || pctScore >= 70
-                            ? 'CRITICAL'
-                            : item.estimated_class === 'BUZZER' || pctScore >= 40
-                            ? 'HIGH'
-                            : 'LOW';
-
-                        onInspectRow({
-                          title: `@${item.username.replace(/^@/, '')}`,
-                          subtitle: `${item.platform?.toUpperCase() || 'PLATFORM'} • Diposting: ${new Date(item.published_at).toLocaleString('id-ID')}`,
-                          threatClass: item.estimated_class,
-                          confidence: pctScore / 100,
-                          threatLevel: computedLevel,
-                          textSnippet: item.content,
-                          comments: [
-                            {
-                              text: item.content,
-                              timestamp: item.published_at,
-                              likes: item.likes,
-                            },
-                          ],
-                          indicators: [
-                            { label: 'Kesamaan Klaster CIB', value: item.cluster_similarity ? item.cluster_similarity.toFixed(3) : '0.00', mono: true },
-                            { label: 'Terpaut Klaster CIB', value: item.in_cib_cluster ? 'Ya' : 'Tidak' },
-                            { label: 'Terdeteksi Jendela Burst', value: item.in_burst_window ? 'Ya' : 'Tidak' },
-                            { label: 'Jumlah Like & Reply', value: `${item.likes} Likes / ${item.replies} Replies`, mono: true },
-                            { label: 'Skor Risiko Terhitung', value: `${pctScore}%`, mono: true },
-                          ],
-                          rawMetadata: item,
-                        });
+                      key={item.comment_id || `ledger-${item.index ?? idx}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Inspeksi komentar dari ${item.username || 'unknown'}`}
+                      onClick={() => handleInspectItem(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleInspectItem(item);
+                        }
                       }}
-                      className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group"
+                      className="hover:bg-slate-800/40 cursor-pointer transition-colors duration-150 group focus-visible:outline-hidden focus-visible:bg-slate-800/60"
                     >
                       <td className="py-3 px-4 font-mono font-medium text-sky-400 group-hover:text-sky-300 truncate max-w-[150px]">
-                        {item.username}
+                        {item.username || 'anonymous'}
                       </td>
                       <td className="py-3 px-4">
                         <ThreatBadge type="class" value={item.estimated_class} />
                       </td>
-                      <td className="py-3 px-4 text-slate-300 text-xs truncate max-w-xs md:max-w-md lg:max-w-lg" title={item.content}>
-                        {item.content}
+                      <td className="py-3 px-4 text-slate-300 text-xs truncate max-w-xs md:max-w-md lg:max-w-lg" title={item.content || ''}>
+                        {item.content || '-'}
                       </td>
                       <td className="py-3 px-4 text-right font-mono tabular-nums text-xs font-semibold text-rose-400">
-                        {item.risk_score.toFixed(1)}
+                        {(item.risk_score ?? 0).toFixed(1)}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <span className="text-xs text-slate-400 group-hover:text-sky-400 inline-flex items-center gap-1 font-medium transition-colors">
