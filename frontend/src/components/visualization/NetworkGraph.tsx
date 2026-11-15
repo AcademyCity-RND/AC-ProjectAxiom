@@ -28,30 +28,13 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'cib' | 'interaction'>('all');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  // Jika belum ada data graf jejaring -> Tactical Empty State
-  if (!graphData || !graphData.elements?.nodes?.length) {
-    return (
-      <div className="cyber-card p-14 flex flex-col items-center justify-center text-center space-y-4 bg-slate-900 border border-slate-800/80 shadow-xs">
-        <div className="w-10 h-10 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400">
-          <Share2 className="w-5 h-5" />
-        </div>
-        <div className="max-w-md space-y-1.5">
-          <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
-            GRAF JEJARING BELUM TERPILIH
-          </h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Pilih kasus investigasi dari menu Beranda atau Direktori Target untuk merender visualisasi Social Network Analysis (SNA), pemetaan akun sentral, dan klaster copypasta CIB.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const rawNodes = graphData.elements.nodes;
-  const rawEdges = graphData.elements.edges || [];
+  const hasValidData = Boolean(graphData?.elements?.nodes && graphData.elements.nodes.length > 0);
+  const rawNodes = useMemo(() => (hasValidData ? graphData!.elements.nodes : []), [hasValidData, graphData]);
+  const rawEdges = useMemo(() => (hasValidData ? (graphData!.elements.edges || []) : []), [hasValidData, graphData]);
 
   // Filter edges based on selector
   const filteredRawEdges = useMemo(() => {
+    if (!hasValidData) return [];
     if (filterType === 'cib') {
       return rawEdges.filter((e) => e.data.link_type === 'semantic_cib' || e.data.weight >= 0.85);
     }
@@ -59,10 +42,11 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       return rawEdges.filter((e) => e.data.link_type !== 'semantic_cib');
     }
     return rawEdges;
-  }, [rawEdges, filterType]);
+  }, [hasValidData, rawEdges, filterType]);
 
   // Layout conversion: Radial layout around center (400, 260)
   const initialNodes: Node[] = useMemo(() => {
+    if (!hasValidData || rawNodes.length === 0) return [];
     const center = { x: 380, y: 240 };
     const radius = 180;
     const nonTargetNodes = rawNodes.filter((n) => n.data.id !== 'target' && n.data.type !== 'target');
@@ -158,10 +142,11 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     });
 
     return nodesList;
-  }, [rawNodes]);
+  }, [hasValidData, rawNodes]);
 
   // Edges Conversion
   const initialEdges: Edge[] = useMemo(() => {
+    if (!hasValidData) return [];
     return filteredRawEdges.map((e) => {
       const isCib = Boolean(e.data.link_type === 'semantic_cib' || e.data.weight >= 0.85);
       const isSelected = Boolean(selectedNodeId && (e.data.source === selectedNodeId || e.data.target === selectedNodeId));
@@ -195,7 +180,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         },
       };
     });
-  }, [filteredRawEdges, selectedNodeId]);
+  }, [hasValidData, filteredRawEdges, selectedNodeId]);
 
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
@@ -220,6 +205,25 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       onSelectNode(node.data.raw);
     }
   };
+
+  // Jika belum ada data graf jejaring -> Tactical Empty State (dirender setelah semua hook dieksekusi)
+  if (!hasValidData) {
+    return (
+      <div className="cyber-card p-14 flex flex-col items-center justify-center text-center space-y-4 bg-slate-900 border border-slate-800/80 shadow-xs">
+        <div className="w-10 h-10 rounded-full bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400">
+          <Share2 className="w-5 h-5" />
+        </div>
+        <div className="max-w-md space-y-1.5">
+          <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-300">
+            GRAF JEJARING BELUM TERPILIH
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Pilih kasus investigasi dari menu Beranda atau Direktori Target untuk merender visualisasi Social Network Analysis (SNA), pemetaan akun sentral, dan klaster copypasta CIB.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cyber-card p-5 space-y-3 flex flex-col h-[560px] bg-slate-900 border border-slate-800/80 shadow-xs">
