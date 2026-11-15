@@ -754,7 +754,7 @@ export const App: React.FC = () => {
           {targetsSubView === 'watchlist' ? (
             <WatchlistManager
               onStartInvestigate={(target, platform) => {
-                handleStartInvestigation(target, platform, 150, false);
+                handleStartInvestigation(target, platform, 200, false);
                 setActiveTab('overview');
                 setShowSearchForm(false);
               }}

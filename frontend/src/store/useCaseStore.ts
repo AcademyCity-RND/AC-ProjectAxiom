@@ -164,7 +164,7 @@ export const useCaseStore = create<CaseState>((set, get) => {
     },
 
     // Memulai investigasi akun target (@handle)
-    startActorInvestigation: async (target, platform = 'x', maxCount = 150) => {
+    startActorInvestigation: async (target, platform = 'x', maxCount = 200) => {
       set({ isAnalyzing: true, error: null });
       try {
         const res = await api.startActorInvestigation(target, platform, maxCount);

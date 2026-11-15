@@ -12,7 +12,7 @@ export const ActorSearchForm: React.FC<ActorSearchFormProps> = ({ onSearch, isLo
   const [mode, setMode] = useState<'actor' | 'event'>('actor');
   const [inputVal, setInputVal] = useState<string>('');
   const [platform, setPlatform] = useState<PlatformType>('x');
-  const [maxCount, setMaxCount] = useState<number>(150);
+  const [maxCount, setMaxCount] = useState<number>(200);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const detectPlatformFromUrl = (url: string): PlatformType => {

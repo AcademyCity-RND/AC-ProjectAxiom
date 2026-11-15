@@ -131,7 +131,7 @@ export const api = {
   startActorInvestigation: async (
     target: string,
     platform: PlatformType = 'x',
-    maxInteractions: number = 150
+    maxInteractions: number = 200
   ): Promise<{ status: string; message: string; case_id: string; platform?: string }> => {
     const response = await apiClient.post('/investigate/actor', {
       target,

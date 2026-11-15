@@ -21,7 +21,7 @@ class InvestigationCase(Base):
     status: Mapped[str] = mapped_column(String(30), default="queued", index=True, nullable=False)
     max_interactions: Mapped[int] = mapped_column(Integer, default=200, nullable=False)
     depth_level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-    created_by: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(50), index=True, nullable=True)
     result_summary: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
